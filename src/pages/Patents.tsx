@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Search, Filter, X } from 'lucide-react';
@@ -9,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import PatentCard from '@/components/PatentCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { fetchPatents, deletePatent } from '@/lib/api';
+import { fetchPatentsAndEmployees, deletePatent } from '@/lib/api';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,6 +55,9 @@ const Patents = () => {
     },
   });
   
+  // For non-realtime search
+  const [pendingSearchQuery, setPendingSearchQuery] = useState('');
+  
   // Get unique client IDs for filtering
   const uniqueClientIds = [...new Set(patents.map(patent => patent.client_id))];
   
@@ -65,12 +67,12 @@ const Patents = () => {
   
   // Fetch patents from Supabase
   useEffect(() => {
-    const getPatents = async () => {
+    const getData = async () => {
       try {
         setLoading(true);
-        const data = await fetchPatents();
-        setPatents(data);
-        setFilteredPatents(data);
+        const { patents } = await fetchPatentsAndEmployees();
+        setPatents(patents);
+        setFilteredPatents(patents);
       } catch (error) {
         console.error('Error fetching patents:', error);
         toast.error('Failed to load patents');
@@ -79,32 +81,12 @@ const Patents = () => {
       }
     };
 
-    getPatents();
+    getData();
   }, []);
   
-  // Apply search and filters
+  // Apply filters but not search query (it will only apply on button click)
   useEffect(() => {
-    const query = searchQuery.toLowerCase().trim();
-    
     let filtered = patents;
-    
-    // Apply text search if query exists
-    if (query) {
-      filtered = filtered.filter(
-        (patent) =>
-          patent.patent_title.toLowerCase().includes(query) ||
-          patent.tracking_id.toLowerCase().includes(query) ||
-          patent.patent_applicant.toLowerCase().includes(query) ||
-          patent.client_id.toLowerCase().includes(query) ||
-          (patent.application_no && patent.application_no.toLowerCase().includes(query)) ||
-          (patent.ps_drafter_assgn && patent.ps_drafter_assgn.toLowerCase().includes(query)) ||
-          (patent.ps_filer_assgn && patent.ps_filer_assgn.toLowerCase().includes(query)) ||
-          (patent.cs_drafter_assgn && patent.cs_drafter_assgn.toLowerCase().includes(query)) ||
-          (patent.cs_filer_assgn && patent.cs_filer_assgn.toLowerCase().includes(query)) ||
-          (patent.fer_drafter_assgn && patent.fer_drafter_assgn.toLowerCase().includes(query)) ||
-          (patent.fer_filer_assgn && patent.fer_filer_assgn.toLowerCase().includes(query))
-      );
-    }
     
     // Apply drafting status filter
     if (filters.draftingStatus) {
@@ -182,13 +164,36 @@ const Patents = () => {
       });
     }
     
+    // Apply text search filter only if there's an active search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(
+        (patent) =>
+          patent.patent_title.toLowerCase().includes(query) ||
+          patent.tracking_id.toLowerCase().includes(query) ||
+          patent.patent_applicant.toLowerCase().includes(query) ||
+          patent.client_id.toLowerCase().includes(query) ||
+          (patent.application_no && patent.application_no.toLowerCase().includes(query)) ||
+          (patent.ps_drafter_assgn && patent.ps_drafter_assgn.toLowerCase().includes(query)) ||
+          (patent.ps_filer_assgn && patent.ps_filer_assgn.toLowerCase().includes(query)) ||
+          (patent.cs_drafter_assgn && patent.cs_drafter_assgn.toLowerCase().includes(query)) ||
+          (patent.cs_filer_assgn && patent.cs_filer_assgn.toLowerCase().includes(query)) ||
+          (patent.fer_drafter_assgn && patent.fer_drafter_assgn.toLowerCase().includes(query)) ||
+          (patent.fer_filer_assgn && patent.fer_filer_assgn.toLowerCase().includes(query))
+      );
+    }
+    
     setFilteredPatents(filtered);
   }, [searchQuery, patents, filters]);
   
+  // Function to handle search execution (only on button click)
+  const handleSearch = () => {
+    setSearchQuery(pendingSearchQuery);
+  };
+  
+  // Handle delete patent
   const handleDeletePatent = async (id: string) => {
     try {
-      // Here we would make an API call to delete the patent
-      // For now, let's just update the UI
       const success = await deletePatent(id);
       if (success) {
         setPatents(patents.filter(patent => patent.id !== id));
@@ -221,6 +226,8 @@ const Patents = () => {
         end: null,
       },
     });
+    setSearchQuery('');
+    setPendingSearchQuery('');
   };
   
   const getInProgressPatents = () => {
@@ -246,6 +253,7 @@ const Patents = () => {
     if (filters.ferStatus) count++;
     if (filters.clientId) count++;
     if (filters.dateRange.start || filters.dateRange.end) count++;
+    if (searchQuery) count++;
     return count;
   };
 
@@ -275,10 +283,20 @@ const Patents = () => {
           <Input
             placeholder="Search patents..."
             className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={pendingSearchQuery}
+            onChange={(e) => setPendingSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSearch();
+              }
+            }}
           />
         </div>
+        
+        <Button variant="secondary" onClick={handleSearch}>
+          <Search className="mr-2 h-4 w-4" />
+          Search
+        </Button>
         
         <Popover>
           <PopoverTrigger asChild>

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Employee, FERHistory, Inventor, Patent } from "./types";
 import { toast } from "sonner";
@@ -454,5 +453,47 @@ export const deleteEmployee = async (id: string): Promise<boolean> => {
     console.error("Error deleting employee:", error);
     toast.error("Failed to delete employee");
     return false;
+  }
+};
+
+// Optimized function to fetch both patents and employees in a single function call
+export const fetchPatentsAndEmployees = async (): Promise<{patents: Patent[], employees: Employee[]}> => {
+  try {
+    // Make both requests in parallel using Promise.all
+    const [patentsResponse, employeesResponse] = await Promise.all([
+      supabase
+        .from("patents")
+        .select(`
+          *,
+          inventors(*),
+          fer_history(*)
+        `),
+      supabase
+        .from("employees")
+        .select("*")
+    ]);
+
+    if (patentsResponse.error) {
+      throw patentsResponse.error;
+    }
+
+    if (employeesResponse.error) {
+      throw employeesResponse.error;
+    }
+
+    // Cast the roles to the expected type for employees
+    const employees = (employeesResponse.data || []).map(employee => ({
+      ...employee,
+      role: employee.role as 'admin' | 'drafter' | 'filer'
+    }));
+
+    return {
+      patents: patentsResponse.data || [],
+      employees: employees
+    };
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    toast.error("Failed to load data");
+    return { patents: [], employees: [] };
   }
 };

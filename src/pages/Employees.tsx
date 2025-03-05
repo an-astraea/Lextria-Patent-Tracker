@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Employee } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
-import { fetchEmployees, deleteEmployee } from '@/lib/api';
+import { fetchPatentsAndEmployees, deleteEmployee } from '@/lib/api';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -28,6 +28,7 @@ import {
 const Employees = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [pendingSearchQuery, setPendingSearchQuery] = useState('');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,14 +47,14 @@ const Employees = () => {
     }
   }, [user, navigate]);
   
-  // Fetch employees from Supabase
+  // Fetch employees using the optimized function
   useEffect(() => {
-    const getEmployees = async () => {
+    const getData = async () => {
       try {
         setLoading(true);
-        const data = await fetchEmployees();
-        setEmployees(data);
-        setFilteredEmployees(data);
+        const { employees } = await fetchPatentsAndEmployees();
+        setEmployees(employees);
+        setFilteredEmployees(employees);
       } catch (error) {
         console.error('Error fetching employees:', error);
         toast.error('Failed to load employees');
@@ -63,14 +64,12 @@ const Employees = () => {
     };
 
     if (user?.role === 'admin') {
-      getEmployees();
+      getData();
     }
   }, [user]);
   
-  // Handle search and filter
+  // Apply filters on change, but search only when the search button is clicked
   useEffect(() => {
-    const query = searchQuery.toLowerCase().trim();
-    
     let filtered = employees;
     
     // Apply role filter if selected
@@ -78,8 +77,9 @@ const Employees = () => {
       filtered = filtered.filter(emp => emp.role === roleFilter);
     }
     
-    // Apply search query if present
-    if (query) {
+    // Apply search query only when search is activated
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(
         (employee) =>
           employee.full_name.toLowerCase().includes(query) ||
@@ -91,6 +91,11 @@ const Employees = () => {
     
     setFilteredEmployees(filtered);
   }, [searchQuery, employees, roleFilter]);
+  
+  // Handle search execution (only on button click)
+  const handleSearch = () => {
+    setSearchQuery(pendingSearchQuery);
+  };
   
   const handleDelete = async (id: string) => {
     try {
@@ -143,10 +148,20 @@ const Employees = () => {
           <Input
             placeholder="Search employees..."
             className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={pendingSearchQuery}
+            onChange={(e) => setPendingSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSearch();
+              }
+            }}
           />
         </div>
+        
+        <Button variant="secondary" onClick={handleSearch}>
+          <Search className="mr-2 h-4 w-4" />
+          Search
+        </Button>
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
