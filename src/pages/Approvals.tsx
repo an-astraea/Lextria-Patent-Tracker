@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { fetchPendingReviews, approvePatentReview } from '@/lib/api';
@@ -81,6 +82,10 @@ const Approvals = () => {
             return p;
           });
         });
+        
+        // Dispatch custom event to notify other components about the approval
+        const approvalEvent = new CustomEvent('approval-complete');
+        window.dispatchEvent(approvalEvent);
       }
     } catch (error) {
       console.error('Error approving review:', error);

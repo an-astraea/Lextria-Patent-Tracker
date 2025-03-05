@@ -6,13 +6,14 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight, FileText, FileCheck, Clock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PatentCard from '@/components/PatentCard';
-import { fetchPatents, fetchDrafterAssignments, fetchFilerAssignments } from '@/lib/api';
+import { fetchPatents, fetchDrafterAssignments, fetchFilerAssignments, fetchPendingReviews } from '@/lib/api';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [patents, setPatents] = React.useState<Patent[]>([]);
   const [userAssignedPatents, setUserAssignedPatents] = React.useState<Patent[]>([]);
+  const [pendingApprovals, setPendingApprovals] = React.useState<Patent[]>([]);
   const [loading, setLoading] = React.useState(true);
   
   // Get user from localStorage
@@ -33,6 +34,10 @@ const Dashboard = () => {
         } else if (user?.role === 'filer') {
           const filerAssignments = await fetchFilerAssignments(user.full_name);
           setUserAssignedPatents(filerAssignments);
+        } else if (user?.role === 'admin') {
+          // Fetch pending approvals for admin
+          const approvals = await fetchPendingReviews();
+          setPendingApprovals(approvals);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -44,6 +49,34 @@ const Dashboard = () => {
 
     fetchData();
   }, [user?.full_name, user?.role]);
+  
+  // Add a function to refresh pending approvals specifically for admins
+  const refreshPendingApprovals = async () => {
+    if (user?.role === 'admin') {
+      try {
+        const approvals = await fetchPendingReviews();
+        setPendingApprovals(approvals);
+      } catch (error) {
+        console.error('Error refreshing pending approvals:', error);
+      }
+    }
+  };
+
+  // Listen for approval events
+  React.useEffect(() => {
+    // Create a custom event listener for approval completions
+    const handleApprovalComplete = () => {
+      refreshPendingApprovals();
+    };
+
+    // Add event listener
+    window.addEventListener('approval-complete', handleApprovalComplete);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('approval-complete', handleApprovalComplete);
+    };
+  }, []);
   
   // Calculate statistics
   const totalPatents = patents.length;
@@ -82,14 +115,7 @@ const Dashboard = () => {
   
   // Get patents pending approval (admin only)
   const getPendingApprovalCount = (): number => {
-    return patents.filter(patent => 
-      (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0) || 
-      (patent.ps_filing_status === 1 && patent.ps_review_file_status === 0) ||
-      (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0) ||
-      (patent.cs_filing_status === 1 && patent.cs_review_file_status === 0) ||
-      (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0) ||
-      (patent.fer_filing_status === 1 && patent.fer_review_file_status === 0)
-    ).length;
+    return pendingApprovals.length;
   };
   
   const pendingApprovalCount = getPendingApprovalCount();
