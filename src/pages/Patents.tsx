@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Patent } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
 import { patents } from '@/lib/data';
-import { PatentCard } from '@/components/PatentCard';
+import PatentCard from '@/components/PatentCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
 
 const Patents = () => {
   const navigate = useNavigate();
@@ -55,6 +56,13 @@ const Patents = () => {
       (!patent.fer_status || patent.fer_completion_status)
     );
   };
+
+  const handleDeletePatent = (id: string) => {
+    // In a real app, you would make an API call to delete the patent
+    // For now, just remove it from the filtered list and show a toast
+    setFilteredPatents(patents.filter(patent => patent.id !== id));
+    toast.success('Patent deleted successfully');
+  };
   
   return (
     <div className="space-y-6">
@@ -88,7 +96,7 @@ const Patents = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {getInProgressPatents().length > 0 ? (
               getInProgressPatents().map((patent) => (
-                <PatentCard key={patent.id} patent={patent} />
+                <PatentCard key={patent.id} patent={patent} onDelete={handleDeletePatent} />
               ))
             ) : (
               <div className="col-span-full">
@@ -104,7 +112,7 @@ const Patents = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {getCompletedPatents().length > 0 ? (
               getCompletedPatents().map((patent) => (
-                <PatentCard key={patent.id} patent={patent} />
+                <PatentCard key={patent.id} patent={patent} onDelete={handleDeletePatent} />
               ))
             ) : (
               <div className="col-span-full">

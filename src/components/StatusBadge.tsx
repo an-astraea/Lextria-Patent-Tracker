@@ -1,16 +1,17 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
+import { Badge, BadgeProps } from '@/components/ui/badge';
 import { CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react';
 
 type Status = 'completed' | 'pending' | 'inProgress' | 'notStarted';
 
 interface StatusBadgeProps {
-  status: Status;
+  status: Status | string;
   label?: string;
   showIcon?: boolean;
   className?: string;
+  variant?: BadgeProps['variant'];
 }
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({
@@ -18,36 +19,59 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
   label,
   showIcon = true,
   className,
+  variant: propVariant,
 }) => {
-  const statusConfig = {
-    completed: {
-      color: 'bg-green-100 text-green-800 border-green-200',
-      icon: CheckCircle,
-      defaultLabel: 'Completed',
-    },
-    pending: {
-      color: 'bg-orange-100 text-orange-800 border-orange-200',
-      icon: Clock,
-      defaultLabel: 'Pending',
-    },
-    inProgress: {
-      color: 'bg-blue-100 text-blue-800 border-blue-200',
-      icon: AlertCircle,
-      defaultLabel: 'In Progress',
-    },
-    notStarted: {
-      color: 'bg-gray-100 text-gray-800 border-gray-200',
-      icon: XCircle,
-      defaultLabel: 'Not Started',
-    },
-  };
+  let displayLabel = label;
+  let icon = CheckCircle;
+  let color = 'bg-green-100 text-green-800 border-green-200';
+  let defaultLabel = 'Status';
+  
+  // Set up configuration based on the status
+  switch (status) {
+    case 'completed':
+      defaultLabel = 'Completed';
+      icon = CheckCircle;
+      color = 'bg-green-100 text-green-800 border-green-200';
+      break;
+    case 'pending':
+      defaultLabel = 'Pending';
+      icon = Clock;
+      color = 'bg-orange-100 text-orange-800 border-orange-200';
+      break;
+    case 'inProgress':
+      defaultLabel = 'In Progress';
+      icon = AlertCircle;
+      color = 'bg-blue-100 text-blue-800 border-blue-200';
+      break;
+    case 'notStarted':
+      defaultLabel = 'Not Started';
+      icon = XCircle;
+      color = 'bg-gray-100 text-gray-800 border-gray-200';
+      break;
+    case 'PS Draft':
+    case 'PS Filing':
+    case 'CS Draft':
+    case 'CS Filing':
+    case 'FER Draft':
+    case 'FER Filing':
+      defaultLabel = status;
+      icon = AlertCircle;
+      color = 'bg-blue-100 text-blue-800 border-blue-200';
+      break;
+    default:
+      // Default fallback for any other string values
+      defaultLabel = status;
+      break;
+  }
 
-  const { color, icon: Icon, defaultLabel } = statusConfig[status];
-  const displayLabel = label || defaultLabel;
+  const Icon = icon;
+  displayLabel = displayLabel || defaultLabel;
+
+  const variant = propVariant || (status === 'completed' ? 'outline' : 'outline');
 
   return (
     <Badge
-      variant="outline"
+      variant={variant}
       className={cn(
         'rounded-full px-3 py-1 text-xs font-medium flex items-center gap-1',
         color,

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Patent } from '@/lib/types';
@@ -7,23 +6,20 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { CheckCircle, FileText } from 'lucide-react';
-import { StatusBadge } from '@/components/StatusBadge';
+import StatusBadge from '@/components/StatusBadge';
 
 const Approvals = () => {
   const navigate = useNavigate();
   const [pendingApprovals, setPendingApprovals] = React.useState<Patent[]>([]);
   
-  // Get user role from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
-  // Redirect if not admin
   React.useEffect(() => {
     if (user?.role !== 'admin') {
       toast.error('Access denied. Admin privileges required.');
       navigate('/dashboard');
     } else {
-      // Fetch patents pending approval
       const approvals = getPatentsPendingApproval();
       setPendingApprovals(approvals);
     }
@@ -52,14 +48,12 @@ const Approvals = () => {
   };
   
   const approveItem = (id: string) => {
-    // In a real app, you would make an API call
-    // For now, just update the local state and show a toast
     setPendingApprovals(pendingApprovals.filter(patent => patent.id !== id));
     toast.success('Approval granted successfully');
   };
   
   if (user?.role !== 'admin') {
-    return null; // Don't render anything if not admin
+    return null;
   }
   
   return (

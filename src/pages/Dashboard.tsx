@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { patents } from '@/lib/data';
@@ -6,7 +5,7 @@ import { Patent } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, FileText, FileCheck, Clock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PatentCard } from '@/components/PatentCard';
+import PatentCard from '@/components/PatentCard';
 
 const Dashboard = () => {
   const navigate = useNavigate();

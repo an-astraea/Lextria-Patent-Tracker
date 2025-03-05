@@ -178,19 +178,19 @@ const PatentDetails = () => {
             <CardHeader>
               <CardTitle>Provisional Specification</CardTitle>
               <div className="flex flex-wrap gap-2 mt-2">
-                <Badge variant={patent.ps_drafting_status ? "success" : "outline"}>
+                <Badge variant={patent.ps_drafting_status ? "secondary" : "outline"}>
                   {patent.ps_drafting_status ? "Drafted" : "Drafting Pending"}
                 </Badge>
-                <Badge variant={patent.ps_review_draft_status ? "success" : "outline"}>
+                <Badge variant={patent.ps_review_draft_status ? "secondary" : "outline"}>
                   {patent.ps_review_draft_status ? "Draft Reviewed" : "Draft Review Pending"}
                 </Badge>
-                <Badge variant={patent.ps_filing_status ? "success" : "outline"}>
+                <Badge variant={patent.ps_filing_status ? "secondary" : "outline"}>
                   {patent.ps_filing_status ? "Filed" : "Filing Pending"}
                 </Badge>
-                <Badge variant={patent.ps_review_file_status ? "success" : "outline"}>
+                <Badge variant={patent.ps_review_file_status ? "secondary" : "outline"}>
                   {patent.ps_review_file_status ? "Filing Reviewed" : "Filing Review Pending"}
                 </Badge>
-                <Badge variant={patent.ps_completion_status ? "success" : "outline"}>
+                <Badge variant={patent.ps_completion_status ? "secondary" : "outline"}>
                   {patent.ps_completion_status ? "Completed" : "Incomplete"}
                 </Badge>
               </div>
@@ -223,19 +223,19 @@ const PatentDetails = () => {
             <CardHeader>
               <CardTitle>Complete Specification</CardTitle>
               <div className="flex flex-wrap gap-2 mt-2">
-                <Badge variant={patent.cs_drafting_status ? "success" : "outline"}>
+                <Badge variant={patent.cs_drafting_status ? "secondary" : "outline"}>
                   {patent.cs_drafting_status ? "Drafted" : "Drafting Pending"}
                 </Badge>
-                <Badge variant={patent.cs_review_draft_status ? "success" : "outline"}>
+                <Badge variant={patent.cs_review_draft_status ? "secondary" : "outline"}>
                   {patent.cs_review_draft_status ? "Draft Reviewed" : "Draft Review Pending"}
                 </Badge>
-                <Badge variant={patent.cs_filing_status ? "success" : "outline"}>
+                <Badge variant={patent.cs_filing_status ? "secondary" : "outline"}>
                   {patent.cs_filing_status ? "Filed" : "Filing Pending"}
                 </Badge>
-                <Badge variant={patent.cs_review_file_status ? "success" : "outline"}>
+                <Badge variant={patent.cs_review_file_status ? "secondary" : "outline"}>
                   {patent.cs_review_file_status ? "Filing Reviewed" : "Filing Review Pending"}
                 </Badge>
-                <Badge variant={patent.cs_completion_status ? "success" : "outline"}>
+                <Badge variant={patent.cs_completion_status ? "secondary" : "outline"}>
                   {patent.cs_completion_status ? "Completed" : "Incomplete"}
                 </Badge>
               </div>
@@ -300,24 +300,24 @@ const PatentDetails = () => {
             <CardHeader>
               <CardTitle>First Examination Report (FER)</CardTitle>
               <div className="flex flex-wrap gap-2 mt-2">
-                <Badge variant={patent.fer_status ? "success" : "outline"}>
+                <Badge variant={patent.fer_status ? "secondary" : "outline"}>
                   {patent.fer_status ? "FER Enabled" : "No FER"}
                 </Badge>
                 {patent.fer_status ? (
                   <>
-                    <Badge variant={patent.fer_drafter_status ? "success" : "outline"}>
+                    <Badge variant={patent.fer_drafter_status ? "secondary" : "outline"}>
                       {patent.fer_drafter_status ? "FER Drafted" : "FER Drafting Pending"}
                     </Badge>
-                    <Badge variant={patent.fer_review_draft_status ? "success" : "outline"}>
+                    <Badge variant={patent.fer_review_draft_status ? "secondary" : "outline"}>
                       {patent.fer_review_draft_status ? "FER Draft Reviewed" : "FER Draft Review Pending"}
                     </Badge>
-                    <Badge variant={patent.fer_filing_status ? "success" : "outline"}>
+                    <Badge variant={patent.fer_filing_status ? "secondary" : "outline"}>
                       {patent.fer_filing_status ? "FER Filed" : "FER Filing Pending"}
                     </Badge>
-                    <Badge variant={patent.fer_review_file_status ? "success" : "outline"}>
+                    <Badge variant={patent.fer_review_file_status ? "secondary" : "outline"}>
                       {patent.fer_review_file_status ? "FER Filing Reviewed" : "FER Filing Review Pending"}
                     </Badge>
-                    <Badge variant={patent.fer_completion_status ? "success" : "outline"}>
+                    <Badge variant={patent.fer_completion_status ? "secondary" : "outline"}>
                       {patent.fer_completion_status ? "FER Completed" : "FER Incomplete"}
                     </Badge>
                   </>
