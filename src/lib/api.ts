@@ -41,10 +41,7 @@ export const fetchPatentById = async (id: string): Promise<Patent | null> => {
       throw error;
     }
 
-    return data ? {
-      ...data,
-      role: data.role as 'admin' | 'drafter' | 'filer'
-    } : null;
+    return data || null;
   } catch (error) {
     console.error("Error fetching patent:", error);
     toast.error("Failed to load patent details");
@@ -75,10 +72,8 @@ export const updatePatentStatus = async (
   }
 };
 
-// New function to delete a patent
 export const deletePatent = async (id: string): Promise<boolean> => {
   try {
-    // Delete the patent
     const { error } = await supabase
       .from("patents")
       .delete()
@@ -96,7 +91,6 @@ export const deletePatent = async (id: string): Promise<boolean> => {
   }
 };
 
-// Forms Functions for CS Filing
 export const updatePatentForms = async (
   id: string,
   formData: {
@@ -146,6 +140,34 @@ export const fetchEmployees = async (): Promise<Employee[]> => {
     console.error("Error fetching employees:", error);
     toast.error("Failed to load employees");
     return [];
+  }
+};
+
+export const fetchEmployeeById = async (id: string): Promise<Employee | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("employees")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    // Cast the role to the expected type
+    return {
+      ...data,
+      role: data.role as 'admin' | 'drafter' | 'filer'
+    };
+  } catch (error) {
+    console.error("Error fetching employee:", error);
+    toast.error("Failed to load employee details");
+    return null;
   }
 };
 
@@ -389,7 +411,7 @@ export const completeFilerTask = async (
 };
 
 // Added function to create a new employee
-export const createEmployee = async (employee: Omit<Employee, 'id'>): Promise<Employee | null> => {
+export const createEmployee = async (employee: Omit<Employee, 'id' | 'created_at' | 'updated_at'>): Promise<Employee | null> => {
   try {
     const { data, error } = await supabase
       .from("employees")

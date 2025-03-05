@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -424,8 +423,8 @@ const AddEditPatent = () => {
               <div className="space-y-2">
                 <Label htmlFor="ps_drafter_assgn">PS Drafter</Label>
                 <Select 
-                  value={formData.ps_drafter_assgn}
-                  onValueChange={(value) => handleSelectChange('ps_drafter_assgn', value)}
+                  value={formData.ps_drafter_assgn || ""}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, ps_drafter_assgn: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select drafter" />
@@ -446,15 +445,15 @@ const AddEditPatent = () => {
                   name="ps_drafter_deadline" 
                   type="date" 
                   value={formData.ps_drafter_deadline} 
-                  onChange={handleChange} 
+                  onChange={(e) => setFormData(prev => ({ ...prev, ps_drafter_deadline: e.target.value }))}
                 />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="ps_filer_assgn">PS Filer</Label>
                 <Select 
-                  value={formData.ps_filer_assgn}
-                  onValueChange={(value) => handleSelectChange('ps_filer_assgn', value)}
+                  value={formData.ps_filer_assgn || ""}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, ps_filer_assgn: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select filer" />
@@ -475,7 +474,7 @@ const AddEditPatent = () => {
                   name="ps_filer_deadline" 
                   type="date" 
                   value={formData.ps_filer_deadline} 
-                  onChange={handleChange} 
+                  onChange={(e) => setFormData(prev => ({ ...prev, ps_filer_deadline: e.target.value }))}
                 />
               </div>
             </div>
@@ -492,8 +491,8 @@ const AddEditPatent = () => {
               <div className="space-y-2">
                 <Label htmlFor="cs_drafter_assgn">CS Drafter</Label>
                 <Select 
-                  value={formData.cs_drafter_assgn}
-                  onValueChange={(value) => handleSelectChange('cs_drafter_assgn', value)}
+                  value={formData.cs_drafter_assgn || ""}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, cs_drafter_assgn: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select drafter" />
@@ -514,15 +513,15 @@ const AddEditPatent = () => {
                   name="cs_drafter_deadline" 
                   type="date" 
                   value={formData.cs_drafter_deadline} 
-                  onChange={handleChange} 
+                  onChange={(e) => setFormData(prev => ({ ...prev, cs_drafter_deadline: e.target.value }))}
                 />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="cs_filer_assgn">CS Filer</Label>
                 <Select 
-                  value={formData.cs_filer_assgn}
-                  onValueChange={(value) => handleSelectChange('cs_filer_assgn', value)}
+                  value={formData.cs_filer_assgn || ""}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, cs_filer_assgn: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select filer" />
@@ -543,7 +542,7 @@ const AddEditPatent = () => {
                   name="cs_filer_deadline" 
                   type="date" 
                   value={formData.cs_filer_deadline} 
-                  onChange={handleChange} 
+                  onChange={(e) => setFormData(prev => ({ ...prev, cs_filer_deadline: e.target.value }))}
                 />
               </div>
             </div>
@@ -572,8 +571,8 @@ const AddEditPatent = () => {
                 <div className="space-y-2">
                   <Label htmlFor="fer_drafter_assgn">FER Drafter</Label>
                   <Select 
-                    value={formData.fer_drafter_assgn}
-                    onValueChange={(value) => handleSelectChange('fer_drafter_assgn', value)}
+                    value={formData.fer_drafter_assgn || ""}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, fer_drafter_assgn: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select drafter" />
@@ -594,15 +593,15 @@ const AddEditPatent = () => {
                     name="fer_drafter_deadline" 
                     type="date" 
                     value={formData.fer_drafter_deadline} 
-                    onChange={handleChange} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, fer_drafter_deadline: e.target.value }))}
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="fer_filer_assgn">FER Filer</Label>
                   <Select 
-                    value={formData.fer_filer_assgn}
-                    onValueChange={(value) => handleSelectChange('fer_filer_assgn', value)}
+                    value={formData.fer_filer_assgn || ""}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, fer_filer_assgn: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select filer" />
@@ -623,7 +622,7 @@ const AddEditPatent = () => {
                     name="fer_filer_deadline" 
                     type="date" 
                     value={formData.fer_filer_deadline} 
-                    onChange={handleChange} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, fer_filer_deadline: e.target.value }))}
                   />
                 </div>
               </div>

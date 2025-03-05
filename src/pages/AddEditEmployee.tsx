@@ -126,7 +126,7 @@ const AddEditEmployee = () => {
     try {
       if (isEditing && id) {
         // Only include password in update if it's provided
-        const employeeData: Partial<Omit<Employee, 'id'>> = {
+        const employeeData: Partial<Omit<Employee, 'id' | 'created_at' | 'updated_at'>> = {
           emp_id: formData.emp_id,
           full_name: formData.full_name,
           email: formData.email,
