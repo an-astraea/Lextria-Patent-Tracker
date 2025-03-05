@@ -18,14 +18,18 @@ import { fetchFilerAssignments, fetchFilerCompletedAssignments, completeFilerTas
 import { Patent } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
 import StatusBadge from '@/components/StatusBadge';
+import RefreshButton from '@/components/approvals/RefreshButton';
+import LoadingSpinner from '@/components/approvals/LoadingSpinner';
+import EmptyApprovals from '@/components/approvals/EmptyApprovals';
 
 const Filings = () => {
   const navigate = useNavigate();
   const [activePatents, setActivePatents] = useState<Patent[]>([]);
   const [completedPatents, setCompletedPatents] = useState<Patent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedPatent, setSelectedPatent] = useState<Patent | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   
   const [form26, setForm26] = useState(false);
   const [form18, setForm18] = useState(false);
@@ -42,47 +46,56 @@ const Filings = () => {
     if (!user || user.role !== 'filer') {
       toast.error('Access denied. Filer privileges required.');
       navigate('/dashboard');
+    } else if (!initialLoadComplete) {
+      loadPatents();
     }
-  }, [user, navigate]);
+  }, [user, navigate, initialLoadComplete]);
 
-  useEffect(() => {
-    const loadPatents = async () => {
-      if (user && user.role === 'filer') {
-        try {
-          setLoading(true);
-          const [activeData, completedData] = await Promise.all([
-            fetchFilerAssignments(user.full_name),
-            fetchFilerCompletedAssignments(user.full_name)
-          ]);
-          
-          const sortedActivePatents = activeData.sort((a, b) => {
-            const getQueueOrder = (patent: Patent) => {
-              if (patent.ps_filer_assgn === user.full_name && patent.ps_filing_status === 0) {
-                return 1;
-              } else if (patent.cs_filer_assgn === user.full_name && patent.cs_filing_status === 0) {
-                return 2;
-              } else if (patent.fer_filer_assgn === user.full_name && patent.fer_filing_status === 0) {
-                return 3;
-              }
-              return 4;
-            };
-            
-            return getQueueOrder(a) - getQueueOrder(b);
-          });
-          
-          setActivePatents(sortedActivePatents);
-          setCompletedPatents(completedData);
-        } catch (error) {
-          console.error('Error loading filer assignments:', error);
-          toast.error('Failed to load assignments');
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
+  const loadPatents = async (isRefresh = false) => {
+    if (!user || user.role !== 'filer') return;
     
-    loadPatents();
-  }, [user, refreshKey]);
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      
+      const [activeData, completedData] = await Promise.all([
+        fetchFilerAssignments(user.full_name),
+        fetchFilerCompletedAssignments(user.full_name)
+      ]);
+      
+      const sortedActivePatents = activeData.sort((a, b) => {
+        const getQueueOrder = (patent: Patent) => {
+          if (patent.ps_filer_assgn === user.full_name && patent.ps_filing_status === 0) {
+            return 1;
+          } else if (patent.cs_filer_assgn === user.full_name && patent.cs_filing_status === 0) {
+            return 2;
+          } else if (patent.fer_filer_assgn === user.full_name && patent.fer_filing_status === 0) {
+            return 3;
+          }
+          return 4;
+        };
+        
+        return getQueueOrder(a) - getQueueOrder(b);
+      });
+      
+      setActivePatents(sortedActivePatents);
+      setCompletedPatents(completedData);
+      setInitialLoadComplete(true);
+    } catch (error) {
+      console.error('Error loading filer assignments:', error);
+      toast.error('Failed to load assignments');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    loadPatents(true);
+  };
 
   const resetFormState = () => {
     setForm26(false);
@@ -96,12 +109,13 @@ const Filings = () => {
   const handleShowFormsDialog = (patent: Patent) => {
     setSelectedPatent(patent);
     
-    if (patent.form_26 !== null) setForm26(!!patent.form_26);
-    if (patent.form_18 !== null) setForm18(!!patent.form_18);
-    if (patent.form_18a !== null) setForm18a(!!patent.form_18a);
-    if (patent.form_9 !== null) setForm9(!!patent.form_9);
-    if (patent.form_9a !== null) setForm9a(!!patent.form_9a);
-    if (patent.form_13 !== null) setForm13(!!patent.form_13);
+    // Initialize form states with values from the patent
+    setForm26(patent.form_26 === true);
+    setForm18(patent.form_18 === true);
+    setForm18a(patent.form_18a === true);
+    setForm9(patent.form_9 === true);
+    setForm9a(patent.form_9a === true);
+    setForm13(patent.form_13 === true);
     
     setDialogOpen(true);
   };
@@ -127,7 +141,29 @@ const Filings = () => {
         toast.success('Filing task completed and sent for review');
         setDialogOpen(false);
         resetFormState();
-        setRefreshKey(prev => prev + 1);
+        
+        // Update our local state without needing to reload
+        const updatedPatent = { ...patent };
+        
+        if (patent.ps_filer_assgn === user.full_name) {
+          updatedPatent.ps_filing_status = 1;
+          updatedPatent.ps_review_file_status = 1;
+        } else if (patent.cs_filer_assgn === user.full_name) {
+          updatedPatent.cs_filing_status = 1;
+          updatedPatent.cs_review_file_status = 1;
+          if (formData) {
+            Object.assign(updatedPatent, formData);
+          }
+        } else if (patent.fer_filer_assgn === user.full_name) {
+          updatedPatent.fer_filing_status = 1;
+          updatedPatent.fer_review_file_status = 1;
+        }
+        
+        // Remove from active patents
+        setActivePatents(prevPatents => prevPatents.filter(p => p.id !== patent.id));
+        
+        // Add to completed patents
+        setCompletedPatents(prevPatents => [updatedPatent, ...prevPatents]);
       }
     } catch (error) {
       console.error('Error completing filing task:', error);
@@ -190,7 +226,10 @@ const Filings = () => {
 
   return (
     <div className="container mx-auto py-6">
-      <h1 className="text-2xl font-bold mb-6">Filing Assignments</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Filing Assignments</h1>
+        <RefreshButton onRefresh={handleRefresh} loading={refreshing} />
+      </div>
       
       <Tabs defaultValue="active" className="w-full">
         <TabsList className="mb-4">
@@ -200,9 +239,7 @@ const Filings = () => {
         
         <TabsContent value="active">
           {loading ? (
-            <div className="flex justify-center items-center h-40">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            </div>
+            <LoadingSpinner />
           ) : activePatents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {activePatents.map(patent => (
@@ -260,17 +297,13 @@ const Filings = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center p-8 border rounded-lg">
-              <p className="text-gray-500">No active filing tasks found</p>
-            </div>
+            <EmptyApprovals />
           )}
         </TabsContent>
         
         <TabsContent value="completed">
           {loading ? (
-            <div className="flex justify-center items-center h-40">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            </div>
+            <LoadingSpinner />
           ) : completedPatents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {completedPatents.map(patent => (
@@ -304,9 +337,7 @@ const Filings = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center p-8 border rounded-lg">
-              <p className="text-gray-500">No completed filing tasks found</p>
-            </div>
+            <EmptyApprovals />
           )}
         </TabsContent>
       </Tabs>
