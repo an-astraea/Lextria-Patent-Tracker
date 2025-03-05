@@ -32,6 +32,7 @@ const Employees = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
   
@@ -57,18 +58,20 @@ const Employees = () => {
           setEmployees(employees);
           setFilteredEmployees(employees);
         }
+        setIsDataLoaded(true);
       } catch (error) {
         console.error('Error fetching employees:', error);
         toast.error('Failed to load employees');
+        setIsDataLoaded(true);
       } finally {
         setLoading(false);
       }
     };
 
-    if (user?.role === 'admin') {
+    if (user?.role === 'admin' && !isDataLoaded) {
       getData();
     }
-  }, [user]);
+  }, [user, isDataLoaded]);
   
   // Apply filters only when search button is clicked or role filter changes
   useEffect(() => {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Search, Filter, X } from 'lucide-react';
@@ -323,14 +324,13 @@ const Patents = () => {
               <div className="space-y-2">
                 <h5 className="text-sm font-medium">Drafting Status</h5>
                 <Select 
-                  value={filters.draftingStatus || ''} 
+                  value={filters.draftingStatus || undefined} 
                   onValueChange={(value) => setFilters({...filters, draftingStatus: value || null})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any</SelectItem>
                     <SelectItem value="ps_drafting_complete">PS Drafting Complete</SelectItem>
                     <SelectItem value="ps_drafting_pending">PS Drafting Pending</SelectItem>
                     <SelectItem value="cs_drafting_complete">CS Drafting Complete</SelectItem>
@@ -344,14 +344,13 @@ const Patents = () => {
               <div className="space-y-2">
                 <h5 className="text-sm font-medium">Filing Status</h5>
                 <Select 
-                  value={filters.filingStatus || ''} 
+                  value={filters.filingStatus || undefined} 
                   onValueChange={(value) => setFilters({...filters, filingStatus: value || null})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any</SelectItem>
                     <SelectItem value="ps_filing_complete">PS Filing Complete</SelectItem>
                     <SelectItem value="ps_filing_pending">PS Filing Pending</SelectItem>
                     <SelectItem value="cs_filing_complete">CS Filing Complete</SelectItem>
@@ -365,14 +364,13 @@ const Patents = () => {
               <div className="space-y-2">
                 <h5 className="text-sm font-medium">FER Status</h5>
                 <Select 
-                  value={filters.ferStatus || ''} 
+                  value={filters.ferStatus || undefined} 
                   onValueChange={(value) => setFilters({...filters, ferStatus: value || null})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="inactive">Inactive</SelectItem>
                   </SelectContent>
@@ -382,14 +380,13 @@ const Patents = () => {
               <div className="space-y-2">
                 <h5 className="text-sm font-medium">Client ID</h5>
                 <Select 
-                  value={filters.clientId || ''} 
+                  value={filters.clientId || undefined} 
                   onValueChange={(value) => setFilters({...filters, clientId: value || null})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select client" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any</SelectItem>
                     {uniqueClientIds.map(clientId => (
                       <SelectItem key={clientId} value={clientId}>{clientId}</SelectItem>
                     ))}
