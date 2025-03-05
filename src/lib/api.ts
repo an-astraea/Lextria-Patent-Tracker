@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Employee, FERHistory, Inventor, Patent, PatentFormData } from "./types";
 import { toast } from "sonner";
@@ -603,7 +602,7 @@ export const createPatent = async (patentData: PatentFormData): Promise<Patent |
         patent_applicant: patentData.patent_applicant,
         client_id: patentData.client_id,
         application_no: patentData.application_no || null,
-        date_of_filing: patentData.date_of_filing,
+        date_of_filing: patentData.date_of_filing || null,
         patent_title: patentData.patent_title,
         applicant_addr: patentData.applicant_addr,
         inventor_ph_no: patentData.inventor_ph_no,
@@ -659,7 +658,7 @@ export const updatePatent = async (id: string, patentData: PatentFormData): Prom
         patent_applicant: patentData.patent_applicant,
         client_id: patentData.client_id,
         application_no: patentData.application_no || null,
-        date_of_filing: patentData.date_of_filing,
+        date_of_filing: patentData.date_of_filing || null,
         patent_title: patentData.patent_title,
         applicant_addr: patentData.applicant_addr,
         inventor_ph_no: patentData.inventor_ph_no,

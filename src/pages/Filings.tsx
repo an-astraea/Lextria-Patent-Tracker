@@ -26,7 +26,6 @@ const Filings = () => {
   const [selectedPatent, setSelectedPatent] = useState<Patent | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   
-  // CS Forms state
   const [form26, setForm26] = useState(false);
   const [form18, setForm18] = useState(false);
   const [form18a, setForm18a] = useState(false);
@@ -35,11 +34,9 @@ const Filings = () => {
   const [form13, setForm13] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Get user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
 
-  // Redirect if not filer
   React.useEffect(() => {
     if (!user || user.role !== 'filer') {
       toast.error('Access denied. Filer privileges required.');
@@ -57,17 +54,16 @@ const Filings = () => {
             fetchFilerCompletedAssignments(user.full_name)
           ]);
           
-          // Sort by queue logic
           const sortedActivePatents = activeData.sort((a, b) => {
             const getQueueOrder = (patent: Patent) => {
               if (patent.ps_filer_assgn === user.full_name && patent.ps_filing_status === 0) {
-                return 1; // PS has highest priority
+                return 1;
               } else if (patent.cs_filer_assgn === user.full_name && patent.cs_filing_status === 0) {
-                return 2; // CS has second priority
+                return 2;
               } else if (patent.fer_filer_assgn === user.full_name && patent.fer_filing_status === 0) {
-                return 3; // FER has lowest priority
+                return 3;
               }
-              return 4; // Default
+              return 4;
             };
             
             return getQueueOrder(a) - getQueueOrder(b);
@@ -99,7 +95,6 @@ const Filings = () => {
   const handleShowFormsDialog = (patent: Patent) => {
     setSelectedPatent(patent);
     
-    // Initialize with existing form values if they exist
     if (patent.form_26 !== null) setForm26(!!patent.form_26);
     if (patent.form_18 !== null) setForm18(!!patent.form_18);
     if (patent.form_18a !== null) setForm18a(!!patent.form_18a);
@@ -114,9 +109,8 @@ const Filings = () => {
     if (!user) return;
     
     try {
-      // For CS filing, include forms data
       let formData;
-      if (patent.cs_filer_assgn === user.full_name && patent.cs_filing_status === 0) {
+      if (patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0) {
         formData = {
           form_26: form26,
           form_18: form18,
@@ -140,7 +134,6 @@ const Filings = () => {
     }
   };
 
-  // Determine which task is active for this filer
   const getTaskType = (patent: Patent) => {
     if (patent.ps_filer_assgn === user?.full_name && patent.ps_filing_status === 0) {
       return 'Provisional Specification';
@@ -152,7 +145,6 @@ const Filings = () => {
     return 'Unknown Task';
   };
 
-  // Get the deadline for the active task
   const getDeadline = (patent: Patent) => {
     if (patent.ps_filer_assgn === user?.full_name && patent.ps_filing_status === 0) {
       return patent.ps_filer_deadline;
@@ -164,27 +156,22 @@ const Filings = () => {
     return null;
   };
 
-  // Format date for display
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'No deadline set';
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Check if a task is available based on queue order and dependencies
   const isTaskAvailable = (patent: Patent) => {
-    // PS filing is available if PS drafting is complete
     if (patent.ps_filer_assgn === user?.full_name && patent.ps_filing_status === 0) {
       return patent.ps_drafting_status === 1;
     } 
     
-    // CS filing is available if PS is not required or PS filing is complete, and CS drafting is complete
     if (patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0) {
       const psNotRequired = !patent.ps_filer_assgn;
       const psCompleted = patent.ps_filing_status === 1;
       return (psNotRequired || psCompleted) && patent.cs_drafting_status === 1;
     }
     
-    // FER filing is available if PS & CS are not required or completed, and FER drafting is complete
     if (patent.fer_filer_assgn === user?.full_name && patent.fer_filing_status === 0) {
       const psNotRequired = !patent.ps_filer_assgn;
       const csNotRequired = !patent.cs_filer_assgn;
@@ -196,7 +183,6 @@ const Filings = () => {
     return false;
   };
 
-  // Check if task requires form submission
   const requiresForms = (patent: Patent) => {
     return patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0;
   };
@@ -249,7 +235,7 @@ const Filings = () => {
                             onClick={() => handleShowFormsDialog(patent)}
                             disabled={!isTaskAvailable(patent)}
                           >
-                            Complete with Forms
+                            Complete & Submit for Review
                           </Button>
                         ) : (
                           <Button
@@ -257,7 +243,7 @@ const Filings = () => {
                             onClick={() => handleComplete(patent)}
                             disabled={!isTaskAvailable(patent)}
                           >
-                            Complete & Submit
+                            Complete & Submit for Review
                           </Button>
                         )}
                       </div>
@@ -324,7 +310,6 @@ const Filings = () => {
         </TabsContent>
       </Tabs>
       
-      {/* Dialog for CS Forms */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>

@@ -170,7 +170,7 @@ const Drafts = () => {
                           onClick={() => handleComplete(patent)}
                           disabled={!isTaskAvailable(patent)}
                         >
-                          Complete & Submit
+                          Complete & Submit for Review
                         </Button>
                       </div>
                       

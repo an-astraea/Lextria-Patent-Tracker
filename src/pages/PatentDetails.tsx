@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { getPatentById } from '@/lib/data';
+import { fetchPatentById } from '@/lib/api'; // Update to use API function instead of data.ts
 import { Patent } from '@/lib/types';
 import { ArrowLeft, Edit, Trash } from 'lucide-react';
 import { toast } from 'sonner';
@@ -25,7 +25,7 @@ const PatentDetails = () => {
     const fetchPatent = async () => {
       try {
         if (id) {
-          const foundPatent = getPatentById(id);
+          const foundPatent = await fetchPatentById(id);
           setPatent(foundPatent || null);
         }
       } catch (error) {
