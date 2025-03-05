@@ -1,26 +1,39 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Patent } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Edit, CheckCircle, Clock, ListChecks } from 'lucide-react';
+import { Edit, CheckCircle, Clock, ListChecks, AlertCircle } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { fetchFilerAssignments, fetchFilerCompletedAssignments, completeFilerTask } from '@/lib/api';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Filings = () => {
   const navigate = useNavigate();
-  const [activeAssignments, setActiveAssignments] = React.useState<Patent[]>([]);
-  const [completedAssignments, setCompletedAssignments] = React.useState<Patent[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [formStates, setFormStates] = React.useState<Record<string, Record<string, boolean>>>({});
+  const [activeAssignments, setActiveAssignments] = useState<Patent[]>([]);
+  const [completedAssignments, setCompletedAssignments] = useState<Patent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [formStates, setFormStates] = useState<Record<string, Record<string, boolean>>>({});
+  const [patentToComplete, setPatentToComplete] = useState<Patent | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredActive, setFilteredActive] = useState<Patent[]>([]);
+  const [filteredCompleted, setFilteredCompleted] = useState<Patent[]>([]);
 
   // Get user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!user) return;
 
     const fetchData = async () => {
@@ -46,7 +59,9 @@ const Filings = () => {
         
         setFormStates(initialFormStates);
         setActiveAssignments(active);
+        setFilteredActive(active);
         setCompletedAssignments(completed);
+        setFilteredCompleted(completed);
       } catch (error) {
         console.error('Error fetching filings:', error);
         toast.error('Failed to load filings');
@@ -58,6 +73,29 @@ const Filings = () => {
     fetchData();
   }, [user?.full_name]);
 
+  // Handle search filtering
+  useEffect(() => {
+    const query = searchQuery.toLowerCase().trim();
+    
+    if (!query) {
+      setFilteredActive(activeAssignments);
+      setFilteredCompleted(completedAssignments);
+      return;
+    }
+    
+    const filterPatents = (patents: Patent[]) => {
+      return patents.filter(patent => 
+        patent.patent_title.toLowerCase().includes(query) || 
+        patent.tracking_id.toLowerCase().includes(query) || 
+        patent.patent_applicant.toLowerCase().includes(query) || 
+        patent.client_id.toLowerCase().includes(query)
+      );
+    };
+    
+    setFilteredActive(filterPatents(activeAssignments));
+    setFilteredCompleted(filterPatents(completedAssignments));
+  }, [searchQuery, activeAssignments, completedAssignments]);
+
   const handleFormChange = (patentId: string, formName: string, checked: boolean) => {
     setFormStates(prev => ({
       ...prev,
@@ -68,34 +106,47 @@ const Filings = () => {
     }));
   };
 
-  const handleComplete = async (patent: Patent) => {
+  const openCompleteDialog = (patent: Patent) => {
+    setPatentToComplete(patent);
+  };
+
+  const closeCompleteDialog = () => {
+    setPatentToComplete(null);
+  };
+
+  const handleComplete = async () => {
+    if (!patentToComplete || !user) return;
+    
     try {
       // For CS filings, include form data
-      const formData = patent.cs_filer_assgn === user?.full_name 
-        ? formStates[patent.id] 
+      const formData = patentToComplete.cs_filer_assgn === user.full_name 
+        ? formStates[patentToComplete.id] 
         : undefined;
       
-      const success = await completeFilerTask(patent, user?.full_name, formData);
+      const success = await completeFilerTask(patentToComplete, user.full_name, formData);
       
       if (success) {
         toast.success('Filing marked as complete and sent for review');
         
         // Update local state to reflect the change
-        setActiveAssignments(activeAssignments.filter(item => item.id !== patent.id));
+        setActiveAssignments(activeAssignments.filter(item => item.id !== patentToComplete.id));
+        setFilteredActive(filteredActive.filter(item => item.id !== patentToComplete.id));
         
         const updatedPatent = {
-          ...patent,
-          ps_filing_status: patent.ps_filer_assgn === user?.full_name ? 1 : patent.ps_filing_status,
-          cs_filing_status: patent.cs_filer_assgn === user?.full_name ? 1 : patent.cs_filing_status,
-          fer_filing_status: patent.fer_filer_assgn === user?.full_name ? 1 : patent.fer_filing_status
+          ...patentToComplete,
+          ps_filing_status: patentToComplete.ps_filer_assgn === user.full_name ? 1 : patentToComplete.ps_filing_status,
+          cs_filing_status: patentToComplete.cs_filer_assgn === user.full_name ? 1 : patentToComplete.cs_filing_status,
+          fer_filing_status: patentToComplete.fer_filer_assgn === user.full_name ? 1 : patentToComplete.fer_filing_status
         };
         
         // For CS filings, update the form values
-        if (patent.cs_filer_assgn === user?.full_name && formStates[patent.id]) {
-          Object.assign(updatedPatent, formStates[patent.id]);
+        if (patentToComplete.cs_filer_assgn === user.full_name && formStates[patentToComplete.id]) {
+          Object.assign(updatedPatent, formStates[patentToComplete.id]);
         }
         
         setCompletedAssignments([...completedAssignments, updatedPatent]);
+        setFilteredCompleted([...filteredCompleted, updatedPatent]);
+        closeCompleteDialog();
       }
     } catch (error) {
       console.error('Error completing filing:', error);
@@ -103,10 +154,26 @@ const Filings = () => {
     }
   };
 
+  // Check if any forms are selected for CS filing
+  const hasSelectedForms = (patentId: string): boolean => {
+    if (!formStates[patentId]) return false;
+    return Object.values(formStates[patentId]).some(selected => selected);
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">My Filings</h1>
+        <div className="relative mt-2 sm:mt-0">
+          <input
+            type="text"
+            placeholder="Search filings..."
+            className="pl-10 pr-4 py-2 border rounded-md w-full"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        </div>
       </div>
 
       <Tabs defaultValue="active">
@@ -128,7 +195,7 @@ const Filings = () => {
             </div>
           ) : (
             <>
-              {activeAssignments.length === 0 ? (
+              {filteredActive.length === 0 ? (
                 <Card>
                   <CardContent className="py-10">
                     <div className="text-center">
@@ -138,7 +205,7 @@ const Filings = () => {
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {activeAssignments.map((filing) => (
+                  {filteredActive.map((filing) => (
                     <Card key={filing.id} className="flex flex-col">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold">{filing.patent_title}</CardTitle>
@@ -237,6 +304,13 @@ const Filings = () => {
                                   <label htmlFor={`form_13_${filing.id}`} className="text-sm">Form 13</label>
                                 </div>
                               </div>
+                              
+                              {filing.cs_filer_assgn === user.full_name && !hasSelectedForms(filing.id) && (
+                                <div className="mt-2 text-amber-600 flex items-center gap-1 text-xs">
+                                  <AlertCircle className="h-3 w-3" />
+                                  <span>Please select at least one form to complete filing</span>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -252,7 +326,8 @@ const Filings = () => {
                         </Button>
                         <Button 
                           className="w-full flex items-center gap-2" 
-                          onClick={() => handleComplete(filing)}
+                          onClick={() => openCompleteDialog(filing)}
+                          disabled={filing.cs_filer_assgn === user.full_name && !hasSelectedForms(filing.id)}
                         >
                           <CheckCircle className="h-4 w-4" />
                           Complete Filing
@@ -273,7 +348,7 @@ const Filings = () => {
             </div>
           ) : (
             <>
-              {completedAssignments.length === 0 ? (
+              {filteredCompleted.length === 0 ? (
                 <Card>
                   <CardContent className="py-10">
                     <div className="text-center">
@@ -283,7 +358,7 @@ const Filings = () => {
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {completedAssignments.map((filing) => (
+                  {filteredCompleted.map((filing) => (
                     <Card key={filing.id} className="flex flex-col">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold">{filing.patent_title}</CardTitle>
@@ -307,7 +382,13 @@ const Filings = () => {
                           </div>
                           <div>
                             <span className="font-medium">Status:</span>{' '}
-                            <span className="text-amber-600">
+                            <span className={`${
+                              (filing.ps_filer_assgn === user.full_name && filing.ps_review_file_status === 1) ||
+                              (filing.cs_filer_assgn === user.full_name && filing.cs_review_file_status === 1) ||
+                              (filing.fer_filer_assgn === user.full_name && filing.fer_review_file_status === 1)
+                                ? "text-green-600"
+                                : "text-amber-600"
+                            }`}>
                               {(filing.ps_filer_assgn === user.full_name && filing.ps_review_file_status === 1) ||
                               (filing.cs_filer_assgn === user.full_name && filing.cs_review_file_status === 1) ||
                               (filing.fer_filer_assgn === user.full_name && filing.fer_review_file_status === 1)
@@ -353,6 +434,41 @@ const Filings = () => {
           )}
         </TabsContent>
       </Tabs>
+      
+      {/* Confirmation Dialog for Completing a Filing */}
+      <Dialog open={!!patentToComplete} onOpenChange={(open) => !open && closeCompleteDialog()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Complete Filing</DialogTitle>
+            <DialogDescription>
+              {patentToComplete?.cs_filer_assgn === user?.full_name
+                ? "Are you sure you want to complete this filing with the selected forms? This will mark your filing task as complete and send it for approval."
+                : "Are you sure you want to complete this filing? This will mark your filing task as complete and send it for approval."}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {patentToComplete?.cs_filer_assgn === user?.full_name && patentToComplete && (
+            <div className="space-y-2 py-2">
+              <h4 className="text-sm font-medium">Selected Forms:</h4>
+              <div className="grid grid-cols-2 gap-1 text-sm">
+                {formStates[patentToComplete.id]?.form_26 && <div>✓ Form 26</div>}
+                {formStates[patentToComplete.id]?.form_18 && <div>✓ Form 18</div>}
+                {formStates[patentToComplete.id]?.form_18a && <div>✓ Form 18A</div>}
+                {formStates[patentToComplete.id]?.form_9 && <div>✓ Form 9</div>}
+                {formStates[patentToComplete.id]?.form_9a && <div>✓ Form 9A</div>}
+                {formStates[patentToComplete.id]?.form_13 && <div>✓ Form 13</div>}
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={closeCompleteDialog}>Cancel</Button>
+            <Button onClick={handleComplete}>
+              Complete and Submit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

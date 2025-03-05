@@ -1,60 +1,130 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search } from 'lucide-react';
+import { PlusCircle, Search, Filter } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Employee } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
-import { employees } from '@/lib/data';
+import { fetchEmployees, deleteEmployee } from '@/lib/api';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Employees = () => {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [filteredEmployees, setFilteredEmployees] = React.useState<Employee[]>(employees);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
+  const [roleFilter, setRoleFilter] = useState<string | null>(null);
   
   // Get user role from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
   // Redirect if not admin
-  React.useEffect(() => {
+  useEffect(() => {
     if (user?.role !== 'admin') {
       toast.error('Access denied. Admin privileges required.');
       navigate('/dashboard');
     }
   }, [user, navigate]);
   
-  // Handle search
-  React.useEffect(() => {
+  // Fetch employees from Supabase
+  useEffect(() => {
+    const getEmployees = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchEmployees();
+        setEmployees(data);
+        setFilteredEmployees(data);
+      } catch (error) {
+        console.error('Error fetching employees:', error);
+        toast.error('Failed to load employees');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user?.role === 'admin') {
+      getEmployees();
+    }
+  }, [user]);
+  
+  // Handle search and filter
+  useEffect(() => {
     const query = searchQuery.toLowerCase().trim();
     
-    if (!query) {
-      setFilteredEmployees(employees);
-      return;
+    let filtered = employees;
+    
+    // Apply role filter if selected
+    if (roleFilter) {
+      filtered = filtered.filter(emp => emp.role === roleFilter);
     }
     
-    const filtered = employees.filter(
-      (employee) =>
-        employee.full_name.toLowerCase().includes(query) ||
-        employee.emp_id.toLowerCase().includes(query) ||
-        employee.email.toLowerCase().includes(query) ||
-        employee.role.toLowerCase().includes(query)
-    );
+    // Apply search query if present
+    if (query) {
+      filtered = filtered.filter(
+        (employee) =>
+          employee.full_name.toLowerCase().includes(query) ||
+          employee.emp_id.toLowerCase().includes(query) ||
+          employee.email.toLowerCase().includes(query) ||
+          employee.ph_no.toLowerCase().includes(query)
+      );
+    }
     
     setFilteredEmployees(filtered);
-  }, [searchQuery]);
+  }, [searchQuery, employees, roleFilter]);
   
-  const handleDelete = (id: string) => {
-    // In a real app, you would make an API call
-    // For now, just update the local state and show a toast
-    setFilteredEmployees(filteredEmployees.filter(emp => emp.id !== id));
-    toast.success('Employee deleted successfully');
+  const handleDelete = async (id: string) => {
+    try {
+      const success = await deleteEmployee(id);
+      if (success) {
+        setEmployees(employees.filter(emp => emp.id !== id));
+        setFilteredEmployees(filteredEmployees.filter(emp => emp.id !== id));
+        toast.success('Employee deleted successfully');
+      }
+    } catch (error) {
+      console.error('Error deleting employee:', error);
+      toast.error('Failed to delete employee');
+    }
+    setEmployeeToDelete(null);
+  };
+  
+  const confirmDelete = (id: string) => {
+    setEmployeeToDelete(id);
+  };
+  
+  const cancelDelete = () => {
+    setEmployeeToDelete(null);
   };
   
   if (user?.role !== 'admin') {
     return null; // Don't render anything if not admin
+  }
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
   }
   
   return (
@@ -67,14 +137,39 @@ const Employees = () => {
         </Button>
       </div>
       
-      <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search employees..."
-          className="pl-10"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-grow">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search employees..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="sm:w-auto">
+              <Filter className="mr-2 h-4 w-4" />
+              Filter Roles
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setRoleFilter(null)}>
+              All Roles
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setRoleFilter('admin')}>
+              Admin
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setRoleFilter('drafter')}>
+              Drafter
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setRoleFilter('filer')}>
+              Filer
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -121,7 +216,7 @@ const Employees = () => {
                   </Button>
                   <div className="w-px bg-border h-12"></div>
                   <Button 
-                    onClick={() => handleDelete(employee.id)} 
+                    onClick={() => confirmDelete(employee.id)} 
                     variant="ghost" 
                     className="flex-1 rounded-none h-12 text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
@@ -137,6 +232,26 @@ const Employees = () => {
           </div>
         )}
       </div>
+      
+      <AlertDialog open={!!employeeToDelete} onOpenChange={() => !employeeToDelete && cancelDelete()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this employee?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the employee and remove their data from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => employeeToDelete && handleDelete(employeeToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

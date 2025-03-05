@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Employee, FERHistory, Inventor, Patent } from "./types";
 import { toast } from "sonner";
@@ -68,6 +69,27 @@ export const updatePatentStatus = async (
   } catch (error) {
     console.error(`Error updating patent ${statusType}:`, error);
     toast.error("Failed to update patent status");
+    return false;
+  }
+};
+
+// New function to delete a patent
+export const deletePatent = async (id: string): Promise<boolean> => {
+  try {
+    // Delete the patent
+    const { error } = await supabase
+      .from("patents")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting patent:", error);
+    toast.error("Failed to delete patent");
     return false;
   }
 };
