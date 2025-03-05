@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,13 +6,13 @@ import { toast } from 'sonner';
 import { fetchPendingReviews, approvePatentReview } from '@/lib/api';
 import { Patent } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Check } from 'lucide-react';
+import { Eye, Check, RefreshCw } from 'lucide-react';
 
 const Approvals = () => {
   const navigate = useNavigate();
   const [pendingReviews, setPendingReviews] = useState<Patent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   // Get user from localStorage
   const userString = localStorage.getItem('user');
@@ -27,31 +26,61 @@ const Approvals = () => {
     }
   }, [user, navigate]);
 
+  // Load data only once on initial mount
   useEffect(() => {
-    const loadReviews = async () => {
-      if (user && user.role === 'admin') {
-        try {
-          setLoading(true);
-          const reviews = await fetchPendingReviews();
-          setPendingReviews(reviews);
-        } catch (error) {
-          console.error('Error loading reviews:', error);
-          toast.error('Failed to load pending reviews');
-        } finally {
-          setLoading(false);
-        }
+    if (user && user.role === 'admin' && !initialLoadDone) {
+      loadReviews();
+      setInitialLoadDone(true);
+    }
+  }, [user, initialLoadDone]);
+
+  const loadReviews = async () => {
+    if (user && user.role === 'admin') {
+      try {
+        setLoading(true);
+        const reviews = await fetchPendingReviews();
+        setPendingReviews(reviews);
+      } catch (error) {
+        console.error('Error loading reviews:', error);
+        toast.error('Failed to load pending reviews');
+      } finally {
+        setLoading(false);
       }
-    };
-    
-    loadReviews();
-  }, [user, refreshKey]);
+    }
+  };
 
   const handleApprove = async (patent: Patent, reviewType: 'ps_draft' | 'ps_file' | 'cs_draft' | 'cs_file' | 'fer_draft' | 'fer_file') => {
     try {
       const success = await approvePatentReview(patent, reviewType);
       if (success) {
         toast.success('Review approved successfully');
-        setRefreshKey(prev => prev + 1);
+        
+        // Optimistic UI update - Remove the approved review from the list
+        setPendingReviews(prevReviews => {
+          const updatedReviews = [...prevReviews];
+          // If this is the last review for this patent, remove the patent
+          const reviewsForPatent = getPendingReviewTypes(patent);
+          if (reviewsForPatent.length <= 1) {
+            return updatedReviews.filter(p => p.id !== patent.id);
+          }
+          
+          // Otherwise, keep the patent but update its review status
+          return updatedReviews.map(p => {
+            if (p.id === patent.id) {
+              const updatedPatent = { ...p };
+              switch(reviewType) {
+                case 'ps_draft': updatedPatent.ps_review_draft_status = 0; break;
+                case 'ps_file': updatedPatent.ps_review_file_status = 0; break;
+                case 'cs_draft': updatedPatent.cs_review_draft_status = 0; break;
+                case 'cs_file': updatedPatent.cs_review_file_status = 0; break;
+                case 'fer_draft': updatedPatent.fer_review_draft_status = 0; break;
+                case 'fer_file': updatedPatent.fer_review_file_status = 0; break;
+              }
+              return updatedPatent;
+            }
+            return p;
+          });
+        });
       }
     } catch (error) {
       console.error('Error approving review:', error);
@@ -120,11 +149,35 @@ const Approvals = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  const handleRefresh = () => {
+    loadReviews();
+  };
+
   return (
     <div className="container mx-auto py-6">
-      <h1 className="text-2xl font-bold mb-6">Pending Approvals</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Pending Approvals</h1>
+        <Button 
+          variant="outline" 
+          onClick={handleRefresh}
+          disabled={loading}
+          className="flex items-center gap-2"
+        >
+          {loading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+              Refreshing...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Refresh
+            </>
+          )}
+        </Button>
+      </div>
       
-      {loading ? (
+      {loading && !pendingReviews.length ? (
         <div className="flex justify-center items-center h-40">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
         </div>
