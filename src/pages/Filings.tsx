@@ -1,15 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, X, Check } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Patent } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { fetchFilerAssignments, fetchFilerCompletedAssignments, completeFilerTask } from '@/lib/api';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import StatusBadge from '@/components/StatusBadge';
-import {
+import { 
   Dialog,
   DialogContent,
   DialogDescription,
@@ -17,341 +11,366 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { fetchFilerAssignments, fetchFilerCompletedAssignments, completeFilerTask } from '@/lib/api';
+import { Patent } from '@/lib/types';
+import { useNavigate } from 'react-router-dom';
+import StatusBadge from '@/components/StatusBadge';
 
 const Filings = () => {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [inProgressFilings, setInProgressFilings] = useState<Patent[]>([]);
-  const [completedFilings, setCompletedFilings] = useState<Patent[]>([]);
+  const [activePatents, setActivePatents] = useState<Patent[]>([]);
+  const [completedPatents, setCompletedPatents] = useState<Patent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<{
-    id: string;
-    emp_id: string;
-    full_name: string;
-    email: string;
-    role: string;
-  } | null>(null);
   const [selectedPatent, setSelectedPatent] = useState<Patent | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formStates, setFormStates] = useState<{
-    [patentId: string]: {
-      form_26: boolean;
-      form_18: boolean;
-      form_18a: boolean;
-      form_9: boolean;
-      form_9a: boolean;
-      form_13: boolean;
-    };
-  }>({});
-  const [isTaskCompleteDialogOpen, setIsTaskCompleteDialogOpen] = useState(false);
-  const [patentToComplete, setPatentToComplete] = useState<Patent | null>(null);
-  const [alertDialogOpen, setAlertDialogOpen] = useState(false);
-  const [patentToDelete, setPatentToDelete] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  // CS Forms state
+  const [form26, setForm26] = useState(false);
+  const [form18, setForm18] = useState(false);
+  const [form18a, setForm18a] = useState(false);
+  const [form9, setForm9] = useState(false);
+  const [form9a, setForm9a] = useState(false);
+  const [form13, setForm13] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+  // Get user from localStorage
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
+
+  // Redirect if not filer
+  React.useEffect(() => {
+    if (!user || user.role !== 'filer') {
+      toast.error('Access denied. Filer privileges required.');
+      navigate('/dashboard');
     }
-  }, []);
+  }, [user, navigate]);
 
   useEffect(() => {
-    const fetchAssignments = async () => {
-      if (user && user.email) {
+    const loadPatents = async () => {
+      if (user && user.role === 'filer') {
         try {
           setLoading(true);
-          const inProgress = await fetchFilerAssignments(user.email);
-          const completed = await fetchFilerCompletedAssignments(user.email);
-          setInProgressFilings(inProgress);
-          setCompletedFilings(completed);
-
-          const initialFormStates = {};
-          [...inProgress, ...completed].forEach(patent => {
-            initialFormStates[patent.id] = {
-              form_26: patent.form_26 || false,
-              form_18: patent.form_18 || false,
-              form_18a: patent.form_18a || false,
-              form_9: patent.form_9 || false,
-              form_9a: patent.form_9a || false,
-              form_13: patent.form_13 || false,
+          const [activeData, completedData] = await Promise.all([
+            fetchFilerAssignments(user.full_name),
+            fetchFilerCompletedAssignments(user.full_name)
+          ]);
+          
+          // Sort by queue logic
+          const sortedActivePatents = activeData.sort((a, b) => {
+            const getQueueOrder = (patent: Patent) => {
+              if (patent.ps_filer_assgn === user.full_name && patent.ps_filing_status === 0) {
+                return 1; // PS has highest priority
+              } else if (patent.cs_filer_assgn === user.full_name && patent.cs_filing_status === 0) {
+                return 2; // CS has second priority
+              } else if (patent.fer_filer_assgn === user.full_name && patent.fer_filing_status === 0) {
+                return 3; // FER has lowest priority
+              }
+              return 4; // Default
             };
+            
+            return getQueueOrder(a) - getQueueOrder(b);
           });
-          setFormStates(initialFormStates);
+          
+          setActivePatents(sortedActivePatents);
+          setCompletedPatents(completedData);
         } catch (error) {
-          console.error('Error fetching assignments:', error);
-          toast.error('Failed to load filings');
+          console.error('Error loading filer assignments:', error);
+          toast.error('Failed to load assignments');
         } finally {
           setLoading(false);
         }
       }
     };
+    
+    loadPatents();
+  }, [user, refreshKey]);
 
-    fetchAssignments();
-  }, [user]);
-
-  const handleFormChange = (patentId: string, formName: string, checked: boolean | string) => {
-    const checkedBoolean = checked === true || checked === 'true';
-    setFormStates(prevFormStates => ({
-      ...prevFormStates,
-      [patentId]: {
-        ...prevFormStates[patentId],
-        [formName]: checkedBoolean,
-      },
-    }));
+  const resetFormState = () => {
+    setForm26(false);
+    setForm18(false);
+    setForm18a(false);
+    setForm9(false);
+    setForm9a(false);
+    setForm13(false);
   };
 
-  const handleOpenDialog = (patent: Patent) => {
+  const handleShowFormsDialog = (patent: Patent) => {
     setSelectedPatent(patent);
-    setIsDialogOpen(true);
+    
+    // Initialize with existing form values if they exist
+    if (patent.form_26 !== null) setForm26(!!patent.form_26);
+    if (patent.form_18 !== null) setForm18(!!patent.form_18);
+    if (patent.form_18a !== null) setForm18a(!!patent.form_18a);
+    if (patent.form_9 !== null) setForm9(!!patent.form_9);
+    if (patent.form_9a !== null) setForm9a(!!patent.form_9a);
+    if (patent.form_13 !== null) setForm13(!!patent.form_13);
+    
+    setDialogOpen(true);
   };
 
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setSelectedPatent(null);
-  };
-
-  const handleOpenTaskCompleteDialog = (patent: Patent) => {
-    setPatentToComplete(patent);
-    setIsTaskCompleteDialogOpen(true);
-  };
-
-  const handleCloseTaskCompleteDialog = () => {
-    setIsTaskCompleteDialogOpen(false);
-    setPatentToComplete(null);
-  };
-
-  const handleSubmitForms = async () => {
-    if (!selectedPatent) return;
-
-    const formData = formStates[selectedPatent.id];
-    if (!formData) return;
-
+  const handleComplete = async (patent: Patent) => {
+    if (!user) return;
+    
     try {
-      const success = await completeFilerTask(selectedPatent, user?.email || '', formData);
+      // For CS filing, include forms data
+      let formData;
+      if (patent.cs_filer_assgn === user.full_name && patent.cs_filing_status === 0) {
+        formData = {
+          form_26: form26,
+          form_18: form18,
+          form_18a: form18a,
+          form_9: form9,
+          form_9a: form9a,
+          form_13: form13
+        };
+      }
+      
+      const success = await completeFilerTask(patent, user.full_name, formData);
       if (success) {
-        toast.success('Forms submitted and task completed successfully');
-        const inProgress = await fetchFilerAssignments(user?.email || '');
-        const completed = await fetchFilerCompletedAssignments(user?.email || '');
-        setInProgressFilings(inProgress);
-        setCompletedFilings(completed);
-      } else {
-        toast.error('Failed to submit forms and complete task');
+        toast.success('Filing task completed and sent for review');
+        setDialogOpen(false);
+        resetFormState();
+        setRefreshKey(prev => prev + 1);
       }
     } catch (error) {
-      console.error('Error submitting forms:', error);
-      toast.error('Failed to submit forms');
-    } finally {
-      handleCloseDialog();
-      handleCloseTaskCompleteDialog();
+      console.error('Error completing filing task:', error);
+      toast.error('Failed to complete filing task');
     }
   };
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
+  // Determine which task is active for this filer
+  const getTaskType = (patent: Patent) => {
+    if (patent.ps_filer_assgn === user?.full_name && patent.ps_filing_status === 0) {
+      return 'Provisional Specification';
+    } else if (patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0) {
+      return 'Complete Specification';
+    } else if (patent.fer_filer_assgn === user?.full_name && patent.fer_filing_status === 0) {
+      return 'First Examination Report';
+    }
+    return 'Unknown Task';
   };
 
-  const filteredInProgressFilings = inProgressFilings.filter(patent =>
-    patent.patent_title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Get the deadline for the active task
+  const getDeadline = (patent: Patent) => {
+    if (patent.ps_filer_assgn === user?.full_name && patent.ps_filing_status === 0) {
+      return patent.ps_filer_deadline;
+    } else if (patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0) {
+      return patent.cs_filer_deadline;
+    } else if (patent.fer_filer_assgn === user?.full_name && patent.fer_filing_status === 0) {
+      return patent.fer_filer_deadline;
+    }
+    return null;
+  };
 
-  const filteredCompletedFilings = completedFilings.filter(patent =>
-    patent.patent_title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Format date for display
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'No deadline set';
+    return new Date(dateString).toLocaleDateString();
+  };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  // Check if a task is available based on queue order and dependencies
+  const isTaskAvailable = (patent: Patent) => {
+    // PS filing is available if PS drafting is complete
+    if (patent.ps_filer_assgn === user?.full_name && patent.ps_filing_status === 0) {
+      return patent.ps_drafting_status === 1;
+    } 
+    
+    // CS filing is available if PS is not required or PS filing is complete, and CS drafting is complete
+    if (patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0) {
+      const psNotRequired = !patent.ps_filer_assgn;
+      const psCompleted = patent.ps_filing_status === 1;
+      return (psNotRequired || psCompleted) && patent.cs_drafting_status === 1;
+    }
+    
+    // FER filing is available if PS & CS are not required or completed, and FER drafting is complete
+    if (patent.fer_filer_assgn === user?.full_name && patent.fer_filing_status === 0) {
+      const psNotRequired = !patent.ps_filer_assgn;
+      const csNotRequired = !patent.cs_filer_assgn;
+      const psCompleted = patent.ps_filing_status === 1;
+      const csCompleted = patent.cs_filing_status === 1;
+      return (psNotRequired || psCompleted) && (csNotRequired || csCompleted) && patent.fer_drafter_status === 1;
+    }
+    
+    return false;
+  };
+
+  // Check if task requires form submission
+  const requiresForms = (patent: Patent) => {
+    return patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0;
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold tracking-tight">Filings</h1>
-      </div>
-
-      <div className="relative">
-        <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search filings..."
-          className="pl-9"
-          value={searchQuery}
-          onChange={handleSearch}
-        />
-      </div>
-
-      <Tabs defaultValue="in-progress" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="in-progress">In Progress</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
+    <div className="container mx-auto py-6">
+      <h1 className="text-2xl font-bold mb-6">Filing Assignments</h1>
+      
+      <Tabs defaultValue="active" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="active">Active Tasks ({activePatents.length})</TabsTrigger>
+          <TabsTrigger value="completed">Completed Tasks ({completedPatents.length})</TabsTrigger>
         </TabsList>
-        <TabsContent value="in-progress" className="space-y-4">
-          {filteredInProgressFilings.length > 0 ? (
+        
+        <TabsContent value="active">
+          {loading ? (
+            <div className="flex justify-center items-center h-40">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+          ) : activePatents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredInProgressFilings.map(patent => (
-                <Card key={patent.id}>
-                  <CardContent className="p-4">
-                    <div className="space-y-2">
-                      <h3 className="text-lg font-semibold">{patent.patent_title}</h3>
-                      <p className="text-sm text-muted-foreground">Tracking ID: {patent.tracking_id}</p>
-                      <StatusBadge
-                        status={
-                          patent.ps_filing_status === 0 ||
-                            patent.cs_filing_status === 0 ||
-                            patent.fer_filing_status === 0
-                            ? 'In Progress'
-                            : 'Completed'
-                        }
-                      />
-                      <Button variant="secondary" size="sm" onClick={() => handleOpenDialog(patent)}>
-                        View Forms
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleOpenTaskCompleteDialog(patent)}>
-                        Complete Task
-                      </Button>
+              {activePatents.map(patent => (
+                <Card key={patent.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex justify-between items-start">
+                      <div className="truncate">{patent.patent_title}</div>
+                      <StatusBadge type={isTaskAvailable(patent) ? 'active' : 'pending'} />
+                    </CardTitle>
+                    <CardDescription>ID: {patent.tracking_id}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      <div><span className="font-medium">Applicant:</span> {patent.patent_applicant}</div>
+                      <div><span className="font-medium">Task:</span> {getTaskType(patent)}</div>
+                      <div><span className="font-medium">Client ID:</span> {patent.client_id}</div>
+                      <div><span className="font-medium">Deadline:</span> {formatDate(getDeadline(patent))}</div>
+                      
+                      <div className="pt-2 flex justify-between">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/patents/${patent.id}`)}
+                        >
+                          View Details
+                        </Button>
+                        
+                        {requiresForms(patent) ? (
+                          <Button
+                            size="sm"
+                            onClick={() => handleShowFormsDialog(patent)}
+                            disabled={!isTaskAvailable(patent)}
+                          >
+                            Complete with Forms
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={() => handleComplete(patent)}
+                            disabled={!isTaskAvailable(patent)}
+                          >
+                            Complete & Submit
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {!isTaskAvailable(patent) && (
+                        <div className="text-amber-600 font-medium text-xs mt-1">
+                          Waiting for previous stage to be completed
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : (
-            <div className="text-center text-muted-foreground">No in progress filings found.</div>
+            <div className="text-center p-8 border rounded-lg">
+              <p className="text-gray-500">No active filing tasks found</p>
+            </div>
           )}
         </TabsContent>
-        <TabsContent value="completed" className="space-y-4">
-          {filteredCompletedFilings.length > 0 ? (
+        
+        <TabsContent value="completed">
+          {loading ? (
+            <div className="flex justify-center items-center h-40">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+          ) : completedPatents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredCompletedFilings.map(patent => (
-                <Card key={patent.id}>
-                  <CardContent className="p-4">
-                    <div className="space-y-2">
-                      <h3 className="text-lg font-semibold">{patent.patent_title}</h3>
-                      <p className="text-sm text-muted-foreground">Tracking ID: {patent.tracking_id}</p>
-                      <StatusBadge status="Completed" />
-                      <Button variant="secondary" size="sm" onClick={() => handleOpenDialog(patent)}>
-                        View Forms
-                      </Button>
+              {completedPatents.map(patent => (
+                <Card key={patent.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex justify-between items-start">
+                      <div className="truncate">{patent.patent_title}</div>
+                      <StatusBadge type="completed" />
+                    </CardTitle>
+                    <CardDescription>ID: {patent.tracking_id}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      <div><span className="font-medium">Applicant:</span> {patent.patent_applicant}</div>
+                      <div><span className="font-medium">Client ID:</span> {patent.client_id}</div>
+                      <div><span className="font-medium">Filing Date:</span> {formatDate(patent.date_of_filing)}</div>
+                      
+                      <div className="pt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/patents/${patent.id}`)}
+                          className="w-full"
+                        >
+                          View Details
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : (
-            <div className="text-center text-muted-foreground">No completed filings found.</div>
+            <div className="text-center p-8 border rounded-lg">
+              <p className="text-gray-500">No completed filing tasks found</p>
+            </div>
           )}
         </TabsContent>
       </Tabs>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      
+      {/* Dialog for CS Forms */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Filing Forms</DialogTitle>
+            <DialogTitle>Complete Specification Forms</DialogTitle>
             <DialogDescription>
-              Select the forms that have been completed for this filing.
+              Select the forms that you have completed for this patent.
             </DialogDescription>
           </DialogHeader>
+          
           <div className="grid gap-4 py-4">
-            {selectedPatent && (
-              <>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="form_26"
-                      checked={!!formStates[selectedPatent.id]?.form_26}
-                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_26', !!checked)}
-                    />
-                    <Label htmlFor="form_26">Form 26</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="form_18"
-                      checked={!!formStates[selectedPatent.id]?.form_18}
-                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_18', !!checked)}
-                    />
-                    <Label htmlFor="form_18">Form 18</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="form_18a"
-                      checked={!!formStates[selectedPatent.id]?.form_18a}
-                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_18a', !!checked)}
-                    />
-                    <Label htmlFor="form_18a">Form 18A</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="form_9"
-                      checked={!!formStates[selectedPatent.id]?.form_9}
-                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_9', !!checked)}
-                    />
-                    <Label htmlFor="form_9">Form 9</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="form_9a"
-                      checked={!!formStates[selectedPatent.id]?.form_9a}
-                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_9a', !!checked)}
-                    />
-                    <Label htmlFor="form_9a">Form 9A</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="form_13"
-                      checked={!!formStates[selectedPatent.id]?.form_13}
-                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_13', !!checked)}
-                    />
-                    <Label htmlFor="form_13">Form 13</Label>
-                  </div>
-                </div>
-              </>
-            )}
+            <div className="flex items-center space-x-2">
+              <Checkbox id="form26" checked={form26} onCheckedChange={(checked) => setForm26(checked === true)} />
+              <Label htmlFor="form26">Form 26 - Power of Attorney</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="form18" checked={form18} onCheckedChange={(checked) => setForm18(checked === true)} />
+              <Label htmlFor="form18">Form 18 - Request for Examination</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="form18a" checked={form18a} onCheckedChange={(checked) => setForm18a(checked === true)} />
+              <Label htmlFor="form18a">Form 18A - Fast Track Examination</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="form9" checked={form9} onCheckedChange={(checked) => setForm9(checked === true)} />
+              <Label htmlFor="form9">Form 9 - Complete Specification</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="form9a" checked={form9a} onCheckedChange={(checked) => setForm9a(checked === true)} />
+              <Label htmlFor="form9a">Form 9A - PCT National Phase</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="form13" checked={form13} onCheckedChange={(checked) => setForm13(checked === true)} />
+              <Label htmlFor="form13">Form 13 - Request for Amendment</Label>
+            </div>
           </div>
+          
           <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="secondary" onClick={handleCloseDialog}>
-                Cancel
-              </Button>
-            </DialogClose>
-            <Button type="submit" onClick={handleSubmitForms}>
-              Save changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isTaskCompleteDialogOpen} onOpenChange={setIsTaskCompleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Complete Task</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to complete this task?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="secondary" onClick={handleCloseTaskCompleteDialog}>
-                Cancel
-              </Button>
-            </DialogClose>
-            <Button type="submit" onClick={handleSubmitForms}>
-              Complete Task
-            </Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => selectedPatent && handleComplete(selectedPatent)}>Submit & Complete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

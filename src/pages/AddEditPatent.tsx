@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -423,17 +424,20 @@ const AddEditPatent = () => {
               <div className="space-y-2">
                 <Label htmlFor="ps_drafter_assgn">PS Drafter</Label>
                 <Select 
-                  value={formData.ps_drafter_assgn || ""}
+                  value={formData.ps_drafter_assgn || undefined}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, ps_drafter_assgn: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select drafter" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
-                    {drafters.map(drafter => (
-                      <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
-                    ))}
+                    {drafters.length > 0 ? (
+                      drafters.map(drafter => (
+                        <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-drafters">No drafters available</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -444,7 +448,7 @@ const AddEditPatent = () => {
                   id="ps_drafter_deadline" 
                   name="ps_drafter_deadline" 
                   type="date" 
-                  value={formData.ps_drafter_deadline} 
+                  value={formData.ps_drafter_deadline || ''} 
                   onChange={(e) => setFormData(prev => ({ ...prev, ps_drafter_deadline: e.target.value }))}
                 />
               </div>
@@ -452,17 +456,20 @@ const AddEditPatent = () => {
               <div className="space-y-2">
                 <Label htmlFor="ps_filer_assgn">PS Filer</Label>
                 <Select 
-                  value={formData.ps_filer_assgn || ""}
+                  value={formData.ps_filer_assgn || undefined}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, ps_filer_assgn: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select filer" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
-                    {filers.map(filer => (
-                      <SelectItem key={filer} value={filer}>{filer}</SelectItem>
-                    ))}
+                    {filers.length > 0 ? (
+                      filers.map(filer => (
+                        <SelectItem key={filer} value={filer}>{filer}</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-filers">No filers available</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -473,7 +480,7 @@ const AddEditPatent = () => {
                   id="ps_filer_deadline" 
                   name="ps_filer_deadline" 
                   type="date" 
-                  value={formData.ps_filer_deadline} 
+                  value={formData.ps_filer_deadline || ''} 
                   onChange={(e) => setFormData(prev => ({ ...prev, ps_filer_deadline: e.target.value }))}
                 />
               </div>
@@ -491,17 +498,20 @@ const AddEditPatent = () => {
               <div className="space-y-2">
                 <Label htmlFor="cs_drafter_assgn">CS Drafter</Label>
                 <Select 
-                  value={formData.cs_drafter_assgn || ""}
+                  value={formData.cs_drafter_assgn || undefined}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, cs_drafter_assgn: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select drafter" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
-                    {drafters.map(drafter => (
-                      <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
-                    ))}
+                    {drafters.length > 0 ? (
+                      drafters.map(drafter => (
+                        <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-drafters">No drafters available</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -512,7 +522,7 @@ const AddEditPatent = () => {
                   id="cs_drafter_deadline" 
                   name="cs_drafter_deadline" 
                   type="date" 
-                  value={formData.cs_drafter_deadline} 
+                  value={formData.cs_drafter_deadline || ''} 
                   onChange={(e) => setFormData(prev => ({ ...prev, cs_drafter_deadline: e.target.value }))}
                 />
               </div>
@@ -520,17 +530,20 @@ const AddEditPatent = () => {
               <div className="space-y-2">
                 <Label htmlFor="cs_filer_assgn">CS Filer</Label>
                 <Select 
-                  value={formData.cs_filer_assgn || ""}
+                  value={formData.cs_filer_assgn || undefined}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, cs_filer_assgn: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select filer" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
-                    {filers.map(filer => (
-                      <SelectItem key={filer} value={filer}>{filer}</SelectItem>
-                    ))}
+                    {filers.length > 0 ? (
+                      filers.map(filer => (
+                        <SelectItem key={filer} value={filer}>{filer}</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-filers">No filers available</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -541,7 +554,7 @@ const AddEditPatent = () => {
                   id="cs_filer_deadline" 
                   name="cs_filer_deadline" 
                   type="date" 
-                  value={formData.cs_filer_deadline} 
+                  value={formData.cs_filer_deadline || ''} 
                   onChange={(e) => setFormData(prev => ({ ...prev, cs_filer_deadline: e.target.value }))}
                 />
               </div>
@@ -571,17 +584,20 @@ const AddEditPatent = () => {
                 <div className="space-y-2">
                   <Label htmlFor="fer_drafter_assgn">FER Drafter</Label>
                   <Select 
-                    value={formData.fer_drafter_assgn || ""}
+                    value={formData.fer_drafter_assgn || undefined}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, fer_drafter_assgn: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select drafter" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {drafters.map(drafter => (
-                        <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
-                      ))}
+                      {drafters.length > 0 ? (
+                        drafters.map(drafter => (
+                          <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-drafters">No drafters available</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -592,7 +608,7 @@ const AddEditPatent = () => {
                     id="fer_drafter_deadline" 
                     name="fer_drafter_deadline" 
                     type="date" 
-                    value={formData.fer_drafter_deadline} 
+                    value={formData.fer_drafter_deadline || ''} 
                     onChange={(e) => setFormData(prev => ({ ...prev, fer_drafter_deadline: e.target.value }))}
                   />
                 </div>
@@ -600,17 +616,20 @@ const AddEditPatent = () => {
                 <div className="space-y-2">
                   <Label htmlFor="fer_filer_assgn">FER Filer</Label>
                   <Select 
-                    value={formData.fer_filer_assgn || ""}
+                    value={formData.fer_filer_assgn || undefined}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, fer_filer_assgn: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select filer" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {filers.map(filer => (
-                        <SelectItem key={filer} value={filer}>{filer}</SelectItem>
-                      ))}
+                      {filers.length > 0 ? (
+                        filers.map(filer => (
+                          <SelectItem key={filer} value={filer}>{filer}</SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-filers">No filers available</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -621,7 +640,7 @@ const AddEditPatent = () => {
                     id="fer_filer_deadline" 
                     name="fer_filer_deadline" 
                     type="date" 
-                    value={formData.fer_filer_deadline} 
+                    value={formData.fer_filer_deadline || ''} 
                     onChange={(e) => setFormData(prev => ({ ...prev, fer_filer_deadline: e.target.value }))}
                   />
                 </div>
