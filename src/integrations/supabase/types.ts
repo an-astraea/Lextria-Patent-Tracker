@@ -127,7 +127,7 @@ export type Database = {
           cs_filing_status: number
           cs_review_draft_status: number
           cs_review_file_status: number
-          date_of_filing: string
+          date_of_filing: string | null
           fer_completion_status: number
           fer_drafter_assgn: string | null
           fer_drafter_deadline: string | null
@@ -175,7 +175,7 @@ export type Database = {
           cs_filing_status?: number
           cs_review_draft_status?: number
           cs_review_file_status?: number
-          date_of_filing: string
+          date_of_filing?: string | null
           fer_completion_status?: number
           fer_drafter_assgn?: string | null
           fer_drafter_deadline?: string | null
@@ -223,7 +223,7 @@ export type Database = {
           cs_filing_status?: number
           cs_review_draft_status?: number
           cs_review_file_status?: number
-          date_of_filing?: string
+          date_of_filing?: string | null
           fer_completion_status?: number
           fer_drafter_assgn?: string | null
           fer_drafter_deadline?: string | null
