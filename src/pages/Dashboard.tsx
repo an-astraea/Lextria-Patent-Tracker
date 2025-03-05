@@ -1,236 +1,223 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { patents } from '@/lib/data';
+import { Patent } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
-import { 
-  FileText, 
-  Users, 
-  CheckCircle, 
-  Clock, 
-  BarChart, 
-  FileCheck,
-  AlertCircle,
-  FilePen,
-  Calendar,
-  CheckCheck
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChevronRight, FileText, FileCheck, Clock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { patents, employees, getPatentsPendingApproval } from '@/lib/data';
-import { User } from '@/lib/types';
-import Sidebar from '@/components/Sidebar';
-import { Separator } from '@/components/ui/separator';
+import { PatentCard } from '@/components/PatentCard';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
-  const [pendingPatents, setPendingPatents] = useState(getPatentsPendingApproval());
-
-  useEffect(() => {
-    // Check if user is logged in
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/');
-      return;
-    }
-
-    setUser(JSON.parse(storedUser));
-  }, [navigate]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    navigate('/');
-  };
-
+  
+  // Get user from localStorage
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
+  
   // Calculate statistics
   const totalPatents = patents.length;
-  const pendingApprovalCount = pendingPatents.length;
-  const totalEmployees = employees.length;
-  
-  const completedDrafts = patents.filter(p => 
-    p.ps_drafting_status === 1 || p.cs_drafting_status === 1 || p.fer_drafter_status === 1
+  const completedPatents = patents.filter(p => 
+    p.ps_completion_status === 1 && 
+    p.cs_completion_status === 1 && 
+    (!p.fer_status || p.fer_completion_status === 1)
   ).length;
   
-  const completedFilings = patents.filter(p => 
-    p.ps_filing_status === 1 || p.cs_filing_status === 1 || p.fer_filing_status === 1
-  ).length;
-
-  const drafterCount = employees.filter(e => e.role === 'drafter').length;
-  const filerCount = employees.filter(e => e.role === 'filer').length;
-
-  return (
-    <div className="flex min-h-screen bg-background">
-      {user && <Sidebar user={user} onLogout={handleLogout} />}
+  const inProgressPatents = totalPatents - completedPatents;
+  
+  // Calculate deadline approaching patents (with deadline in next 7 days)
+  const today = new Date();
+  const nextWeek = new Date();
+  nextWeek.setDate(today.getDate() + 7);
+  
+  const getDeadlineApproachingPatents = (): Patent[] => {
+    return patents.filter(patent => {
+      const deadlines = [
+        patent.ps_drafter_deadline,
+        patent.ps_filer_deadline,
+        patent.cs_drafter_deadline,
+        patent.cs_filer_deadline,
+        patent.fer_drafter_deadline,
+        patent.fer_filer_deadline
+      ].filter(Boolean) as string[];
       
-      <div className="flex-1 p-6 md:p-8 md:ml-64 transition-all duration-300 ease-in-out">
-        <div className="max-w-[1200px] mx-auto">
-          <header className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
-              Overview of your patent tracking system
+      return deadlines.some(deadline => {
+        const deadlineDate = new Date(deadline);
+        return deadlineDate >= today && deadlineDate <= nextWeek;
+      });
+    });
+  };
+  
+  const deadlineApproachingPatents = getDeadlineApproachingPatents();
+  
+  // Get user's assigned patents
+  const getUserAssignedPatents = (): Patent[] => {
+    if (!user) return [];
+    
+    if (user.role === 'drafter') {
+      return patents.filter(patent => 
+        (patent.ps_drafting_status === 0 && patent.ps_drafter_assgn === user.full_name) ||
+        (patent.cs_drafting_status === 0 && patent.cs_drafter_assgn === user.full_name) ||
+        (patent.fer_drafter_status === 0 && patent.fer_drafter_assgn === user.full_name)
+      );
+    }
+    
+    if (user.role === 'filer') {
+      return patents.filter(patent => 
+        (patent.ps_filing_status === 0 && patent.ps_filer_assgn === user.full_name) ||
+        (patent.cs_filing_status === 0 && patent.cs_filer_assgn === user.full_name) ||
+        (patent.fer_filing_status === 0 && patent.fer_filer_assgn === user.full_name)
+      );
+    }
+    
+    return [];
+  };
+  
+  const userAssignedPatents = getUserAssignedPatents();
+  
+  // Get patents pending approval (admin only)
+  const getPendingApprovalCount = (): number => {
+    return patents.filter(patent => 
+      (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0) || 
+      (patent.ps_filing_status === 1 && patent.ps_review_file_status === 0) ||
+      (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0) ||
+      (patent.cs_filing_status === 1 && patent.cs_review_file_status === 0) ||
+      (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0) ||
+      (patent.fer_filing_status === 1 && patent.fer_review_file_status === 0)
+    ).length;
+  };
+  
+  const pendingApprovalCount = getPendingApprovalCount();
+  
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Patents</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalPatents}</div>
+            <p className="text-xs text-muted-foreground">
+              Patents in the system
             </p>
-          </header>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-            <Card className="glass">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Total Patents</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totalPatents}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  All patents in the system
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="glass">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Pending Approval</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{pendingApprovalCount}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Patents awaiting your review
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="glass">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totalEmployees}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Drafters: {drafterCount}, Filers: {filerCount}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="glass">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                <BarChart className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {totalPatents ? Math.round((completedDrafts / (totalPatents * 2)) * 100) : 0}%
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Overall task completion
-                </p>
-              </CardContent>
-            </Card>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+            <FileCheck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{completedPatents}</div>
+            <p className="text-xs text-muted-foreground">
+              {((completedPatents / totalPatents) * 100).toFixed(0)}% completion rate
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{inProgressPatents}</div>
+            <p className="text-xs text-muted-foreground">
+              Patents currently active
+            </p>
+          </CardContent>
+        </Card>
+        
+        {user?.role === 'admin' ? (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Approval</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{pendingApprovalCount}</div>
+              <p className="text-xs text-muted-foreground">
+                Items waiting for review
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Your Tasks</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{userAssignedPatents.length}</div>
+              <p className="text-xs text-muted-foreground">
+                Assignments waiting for you
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+      
+      {user?.role === 'admin' && pendingApprovalCount > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Pending Approvals</CardTitle>
+              <Button variant="ghost" size="sm" className="text-sm" onClick={() => navigate('/approvals')}>
+                View All <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </div>
+            <CardDescription>Review and approve patent drafts and filings</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center py-4">
+              You have {pendingApprovalCount} item{pendingApprovalCount !== 1 ? 's' : ''} waiting for your approval
+            </p>
+            <Button className="w-full" onClick={() => navigate('/approvals')}>
+              Go to Approvals
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      
+      {userAssignedPatents.length > 0 && (
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Your Assignments</h2>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate(user?.role === 'drafter' ? '/drafts' : '/filings')}
+            >
+              View All <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
           </div>
-
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 mb-8">
-            <Card className="md:col-span-2 glass">
-              <CardHeader>
-                <CardTitle>Patent Status Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <FilePen className="h-4 w-4 mr-2 text-blue-500" />
-                      <span className="text-sm font-medium">Drafting Completed</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-full bg-blue-500"></div>
-                      <span className="text-sm">{completedDrafts} patents</span>
-                    </div>
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <FileCheck className="h-4 w-4 mr-2 text-green-500" />
-                      <span className="text-sm font-medium">Filing Completed</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-full bg-green-500"></div>
-                      <span className="text-sm">{completedFilings} patents</span>
-                    </div>
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-2 text-amber-500" />
-                      <span className="text-sm font-medium">Awaiting Review</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-full bg-amber-500"></div>
-                      <span className="text-sm">{pendingApprovalCount} patents</span>
-                    </div>
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <CheckCheck className="h-4 w-4 mr-2 text-indigo-500" />
-                      <span className="text-sm font-medium">Fully Completed</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-full bg-indigo-500"></div>
-                      <span className="text-sm">
-                        {patents.filter(p => p.ps_completion_status === 1 && p.cs_completion_status === 1).length} patents
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="glass">
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {patents.slice(0, 4).map((patent, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <Calendar className="h-5 w-5 mt-0.5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">{patent.patent_title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(patent.updated_at).toLocaleDateString()} - Status updated
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <Button 
-              onClick={() => navigate('/patents/add')} 
-              className="shadow-md"
-            >
-              <FileText className="mr-2 h-4 w-4" /> 
-              Add New Patent
-            </Button>
-            <Button 
-              onClick={() => navigate('/employees/add')} 
-              variant="outline" 
-              className="shadow-sm"
-            >
-              <Users className="mr-2 h-4 w-4" /> 
-              Add New Employee
-            </Button>
-            <Button 
-              onClick={() => navigate('/approvals')} 
-              variant="secondary" 
-              className="shadow-sm"
-            >
-              <CheckCircle className="mr-2 h-4 w-4" /> 
-              Review Pending Approvals
-            </Button>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {userAssignedPatents.slice(0, 3).map((patent) => (
+              <PatentCard key={patent.id} patent={patent} />
+            ))}
           </div>
         </div>
-      </div>
+      )}
+      
+      {deadlineApproachingPatents.length > 0 && (
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Approaching Deadlines</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {deadlineApproachingPatents.slice(0, 3).map((patent) => (
+              <PatentCard key={patent.id} patent={patent} showDeadline />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
