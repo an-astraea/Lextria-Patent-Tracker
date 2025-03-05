@@ -79,7 +79,6 @@ const Filings = () => {
           setInProgressFilings(inProgress);
           setCompletedFilings(completed);
 
-          // Initialize form states
           const initialFormStates = {};
           [...inProgress, ...completed].forEach(patent => {
             initialFormStates[patent.id] = {
@@ -104,12 +103,13 @@ const Filings = () => {
     fetchAssignments();
   }, [user]);
 
-  const handleFormChange = (patentId: string, formName: string, checked: boolean) => {
+  const handleFormChange = (patentId: string, formName: string, checked: boolean | string) => {
+    const checkedBoolean = checked === true || checked === 'true';
     setFormStates(prevFormStates => ({
       ...prevFormStates,
       [patentId]: {
         ...prevFormStates[patentId],
-        [formName]: checked,
+        [formName]: checkedBoolean,
       },
     }));
   };
@@ -144,7 +144,6 @@ const Filings = () => {
       const success = await completeFilerTask(selectedPatent, user?.email || '', formData);
       if (success) {
         toast.success('Forms submitted and task completed successfully');
-        // Refresh assignments
         const inProgress = await fetchFilerAssignments(user?.email || '');
         const completed = await fetchFilerCompletedAssignments(user?.email || '');
         setInProgressFilings(inProgress);
@@ -274,48 +273,48 @@ const Filings = () => {
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="form_26"
-                      checked={formStates[selectedPatent.id]?.form_26 || false}
-                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_26', checked)}
+                      checked={!!formStates[selectedPatent.id]?.form_26}
+                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_26', !!checked)}
                     />
                     <Label htmlFor="form_26">Form 26</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="form_18"
-                      checked={formStates[selectedPatent.id]?.form_18 || false}
-                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_18', checked)}
+                      checked={!!formStates[selectedPatent.id]?.form_18}
+                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_18', !!checked)}
                     />
                     <Label htmlFor="form_18">Form 18</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="form_18a"
-                      checked={formStates[selectedPatent.id]?.form_18a || false}
-                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_18a', checked)}
+                      checked={!!formStates[selectedPatent.id]?.form_18a}
+                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_18a', !!checked)}
                     />
                     <Label htmlFor="form_18a">Form 18A</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="form_9"
-                      checked={formStates[selectedPatent.id]?.form_9 || false}
-                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_9', checked)}
+                      checked={!!formStates[selectedPatent.id]?.form_9}
+                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_9', !!checked)}
                     />
                     <Label htmlFor="form_9">Form 9</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="form_9a"
-                      checked={formStates[selectedPatent.id]?.form_9a || false}
-                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_9a', checked)}
+                      checked={!!formStates[selectedPatent.id]?.form_9a}
+                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_9a', !!checked)}
                     />
                     <Label htmlFor="form_9a">Form 9A</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="form_13"
-                      checked={formStates[selectedPatent.id]?.form_13 || false}
-                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_13', checked)}
+                      checked={!!formStates[selectedPatent.id]?.form_13}
+                      onCheckedChange={(checked) => handleFormChange(selectedPatent.id, 'form_13', !!checked)}
                     />
                     <Label htmlFor="form_13">Form 13</Label>
                   </div>
