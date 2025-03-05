@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useMediaQuery } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
+import * as LucideIcons from 'lucide-react';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -12,7 +13,7 @@ interface MainLayoutProps {
 const MainLayout = ({ children }: MainLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const navigate = useNavigate();
-  const isMobile = useMediaQuery('(max-width: 768px)');
+  const isMobile = useIsMobile();
   
   // Get user from localStorage
   const userString = localStorage.getItem('user');
@@ -104,13 +105,13 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           <nav className="flex-1 overflow-y-auto py-4 px-3">
             <SidebarNavItem 
               to="/dashboard" 
-              icon="layout-dashboard" 
+              icon="LayoutDashboard" 
               label="Dashboard" 
               expanded={sidebarOpen} 
             />
             <SidebarNavItem 
               to="/patents" 
-              icon="file-text" 
+              icon="FileText" 
               label="Patents" 
               expanded={sidebarOpen} 
             />
@@ -120,13 +121,13 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               <>
                 <SidebarNavItem 
                   to="/employees" 
-                  icon="users" 
+                  icon="Users" 
                   label="Employees" 
                   expanded={sidebarOpen} 
                 />
                 <SidebarNavItem 
                   to="/approvals" 
-                  icon="check-circle" 
+                  icon="CheckCircle" 
                   label="Approvals" 
                   expanded={sidebarOpen} 
                 />
@@ -137,7 +138,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             {user?.role === 'drafter' && (
               <SidebarNavItem 
                 to="/drafts" 
-                icon="pen-tool" 
+                icon="PenTool" 
                 label="My Drafts" 
                 expanded={sidebarOpen} 
               />
@@ -147,7 +148,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             {user?.role === 'filer' && (
               <SidebarNavItem 
                 to="/filings" 
-                icon="file-plus" 
+                icon="FilePlus" 
                 label="My Filings" 
                 expanded={sidebarOpen} 
               />
@@ -238,13 +239,8 @@ const SidebarNavItem = ({
   const navigate = useNavigate();
   const isActive = window.location.pathname === to;
   
-  // Dynamically import the icon
-  const Icon = React.useMemo(() => {
-    const icons = require('lucide-react');
-    return icons[icon.split('-').map((part, i) => 
-      i === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1)
-    ).join('')] || icons.Circle;
-  }, [icon]);
+  // Get icon from Lucide icons
+  const Icon = (LucideIcons as any)[icon] || LucideIcons.Circle;
   
   return (
     <button
