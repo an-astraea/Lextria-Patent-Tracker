@@ -106,7 +106,7 @@ export const updatePatentForms = async (
 // Employee Functions
 export const fetchEmployees = async (): Promise<Employee[]> => {
   try {
-    const { data: employees, error } = await supabase
+    const { data, error } = await supabase
       .from("employees")
       .select("*");
 
@@ -114,7 +114,11 @@ export const fetchEmployees = async (): Promise<Employee[]> => {
       throw error;
     }
 
-    return employees || [];
+    // Cast the roles to the expected type
+    return (data || []).map(employee => ({
+      ...employee,
+      role: employee.role as 'admin' | 'drafter' | 'filer'
+    }));
   } catch (error) {
     console.error("Error fetching employees:", error);
     toast.error("Failed to load employees");
@@ -141,9 +145,15 @@ export const loginUser = async (email: string, password: string): Promise<Employ
       return null;
     }
 
+    // Cast the role to the expected type
+    const user: Employee = {
+      ...data,
+      role: data.role as 'admin' | 'drafter' | 'filer'
+    };
+
     // Store user in localStorage
-    localStorage.setItem("user", JSON.stringify(data));
-    return data;
+    localStorage.setItem("user", JSON.stringify(user));
+    return user;
   } catch (error) {
     console.error("Error logging in:", error);
     toast.error("Login failed");
