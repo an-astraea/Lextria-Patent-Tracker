@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -225,7 +223,7 @@ const Filings = () => {
                   <CardHeader className="pb-2">
                     <CardTitle className="flex justify-between items-start">
                       <div className="truncate">{patent.patent_title}</div>
-                      <StatusBadge type={isTaskAvailable(patent) ? 'active' : 'pending'} />
+                      <StatusBadge status={isTaskAvailable(patent) ? 'active' : 'pending'} />
                     </CardTitle>
                     <CardDescription>ID: {patent.tracking_id}</CardDescription>
                   </CardHeader>
@@ -293,7 +291,7 @@ const Filings = () => {
                   <CardHeader className="pb-2">
                     <CardTitle className="flex justify-between items-start">
                       <div className="truncate">{patent.patent_title}</div>
-                      <StatusBadge type="completed" />
+                      <StatusBadge status="completed" />
                     </CardTitle>
                     <CardDescription>ID: {patent.tracking_id}</CardDescription>
                   </CardHeader>

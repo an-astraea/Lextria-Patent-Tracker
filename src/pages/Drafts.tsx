@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,11 +15,9 @@ const Drafts = () => {
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Get user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
 
-  // Redirect if not drafter
   React.useEffect(() => {
     if (!user || user.role !== 'drafter') {
       toast.error('Access denied. Drafter privileges required.');
@@ -38,17 +35,16 @@ const Drafts = () => {
             fetchDrafterCompletedAssignments(user.full_name)
           ]);
           
-          // Sort by queue logic
           const sortedActivePatents = activeData.sort((a, b) => {
             const getQueueOrder = (patent: Patent) => {
               if (patent.ps_drafter_assgn === user.full_name && patent.ps_drafting_status === 0) {
-                return 1; // PS has highest priority
+                return 1;
               } else if (patent.cs_drafter_assgn === user.full_name && patent.cs_drafting_status === 0) {
-                return 2; // CS has second priority
+                return 2;
               } else if (patent.fer_drafter_assgn === user.full_name && patent.fer_drafter_status === 0) {
-                return 3; // FER has lowest priority
+                return 3;
               }
-              return 4; // Default
+              return 4;
             };
             
             return getQueueOrder(a) - getQueueOrder(b);
@@ -83,7 +79,6 @@ const Drafts = () => {
     }
   };
 
-  // Determine which task is active for this drafter
   const getTaskType = (patent: Patent) => {
     if (patent.ps_drafter_assgn === user?.full_name && patent.ps_drafting_status === 0) {
       return 'Provisional Specification';
@@ -95,7 +90,6 @@ const Drafts = () => {
     return 'Unknown Task';
   };
 
-  // Get the deadline for the active task
   const getDeadline = (patent: Patent) => {
     if (patent.ps_drafter_assgn === user?.full_name && patent.ps_drafting_status === 0) {
       return patent.ps_drafter_deadline;
@@ -107,25 +101,21 @@ const Drafts = () => {
     return null;
   };
 
-  // Format date for display
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'No deadline set';
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Check if a task is available based on queue order
   const isTaskAvailable = (patent: Patent) => {
     if (patent.ps_drafter_assgn === user?.full_name && patent.ps_drafting_status === 0) {
-      return true; // PS is always available if assigned
+      return true;
     } 
     
     if (patent.cs_drafter_assgn === user?.full_name && patent.cs_drafting_status === 0) {
-      // CS is available if PS is not assigned or PS is completed
       return !patent.ps_drafter_assgn || patent.ps_drafting_status === 1;
     }
     
     if (patent.fer_drafter_assgn === user?.full_name && patent.fer_drafter_status === 0) {
-      // FER is available if PS and CS are not assigned or they are completed
       const psCompleted = !patent.ps_drafter_assgn || patent.ps_drafting_status === 1;
       const csCompleted = !patent.cs_drafter_assgn || patent.cs_drafting_status === 1;
       return psCompleted && csCompleted;
@@ -156,7 +146,7 @@ const Drafts = () => {
                   <CardHeader className="pb-2">
                     <CardTitle className="flex justify-between items-start">
                       <div className="truncate">{patent.patent_title}</div>
-                      <StatusBadge type={isTaskAvailable(patent) ? 'active' : 'pending'} />
+                      <StatusBadge status={isTaskAvailable(patent) ? 'active' : 'pending'} />
                     </CardTitle>
                     <CardDescription>ID: {patent.tracking_id}</CardDescription>
                   </CardHeader>
@@ -213,7 +203,7 @@ const Drafts = () => {
                   <CardHeader className="pb-2">
                     <CardTitle className="flex justify-between items-start">
                       <div className="truncate">{patent.patent_title}</div>
-                      <StatusBadge type="completed" />
+                      <StatusBadge status="completed" />
                     </CardTitle>
                     <CardDescription>ID: {patent.tracking_id}</CardDescription>
                   </CardHeader>
