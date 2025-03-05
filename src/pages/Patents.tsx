@@ -6,19 +6,40 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Patent } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
-import { patents } from '@/lib/data';
 import PatentCard from '@/components/PatentCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { fetchPatents } from '@/lib/api';
 
 const Patents = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [filteredPatents, setFilteredPatents] = React.useState<Patent[]>(patents);
+  const [patents, setPatents] = React.useState<Patent[]>([]);
+  const [filteredPatents, setFilteredPatents] = React.useState<Patent[]>([]);
+  const [loading, setLoading] = React.useState(true);
   
   // Get user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
+  
+  // Fetch patents from Supabase
+  React.useEffect(() => {
+    const getPatents = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchPatents();
+        setPatents(data);
+        setFilteredPatents(data);
+      } catch (error) {
+        console.error('Error fetching patents:', error);
+        toast.error('Failed to load patents');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getPatents();
+  }, []);
   
   // Handle search
   React.useEffect(() => {
@@ -39,30 +60,39 @@ const Patents = () => {
     );
     
     setFilteredPatents(filtered);
-  }, [searchQuery]);
+  }, [searchQuery, patents]);
   
   const getInProgressPatents = () => {
     return filteredPatents.filter(patent => 
       !patent.ps_completion_status || 
       !patent.cs_completion_status || 
-      (patent.fer_status && !patent.fer_completion_status)
+      (patent.fer_status === 1 && !patent.fer_completion_status)
     );
   };
   
   const getCompletedPatents = () => {
     return filteredPatents.filter(patent => 
-      patent.ps_completion_status && 
-      patent.cs_completion_status && 
-      (!patent.fer_status || patent.fer_completion_status)
+      patent.ps_completion_status === 1 && 
+      patent.cs_completion_status === 1 && 
+      (patent.fer_status === 0 || patent.fer_completion_status === 1)
     );
   };
 
-  const handleDeletePatent = (id: string) => {
+  const handleDeletePatent = async (id: string) => {
     // In a real app, you would make an API call to delete the patent
-    // For now, just remove it from the filtered list and show a toast
-    setFilteredPatents(patents.filter(patent => patent.id !== id));
+    // For this demo, just remove it from the UI
+    setPatents(patents.filter(patent => patent.id !== id));
+    setFilteredPatents(filteredPatents.filter(patent => patent.id !== id));
     toast.success('Patent deleted successfully');
   };
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -96,7 +126,11 @@ const Patents = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {getInProgressPatents().length > 0 ? (
               getInProgressPatents().map((patent) => (
-                <PatentCard key={patent.id} patent={patent} onDelete={handleDeletePatent} />
+                <PatentCard 
+                  key={patent.id} 
+                  patent={patent} 
+                  onDelete={user?.role === 'admin' ? handleDeletePatent : undefined} 
+                />
               ))
             ) : (
               <div className="col-span-full">
@@ -112,7 +146,11 @@ const Patents = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {getCompletedPatents().length > 0 ? (
               getCompletedPatents().map((patent) => (
-                <PatentCard key={patent.id} patent={patent} onDelete={handleDeletePatent} />
+                <PatentCard 
+                  key={patent.id} 
+                  patent={patent} 
+                  onDelete={user?.role === 'admin' ? handleDeletePatent : undefined} 
+                />
               ))
             ) : (
               <div className="col-span-full">

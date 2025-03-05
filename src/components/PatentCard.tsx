@@ -13,7 +13,6 @@ import {
   User, 
   Building 
 } from 'lucide-react';
-import { formatDate } from '@/lib/data';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -24,6 +23,10 @@ interface PatentCardProps {
 }
 
 const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
+  // Get user from localStorage
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
+
   const determineStatus = (patent: Patent) => {
     if (patent.ps_completion_status === 1 && patent.cs_completion_status === 1) {
       return 'completed';
@@ -67,6 +70,11 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
   };
   
   const closestDeadline = findClosestDeadline();
+
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString();
+  };
 
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md border border-border">
@@ -131,20 +139,25 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
         </Link>
         
         <div className="flex items-center gap-1">
-          <Link to={`/patents/edit/${patent.id}`}>
-            <Button variant="ghost" size="sm">
-              <Edit className="h-4 w-4" />
-            </Button>
-          </Link>
-          
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleDelete}
-            className="hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {user?.role === 'admin' && (
+            <>
+              <Link to={`/patents/edit/${patent.id}`}>
+                <Button variant="ghost" size="sm">
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </Link>
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleDelete}
+                className="hover:text-destructive"
+                disabled={!onDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </>
+          )}
         </div>
       </CardFooter>
     </Card>

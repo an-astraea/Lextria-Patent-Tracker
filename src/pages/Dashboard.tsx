@@ -1,25 +1,56 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { patents } from '@/lib/data';
 import { Patent } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, FileText, FileCheck, Clock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PatentCard from '@/components/PatentCard';
+import { fetchPatents, fetchDrafterAssignments, fetchFilerAssignments } from '@/lib/api';
+import { toast } from 'sonner';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [patents, setPatents] = React.useState<Patent[]>([]);
+  const [userAssignedPatents, setUserAssignedPatents] = React.useState<Patent[]>([]);
+  const [loading, setLoading] = React.useState(true);
   
   // Get user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
+  
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const patentsData = await fetchPatents();
+        setPatents(patentsData);
+        
+        // Fetch user-specific assignments
+        if (user?.role === 'drafter') {
+          const drafterAssignments = await fetchDrafterAssignments(user.full_name);
+          setUserAssignedPatents(drafterAssignments);
+        } else if (user?.role === 'filer') {
+          const filerAssignments = await fetchFilerAssignments(user.full_name);
+          setUserAssignedPatents(filerAssignments);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        toast.error('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user?.full_name, user?.role]);
   
   // Calculate statistics
   const totalPatents = patents.length;
   const completedPatents = patents.filter(p => 
     p.ps_completion_status === 1 && 
     p.cs_completion_status === 1 && 
-    (!p.fer_status || p.fer_completion_status === 1)
+    (p.fer_status === 0 || p.fer_completion_status === 1)
   ).length;
   
   const inProgressPatents = totalPatents - completedPatents;
@@ -49,31 +80,6 @@ const Dashboard = () => {
   
   const deadlineApproachingPatents = getDeadlineApproachingPatents();
   
-  // Get user's assigned patents
-  const getUserAssignedPatents = (): Patent[] => {
-    if (!user) return [];
-    
-    if (user.role === 'drafter') {
-      return patents.filter(patent => 
-        (patent.ps_drafting_status === 0 && patent.ps_drafter_assgn === user.full_name) ||
-        (patent.cs_drafting_status === 0 && patent.cs_drafter_assgn === user.full_name) ||
-        (patent.fer_drafter_status === 0 && patent.fer_drafter_assgn === user.full_name)
-      );
-    }
-    
-    if (user.role === 'filer') {
-      return patents.filter(patent => 
-        (patent.ps_filing_status === 0 && patent.ps_filer_assgn === user.full_name) ||
-        (patent.cs_filing_status === 0 && patent.cs_filer_assgn === user.full_name) ||
-        (patent.fer_filing_status === 0 && patent.fer_filer_assgn === user.full_name)
-      );
-    }
-    
-    return [];
-  };
-  
-  const userAssignedPatents = getUserAssignedPatents();
-  
   // Get patents pending approval (admin only)
   const getPendingApprovalCount = (): number => {
     return patents.filter(patent => 
@@ -87,6 +93,14 @@ const Dashboard = () => {
   };
   
   const pendingApprovalCount = getPendingApprovalCount();
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -114,7 +128,7 @@ const Dashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{completedPatents}</div>
             <p className="text-xs text-muted-foreground">
-              {((completedPatents / totalPatents) * 100).toFixed(0)}% completion rate
+              {totalPatents ? ((completedPatents / totalPatents) * 100).toFixed(0) : 0}% completion rate
             </p>
           </CardContent>
         </Card>
@@ -198,7 +212,7 @@ const Dashboard = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {userAssignedPatents.slice(0, 3).map((patent) => (
-              <PatentCard key={patent.id} patent={patent} />
+              <PatentCard key={patent.id} patent={patent} showDeadline />
             ))}
           </div>
         </div>
