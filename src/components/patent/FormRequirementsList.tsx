@@ -7,7 +7,7 @@ import { Check, X } from 'lucide-react';
 interface FormRequirementsListProps {
   patent: Patent;
   userRole?: string;
-  onUpdate?: (formName: string, value: number) => void;
+  onUpdate?: (formName: string, value: boolean) => void;
 }
 
 const FormRequirementsList: React.FC<FormRequirementsListProps> = ({ 
@@ -26,9 +26,9 @@ const FormRequirementsList: React.FC<FormRequirementsListProps> = ({
     { name: 'form_13', label: 'Form 13', value: patent.form_13 }
   ];
   
-  const handleToggle = (formName: string, currentValue: number | null) => {
+  const handleToggle = (formName: string, currentValue: boolean | null) => {
     if (onUpdate && isEditable) {
-      onUpdate(formName, currentValue === 1 ? 0 : 1);
+      onUpdate(formName, currentValue === true ? false : true);
     }
   };
   
@@ -42,11 +42,11 @@ const FormRequirementsList: React.FC<FormRequirementsListProps> = ({
           {formFields.map((form) => (
             <div 
               key={form.name}
-              className={`flex items-center justify-between p-2 rounded-md ${isEditable ? 'cursor-pointer hover:bg-muted/50' : ''} ${form.value === 1 ? 'bg-green-50' : 'bg-gray-50'}`}
+              className={`flex items-center justify-between p-2 rounded-md ${isEditable ? 'cursor-pointer hover:bg-muted/50' : ''} ${form.value === true ? 'bg-green-50' : 'bg-gray-50'}`}
               onClick={() => handleToggle(form.name, form.value)}
             >
               <span className="font-medium">{form.label}</span>
-              {form.value === 1 ? (
+              {form.value === true ? (
                 <div className="flex items-center text-green-600">
                   <Check className="h-4 w-4 mr-1" />
                   <span className="text-sm">Completed</span>
