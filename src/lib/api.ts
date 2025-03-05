@@ -259,6 +259,30 @@ export const fetchFilerCompletedAssignments = async (filerName: string): Promise
   }
 };
 
+// Added function to fetch patents assigned to a specific employee
+export const fetchPatentsByEmployee = async (employeeName: string): Promise<Patent[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("patents")
+      .select(`
+        *,
+        inventors(*),
+        fer_history(*)
+      `)
+      .or(`ps_drafter_assgn.eq.${employeeName},cs_drafter_assgn.eq.${employeeName},fer_drafter_assgn.eq.${employeeName},ps_filer_assgn.eq.${employeeName},cs_filer_assgn.eq.${employeeName},fer_filer_assgn.eq.${employeeName}`);
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching patents by employee:", error);
+    toast.error("Failed to load patents for employee");
+    return [];
+  }
+};
+
 export const completeDrafterTask = async (
   patent: Patent,
   drafterName: string
@@ -337,6 +361,77 @@ export const completeFilerTask = async (
   } catch (error) {
     console.error("Error completing filing task:", error);
     toast.error("Failed to complete filing task");
+    return false;
+  }
+};
+
+// Added function to create a new employee
+export const createEmployee = async (employee: Omit<Employee, 'id'>): Promise<Employee | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("employees")
+      .insert({
+        emp_id: employee.emp_id,
+        full_name: employee.full_name,
+        email: employee.email,
+        ph_no: employee.ph_no,
+        password: employee.password,
+        role: employee.role
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return {
+      ...data,
+      role: data.role as 'admin' | 'drafter' | 'filer'
+    };
+  } catch (error) {
+    console.error("Error creating employee:", error);
+    toast.error("Failed to create employee");
+    return null;
+  }
+};
+
+// Added function to update an employee
+export const updateEmployee = async (id: string, employee: Partial<Omit<Employee, 'id'>>): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("employees")
+      .update(employee)
+      .eq("id", id);
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error updating employee:", error);
+    toast.error("Failed to update employee");
+    return false;
+  }
+};
+
+// Added function to delete an employee
+export const deleteEmployee = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("employees")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting employee:", error);
+    toast.error("Failed to delete employee");
     return false;
   }
 };
