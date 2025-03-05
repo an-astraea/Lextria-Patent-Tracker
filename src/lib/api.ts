@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Employee, FERHistory, Inventor, Patent } from "./types";
+import { Employee, FERHistory, Inventor, Patent, PatentFormData } from "./types";
 import { toast } from "sonner";
 
 // Patent Functions
@@ -41,7 +41,10 @@ export const fetchPatentById = async (id: string): Promise<Patent | null> => {
       throw error;
     }
 
-    return data || null;
+    return data ? {
+      ...data,
+      role: data.role as 'admin' | 'drafter' | 'filer'
+    } : null;
   } catch (error) {
     console.error("Error fetching patent:", error);
     toast.error("Failed to load patent details");
@@ -495,5 +498,139 @@ export const fetchPatentsAndEmployees = async (): Promise<{patents: Patent[], em
     console.error("Error fetching data:", error);
     toast.error("Failed to load data");
     return { patents: [], employees: [] };
+  }
+};
+
+// Add new function to create a patent
+export const createPatent = async (patentData: PatentFormData): Promise<Patent | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("patents")
+      .insert({
+        tracking_id: patentData.tracking_id,
+        patent_applicant: patentData.patent_applicant,
+        client_id: patentData.client_id,
+        application_no: patentData.application_no || null,
+        date_of_filing: patentData.date_of_filing,
+        patent_title: patentData.patent_title,
+        applicant_addr: patentData.applicant_addr,
+        inventor_ph_no: patentData.inventor_ph_no,
+        inventor_email: patentData.inventor_email,
+        ps_drafter_assgn: patentData.ps_drafter_assgn || null,
+        ps_drafter_deadline: patentData.ps_drafter_deadline || null,
+        ps_filer_assgn: patentData.ps_filer_assgn || null,
+        ps_filer_deadline: patentData.ps_filer_deadline || null,
+        cs_drafter_assgn: patentData.cs_drafter_assgn || null,
+        cs_drafter_deadline: patentData.cs_drafter_deadline || null,
+        cs_filer_assgn: patentData.cs_filer_assgn || null,
+        cs_filer_deadline: patentData.cs_filer_deadline || null,
+        fer_status: patentData.fer_status,
+        fer_drafter_assgn: patentData.fer_drafter_assgn || null,
+        fer_drafter_deadline: patentData.fer_drafter_deadline || null,
+        fer_filer_assgn: patentData.fer_filer_assgn || null,
+        fer_filer_deadline: patentData.fer_filer_deadline || null
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error creating patent:", error);
+    toast.error("Failed to create patent");
+    return null;
+  }
+};
+
+// Add function to update a patent
+export const updatePatent = async (id: string, patentData: PatentFormData): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("patents")
+      .update({
+        patent_applicant: patentData.patent_applicant,
+        client_id: patentData.client_id,
+        application_no: patentData.application_no || null,
+        date_of_filing: patentData.date_of_filing,
+        patent_title: patentData.patent_title,
+        applicant_addr: patentData.applicant_addr,
+        inventor_ph_no: patentData.inventor_ph_no,
+        inventor_email: patentData.inventor_email,
+        ps_drafter_assgn: patentData.ps_drafter_assgn || null,
+        ps_drafter_deadline: patentData.ps_drafter_deadline || null,
+        ps_filer_assgn: patentData.ps_filer_assgn || null,
+        ps_filer_deadline: patentData.ps_filer_deadline || null,
+        cs_drafter_assgn: patentData.cs_drafter_assgn || null,
+        cs_drafter_deadline: patentData.cs_drafter_deadline || null,
+        cs_filer_assgn: patentData.cs_filer_assgn || null,
+        cs_filer_deadline: patentData.cs_filer_deadline || null,
+        fer_status: patentData.fer_status,
+        fer_drafter_assgn: patentData.fer_drafter_assgn || null,
+        fer_drafter_deadline: patentData.fer_drafter_deadline || null,
+        fer_filer_assgn: patentData.fer_filer_assgn || null,
+        fer_filer_deadline: patentData.fer_filer_deadline || null
+      })
+      .eq("id", id);
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error updating patent:", error);
+    toast.error("Failed to update patent");
+    return false;
+  }
+};
+
+// Add function to create an inventor
+export const createInventor = async (inventorData: { tracking_id: string, inventor_name: string, inventor_addr: string }): Promise<Inventor | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("inventors")
+      .insert({
+        tracking_id: inventorData.tracking_id,
+        inventor_name: inventorData.inventor_name,
+        inventor_addr: inventorData.inventor_addr
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error creating inventor:", error);
+    toast.error("Failed to add inventor");
+    return null;
+  }
+};
+
+// Add function to update inventors
+export const updateInventor = async (id: string, inventorData: { inventor_name: string, inventor_addr: string }): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("inventors")
+      .update({
+        inventor_name: inventorData.inventor_name,
+        inventor_addr: inventorData.inventor_addr
+      })
+      .eq("id", id);
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error updating inventor:", error);
+    toast.error("Failed to update inventor");
+    return false;
   }
 };

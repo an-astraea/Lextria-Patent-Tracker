@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,15 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft } from 'lucide-react';
 import { EmployeeFormData, Employee } from '@/lib/types';
 import { toast } from 'sonner';
-import { getEmployeeById, generateId } from '@/lib/data';
+import { createEmployee, updateEmployee, fetchEmployeeById } from '@/lib/api';
 
 const AddEditEmployee = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditing = Boolean(id);
   
-  const [formData, setFormData] = React.useState<EmployeeFormData>({
-    emp_id: generateId(),
+  const [formData, setFormData] = useState<EmployeeFormData>({
+    emp_id: '',
     full_name: '',
     email: '',
     ph_no: '',
@@ -25,8 +25,8 @@ const AddEditEmployee = () => {
     role: 'drafter',
   });
   
-  const [loading, setLoading] = React.useState(false);
-  const [formError, setFormError] = React.useState('');
+  const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState('');
   
   // Get user role from localStorage
   const userString = localStorage.getItem('user');
@@ -40,24 +40,45 @@ const AddEditEmployee = () => {
     }
   }, [user, navigate]);
   
-  // Fetch employee data if editing
-  React.useEffect(() => {
-    if (isEditing && id) {
-      const employee = getEmployeeById(id);
-      if (employee) {
-        setFormData({
-          emp_id: employee.emp_id,
-          full_name: employee.full_name,
-          email: employee.email,
-          ph_no: employee.ph_no,
-          password: employee.password,
-          role: employee.role,
-        });
-      } else {
-        toast.error('Employee not found');
-        navigate('/employees');
-      }
+  // Generate unique employee ID
+  useEffect(() => {
+    if (!isEditing) {
+      const timestamp = new Date().getTime();
+      const randomNum = Math.floor(Math.random() * 1000);
+      setFormData(prev => ({ ...prev, emp_id: `EMP-${timestamp}-${randomNum}` }));
     }
+  }, [isEditing]);
+  
+  // Fetch employee data if editing
+  useEffect(() => {
+    const fetchEmployee = async () => {
+      if (isEditing && id) {
+        try {
+          setLoading(true);
+          const employee = await fetchEmployeeById(id);
+          if (employee) {
+            setFormData({
+              emp_id: employee.emp_id,
+              full_name: employee.full_name,
+              email: employee.email,
+              ph_no: employee.ph_no,
+              password: '', // Don't show existing password
+              role: employee.role,
+            });
+          } else {
+            toast.error('Employee not found');
+            navigate('/employees');
+          }
+        } catch (error) {
+          console.error('Error fetching employee:', error);
+          toast.error('Failed to load employee details');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchEmployee();
   }, [id, isEditing, navigate]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,7 +114,7 @@ const AddEditEmployee = () => {
     return true;
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -102,18 +123,40 @@ const AddEditEmployee = () => {
     
     setLoading(true);
     
-    // In a real app, you would make an API call
-    setTimeout(() => {
-      setLoading(false);
-      
-      if (isEditing) {
-        toast.success('Employee updated successfully');
+    try {
+      if (isEditing && id) {
+        // Only include password in update if it's provided
+        const employeeData: Partial<Omit<Employee, 'id'>> = {
+          emp_id: formData.emp_id,
+          full_name: formData.full_name,
+          email: formData.email,
+          ph_no: formData.ph_no,
+          role: formData.role
+        };
+        
+        // Only add password if it's provided (not empty)
+        if (formData.password.trim()) {
+          employeeData.password = formData.password;
+        }
+        
+        const success = await updateEmployee(id, employeeData);
+        if (success) {
+          toast.success('Employee updated successfully');
+          navigate('/employees');
+        }
       } else {
-        toast.success('Employee added successfully');
+        const newEmployee = await createEmployee(formData);
+        if (newEmployee) {
+          toast.success('Employee added successfully');
+          navigate('/employees');
+        }
       }
-      
-      navigate('/employees');
-    }, 1000);
+    } catch (error) {
+      console.error('Error saving employee:', error);
+      toast.error(`Failed to ${isEditing ? 'update' : 'create'} employee`);
+    } finally {
+      setLoading(false);
+    }
   };
   
   if (user?.role !== 'admin') {

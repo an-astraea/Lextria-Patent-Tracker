@@ -6,11 +6,24 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { getPatentById } from '@/lib/data';
-import { PatentFormData } from '@/lib/types';
 import { ArrowLeft, Save, Plus, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { 
+  fetchPatentById, 
+  fetchEmployees, 
+  createPatent, 
+  updatePatent,
+  createInventor
+} from '@/lib/api';
+import { Patent, PatentFormData, Employee } from '@/lib/types';
 
 const AddEditPatent = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +42,8 @@ const AddEditPatent = () => {
     }
   }, [user, navigate]);
   
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<PatentFormData>({
     tracking_id: '',
     patent_applicant: '',
@@ -55,52 +70,87 @@ const AddEditPatent = () => {
     inventors: [{ inventor_name: '', inventor_addr: '' }]
   });
   
+  // Generate unique tracking ID
+  useEffect(() => {
+    if (!isEditMode) {
+      const timestamp = new Date().getTime();
+      const randomNum = Math.floor(Math.random() * 1000);
+      setFormData(prev => ({ ...prev, tracking_id: `PAT-${timestamp}-${randomNum}` }));
+    }
+  }, [isEditMode]);
+  
+  // Fetch employees for dropdown menus
+  useEffect(() => {
+    const getEmployees = async () => {
+      try {
+        const employeeData = await fetchEmployees();
+        setEmployees(employeeData);
+      } catch (error) {
+        console.error('Error fetching employees:', error);
+        toast.error('Failed to load employees data');
+      }
+    };
+    
+    getEmployees();
+  }, []);
+  
   // Load patent data if in edit mode
   useEffect(() => {
-    if (isEditMode && id) {
-      try {
-        const patent = getPatentById(id);
-        if (patent) {
-          setFormData({
-            tracking_id: patent.tracking_id,
-            patent_applicant: patent.patent_applicant,
-            client_id: patent.client_id,
-            application_no: patent.application_no || '',
-            date_of_filing: patent.date_of_filing.split('T')[0], // Format date for input
-            patent_title: patent.patent_title,
-            applicant_addr: patent.applicant_addr,
-            inventor_ph_no: patent.inventor_ph_no,
-            inventor_email: patent.inventor_email,
-            ps_drafter_assgn: patent.ps_drafter_assgn || '',
-            ps_drafter_deadline: patent.ps_drafter_deadline ? patent.ps_drafter_deadline.split('T')[0] : '',
-            ps_filer_assgn: patent.ps_filer_assgn || '',
-            ps_filer_deadline: patent.ps_filer_deadline ? patent.ps_filer_deadline.split('T')[0] : '',
-            cs_drafter_assgn: patent.cs_drafter_assgn || '',
-            cs_drafter_deadline: patent.cs_drafter_deadline ? patent.cs_drafter_deadline.split('T')[0] : '',
-            cs_filer_assgn: patent.cs_filer_assgn || '',
-            cs_filer_deadline: patent.cs_filer_deadline ? patent.cs_filer_deadline.split('T')[0] : '',
-            fer_status: patent.fer_status,
-            fer_drafter_assgn: patent.fer_drafter_assgn || '',
-            fer_drafter_deadline: patent.fer_drafter_deadline ? patent.fer_drafter_deadline.split('T')[0] : '',
-            fer_filer_assgn: patent.fer_filer_assgn || '',
-            fer_filer_deadline: patent.fer_filer_deadline ? patent.fer_filer_deadline.split('T')[0] : '',
-            inventors: patent.inventors && patent.inventors.length > 0
-              ? patent.inventors.map(inv => ({ inventor_name: inv.inventor_name, inventor_addr: inv.inventor_addr }))
-              : [{ inventor_name: '', inventor_addr: '' }]
-          });
-        } else {
-          toast.error('Patent not found');
-          navigate('/patents');
+    const getPatent = async () => {
+      if (isEditMode && id) {
+        try {
+          setLoading(true);
+          const patent = await fetchPatentById(id);
+          if (patent) {
+            setFormData({
+              tracking_id: patent.tracking_id,
+              patent_applicant: patent.patent_applicant,
+              client_id: patent.client_id,
+              application_no: patent.application_no || '',
+              date_of_filing: patent.date_of_filing ? patent.date_of_filing.split('T')[0] : '', // Format date for input
+              patent_title: patent.patent_title,
+              applicant_addr: patent.applicant_addr,
+              inventor_ph_no: patent.inventor_ph_no,
+              inventor_email: patent.inventor_email,
+              ps_drafter_assgn: patent.ps_drafter_assgn || '',
+              ps_drafter_deadline: patent.ps_drafter_deadline ? patent.ps_drafter_deadline.split('T')[0] : '',
+              ps_filer_assgn: patent.ps_filer_assgn || '',
+              ps_filer_deadline: patent.ps_filer_deadline ? patent.ps_filer_deadline.split('T')[0] : '',
+              cs_drafter_assgn: patent.cs_drafter_assgn || '',
+              cs_drafter_deadline: patent.cs_drafter_deadline ? patent.cs_drafter_deadline.split('T')[0] : '',
+              cs_filer_assgn: patent.cs_filer_assgn || '',
+              cs_filer_deadline: patent.cs_filer_deadline ? patent.cs_filer_deadline.split('T')[0] : '',
+              fer_status: patent.fer_status,
+              fer_drafter_assgn: patent.fer_drafter_assgn || '',
+              fer_drafter_deadline: patent.fer_drafter_deadline ? patent.fer_drafter_deadline.split('T')[0] : '',
+              fer_filer_assgn: patent.fer_filer_assgn || '',
+              fer_filer_deadline: patent.fer_filer_deadline ? patent.fer_filer_deadline.split('T')[0] : '',
+              inventors: patent.inventors && patent.inventors.length > 0
+                ? patent.inventors.map(inv => ({ inventor_name: inv.inventor_name, inventor_addr: inv.inventor_addr }))
+                : [{ inventor_name: '', inventor_addr: '' }]
+            });
+          } else {
+            toast.error('Patent not found');
+            navigate('/patents');
+          }
+        } catch (error) {
+          console.error('Error loading patent data:', error);
+          toast.error('Failed to load patent data');
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error('Error loading patent data:', error);
-        toast.error('Failed to load patent data');
       }
-    }
+    };
+    
+    getPatent();
   }, [id, isEditMode, navigate]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
@@ -127,25 +177,69 @@ const AddEditPatent = () => {
     }
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validation checks
-    if (!formData.tracking_id || !formData.patent_applicant || !formData.client_id || 
+  const validateForm = () => {
+    // Basic validation
+    if (!formData.patent_applicant || !formData.client_id || 
         !formData.date_of_filing || !formData.patent_title || !formData.applicant_addr) {
       toast.error('Please fill in all required fields');
+      return false;
+    }
+    
+    // Validate inventors
+    for (const inventor of formData.inventors) {
+      if (!inventor.inventor_name || !inventor.inventor_addr) {
+        toast.error('Please fill in all inventor details');
+        return false;
+      }
+    }
+    
+    return true;
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
       return;
     }
     
     try {
-      // In a real app, this would make an API call to create/update the patent
-      toast.success(`Patent ${isEditMode ? 'updated' : 'created'} successfully`);
-      navigate('/patents');
+      setLoading(true);
+      
+      if (isEditMode && id) {
+        // Update existing patent
+        const success = await updatePatent(id, formData);
+        if (success) {
+          toast.success('Patent updated successfully');
+          navigate('/patents');
+        }
+      } else {
+        // Create new patent
+        const newPatent = await createPatent(formData);
+        if (newPatent) {
+          // Add inventors
+          for (const inventor of formData.inventors) {
+            await createInventor({
+              tracking_id: newPatent.tracking_id,
+              inventor_name: inventor.inventor_name,
+              inventor_addr: inventor.inventor_addr
+            });
+          }
+          toast.success('Patent created successfully');
+          navigate('/patents');
+        }
+      }
     } catch (error) {
       console.error('Error saving patent:', error);
       toast.error(`Failed to ${isEditMode ? 'update' : 'create'} patent`);
+    } finally {
+      setLoading(false);
     }
   };
+  
+  // Filter employees by role for dropdowns
+  const drafters = employees.filter(emp => emp.role === 'drafter').map(emp => emp.full_name);
+  const filers = employees.filter(emp => emp.role === 'filer').map(emp => emp.full_name);
   
   return (
     <div className="space-y-6">
@@ -329,12 +423,20 @@ const AddEditPatent = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="ps_drafter_assgn">PS Drafter</Label>
-                <Input 
-                  id="ps_drafter_assgn" 
-                  name="ps_drafter_assgn" 
-                  value={formData.ps_drafter_assgn} 
-                  onChange={handleChange} 
-                />
+                <Select 
+                  value={formData.ps_drafter_assgn}
+                  onValueChange={(value) => handleSelectChange('ps_drafter_assgn', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select drafter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {drafters.map(drafter => (
+                      <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="space-y-2">
@@ -350,12 +452,20 @@ const AddEditPatent = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="ps_filer_assgn">PS Filer</Label>
-                <Input 
-                  id="ps_filer_assgn" 
-                  name="ps_filer_assgn" 
-                  value={formData.ps_filer_assgn} 
-                  onChange={handleChange} 
-                />
+                <Select 
+                  value={formData.ps_filer_assgn}
+                  onValueChange={(value) => handleSelectChange('ps_filer_assgn', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select filer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {filers.map(filer => (
+                      <SelectItem key={filer} value={filer}>{filer}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="space-y-2">
@@ -381,12 +491,20 @@ const AddEditPatent = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="cs_drafter_assgn">CS Drafter</Label>
-                <Input 
-                  id="cs_drafter_assgn" 
-                  name="cs_drafter_assgn" 
-                  value={formData.cs_drafter_assgn} 
-                  onChange={handleChange} 
-                />
+                <Select 
+                  value={formData.cs_drafter_assgn}
+                  onValueChange={(value) => handleSelectChange('cs_drafter_assgn', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select drafter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {drafters.map(drafter => (
+                      <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="space-y-2">
@@ -402,12 +520,20 @@ const AddEditPatent = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="cs_filer_assgn">CS Filer</Label>
-                <Input 
-                  id="cs_filer_assgn" 
-                  name="cs_filer_assgn" 
-                  value={formData.cs_filer_assgn} 
-                  onChange={handleChange} 
-                />
+                <Select 
+                  value={formData.cs_filer_assgn}
+                  onValueChange={(value) => handleSelectChange('cs_filer_assgn', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select filer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {filers.map(filer => (
+                      <SelectItem key={filer} value={filer}>{filer}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="space-y-2">
@@ -445,12 +571,20 @@ const AddEditPatent = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="fer_drafter_assgn">FER Drafter</Label>
-                  <Input 
-                    id="fer_drafter_assgn" 
-                    name="fer_drafter_assgn" 
-                    value={formData.fer_drafter_assgn} 
-                    onChange={handleChange} 
-                  />
+                  <Select 
+                    value={formData.fer_drafter_assgn}
+                    onValueChange={(value) => handleSelectChange('fer_drafter_assgn', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select drafter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {drafters.map(drafter => (
+                        <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="space-y-2">
@@ -466,12 +600,20 @@ const AddEditPatent = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="fer_filer_assgn">FER Filer</Label>
-                  <Input 
-                    id="fer_filer_assgn" 
-                    name="fer_filer_assgn" 
-                    value={formData.fer_filer_assgn} 
-                    onChange={handleChange} 
-                  />
+                  <Select 
+                    value={formData.fer_filer_assgn}
+                    onValueChange={(value) => handleSelectChange('fer_filer_assgn', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select filer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {filers.map(filer => (
+                        <SelectItem key={filer} value={filer}>{filer}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="space-y-2">
@@ -495,9 +637,18 @@ const AddEditPatent = () => {
           <Button type="button" variant="outline" onClick={() => navigate('/patents')}>
             Cancel
           </Button>
-          <Button type="submit">
-            <Save className="mr-2 h-4 w-4" />
-            {isEditMode ? 'Update Patent' : 'Create Patent'}
+          <Button type="submit" disabled={loading}>
+            {loading ? (
+              <>
+                <span className="animate-spin mr-2">⟳</span>
+                {isEditMode ? 'Updating...' : 'Creating...'}
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                {isEditMode ? 'Update Patent' : 'Create Patent'}
+              </>
+            )}
           </Button>
         </div>
       </form>
