@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Employee, FERHistory, Inventor, Patent } from "./types";
 import { toast } from "sonner";
