@@ -147,6 +147,7 @@ export type Database = {
           id: string
           inventor_email: string
           inventor_ph_no: string
+          notes: string | null
           patent_applicant: string
           patent_title: string
           ps_completion_status: number
@@ -195,6 +196,7 @@ export type Database = {
           id?: string
           inventor_email: string
           inventor_ph_no: string
+          notes?: string | null
           patent_applicant: string
           patent_title: string
           ps_completion_status?: number
@@ -243,6 +245,7 @@ export type Database = {
           id?: string
           inventor_email?: string
           inventor_ph_no?: string
+          notes?: string | null
           patent_applicant?: string
           patent_title?: string
           ps_completion_status?: number
