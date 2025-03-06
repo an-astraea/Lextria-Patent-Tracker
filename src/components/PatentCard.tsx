@@ -11,10 +11,12 @@ import {
   Trash2, 
   CalendarClock, 
   User, 
-  Building 
+  Building,
+  History
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import TimelineDialog from './TimelineDialog';
 
 interface PatentCardProps {
   patent: Patent;
@@ -131,12 +133,21 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
       </div>
       
       <CardFooter className="flex justify-between bg-muted/30 p-4 border-t">
-        <Link to={`/patents/${patent.id}`}>
-          <Button variant="ghost" size="sm" className="flex items-center gap-1">
-            <FileText className="h-4 w-4" />
-            <span>View</span>
-          </Button>
-        </Link>
+        <div className="flex items-center gap-1">
+          <Link to={`/patents/${patent.id}`}>
+            <Button variant="ghost" size="sm" className="flex items-center gap-1">
+              <FileText className="h-4 w-4" />
+              <span>View</span>
+            </Button>
+          </Link>
+          
+          <TimelineDialog patent={patent}>
+            <Button variant="ghost" size="sm" className="flex items-center gap-1">
+              <History className="h-4 w-4" />
+              <span>Timeline</span>
+            </Button>
+          </TimelineDialog>
+        </div>
         
         <div className="flex items-center gap-1">
           {user?.role === 'admin' && (
