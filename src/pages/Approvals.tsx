@@ -8,12 +8,18 @@ import PendingReviewCard, { ReviewType, getPendingReviewTypes } from '@/componen
 import RefreshButton from '@/components/approvals/RefreshButton';
 import EmptyApprovals from '@/components/approvals/EmptyApprovals';
 import LoadingSpinner from '@/components/approvals/LoadingSpinner';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+const ITEMS_PER_PAGE = 6; // Number of items to show per page
 
 const Approvals = () => {
   const navigate = useNavigate();
   const [pendingReviews, setPendingReviews] = useState<Patent[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const isMobile = useIsMobile();
 
   // Get user from localStorage
   const userString = localStorage.getItem('user');
@@ -97,9 +103,16 @@ const Approvals = () => {
     loadReviews();
   };
 
+  // Pagination logic
+  const totalPages = Math.ceil(pendingReviews.length / ITEMS_PER_PAGE);
+  const paginatedReviews = pendingReviews.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="container mx-auto py-6 px-4 sm:px-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
         <h1 className="text-2xl font-bold">Pending Approvals</h1>
         <RefreshButton onRefresh={handleRefresh} loading={loading} />
       </div>
@@ -107,14 +120,47 @@ const Approvals = () => {
       {loading && !pendingReviews.length ? (
         <LoadingSpinner />
       ) : pendingReviews.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {pendingReviews.map(patent => (
-            <PendingReviewCard 
-              key={patent.id} 
-              patent={patent} 
-              onApprove={handleApprove} 
-            />
-          ))}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {paginatedReviews.map(patent => (
+              <PendingReviewCard 
+                key={patent.id} 
+                patent={patent} 
+                onApprove={handleApprove} 
+              />
+            ))}
+          </div>
+          
+          {totalPages > 1 && (
+            <Pagination className="mt-4">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <PaginationItem key={i} className={isMobile && totalPages > 5 && ![0, 1, totalPages - 2, totalPages - 1].includes(i) && i !== currentPage - 1 ? "hidden" : ""}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(i + 1)}
+                      isActive={currentPage === i + 1}
+                    >
+                      {i + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
         </div>
       ) : (
         <EmptyApprovals />
