@@ -854,3 +854,26 @@ export const fetchPendingReviews = async (): Promise<Patent[]> => {
     return [];
   }
 };
+
+// Function to update patent notes
+export const updatePatentNotes = async (
+  patentId: string,
+  notes: string
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("patents")
+      .update({ notes })
+      .eq("id", patentId);
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error updating patent notes:", error);
+    toast.error("Failed to update notes");
+    return false;
+  }
+};

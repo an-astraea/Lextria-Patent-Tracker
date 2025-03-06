@@ -1,3 +1,4 @@
+
 // Re-export all API functions for backward compatibility
 import * as patentApi from './patent-api';
 import * as employeeApi from './employee-api';
@@ -18,7 +19,8 @@ export const {
   updatePatent,
   completeDrafterTask,
   completeFilerTask,
-  approvePatentReview
+  approvePatentReview,
+  updatePatentNotes
 } = patentApi;
 
 export const {
@@ -53,5 +55,3 @@ export const {
   createInventor,
   updateInventor
 } = patentApi;
-
-export { updatePatentNotes } from './patent-api';

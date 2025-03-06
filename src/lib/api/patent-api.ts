@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Inventor, Patent, PatentFormData } from "../types";
 import { toast } from "sonner";
 
+// Patent Functions
 export const fetchPatents = async (): Promise<Patent[]> => {
   try {
     const { data: patents, error } = await supabase
@@ -119,6 +120,7 @@ export const updatePatentForms = async (
   }
 };
 
+// Added function to fetch patents assigned to a specific employee
 export const fetchPatentsByEmployee = async (employeeName: string): Promise<Patent[]> => {
   try {
     const { data, error } = await supabase
@@ -142,184 +144,7 @@ export const fetchPatentsByEmployee = async (employeeName: string): Promise<Pate
   }
 };
 
-export const completeDrafterTask = async (
-  patent: Patent,
-  drafterName: string
-): Promise<boolean> => {
-  try {
-    const updateData: Record<string, any> = {};
-    
-    if (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 0) {
-      updateData.ps_drafting_status = 1;
-      updateData.ps_review_draft_status = 1; // Set for review
-    } else if (patent.cs_drafter_assgn === drafterName && patent.cs_drafting_status === 0) {
-      updateData.cs_drafting_status = 1;
-      updateData.cs_review_draft_status = 1; // Set for review
-    } else if (patent.fer_drafter_assgn === drafterName && patent.fer_drafter_status === 0) {
-      updateData.fer_drafter_status = 1;
-      updateData.fer_review_draft_status = 1; // Set for review
-    } else {
-      toast.error("No valid drafting task found");
-      return false;
-    }
-
-    const { error } = await supabase
-      .from("patents")
-      .update(updateData)
-      .eq("id", patent.id);
-
-    if (error) {
-      throw error;
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Error completing drafting task:", error);
-    toast.error("Failed to complete drafting task");
-    return false;
-  }
-};
-
-export const completeFilerTask = async (
-  patent: Patent,
-  filerName: string,
-  formData?: {
-    form_26?: boolean;
-    form_18?: boolean;
-    form_18a?: boolean;
-    form_9?: boolean;
-    form_9a?: boolean;
-    form_13?: boolean;
-  }
-): Promise<boolean> => {
-  try {
-    const updateData: Record<string, any> = {};
-    
-    if (patent.ps_filer_assgn === filerName && patent.ps_filing_status === 0) {
-      updateData.ps_filing_status = 1;
-      updateData.ps_review_file_status = 1; // Set for review
-      // Update PS completion status if both drafting and filing are done
-      if (patent.ps_drafting_status === 1) {
-        updateData.ps_completion_status = 1;
-      }
-    } else if (patent.cs_filer_assgn === filerName && patent.cs_filing_status === 0) {
-      updateData.cs_filing_status = 1;
-      updateData.cs_review_file_status = 1; // Set for review
-      // Add form data for CS filing
-      if (formData) {
-        Object.assign(updateData, formData);
-      }
-      // Update CS completion status if both drafting and filing are done
-      if (patent.cs_drafting_status === 1) {
-        updateData.cs_completion_status = 1;
-      }
-    } else if (patent.fer_filer_assgn === filerName && patent.fer_filing_status === 0) {
-      updateData.fer_filing_status = 1;
-      updateData.fer_review_file_status = 1; // Set for review
-      // Update FER completion status if both drafting and filing are done
-      if (patent.fer_drafter_status === 1) {
-        updateData.fer_completion_status = 1;
-      }
-    } else {
-      toast.error("No valid filing task found");
-      return false;
-    }
-
-    const { error } = await supabase
-      .from("patents")
-      .update(updateData)
-      .eq("id", patent.id);
-
-    if (error) {
-      throw error;
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Error completing filing task:", error);
-    toast.error("Failed to complete filing task");
-    return false;
-  }
-};
-
-export const approvePatentReview = async (
-  patent: Patent,
-  reviewType: 'ps_draft' | 'ps_file' | 'cs_draft' | 'cs_file' | 'fer_draft' | 'fer_file'
-): Promise<boolean> => {
-  try {
-    const updateData: Record<string, any> = {};
-    
-    switch (reviewType) {
-      case 'ps_draft':
-        updateData.ps_review_draft_status = 0; // Approve the review (reset to 0 since it's approved)
-        break;
-      case 'ps_file':
-        updateData.ps_review_file_status = 0; // Approve the review
-        updateData.ps_completion_status = 1; // Set PS as completed
-        break;
-      case 'cs_draft':
-        updateData.cs_review_draft_status = 0; // Approve the review
-        break;
-      case 'cs_file':
-        updateData.cs_review_file_status = 0; // Approve the review
-        updateData.cs_completion_status = 1; // Set CS as completed
-        break;
-      case 'fer_draft':
-        updateData.fer_review_draft_status = 0; // Approve the review
-        break;
-      case 'fer_file':
-        updateData.fer_review_file_status = 0; // Approve the review
-        updateData.fer_completion_status = 1; // Set FER as completed
-        break;
-      default:
-        toast.error("Invalid review type");
-        return false;
-    }
-
-    const { error } = await supabase
-      .from("patents")
-      .update(updateData)
-      .eq("id", patent.id);
-
-    if (error) {
-      throw error;
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Error approving review:", error);
-    toast.error("Failed to approve review");
-    return false;
-  }
-};
-
-export const updatePatentNotes = async (patentId: string, notes: string): Promise<boolean> => {
-  try {
-    // In a real application, this would make an API call to update notes
-    // For this demo, we'll simulate it with local storage
-    
-    // Get all patents from storage
-    const storedPatents = localStorage.getItem('patents');
-    const patents = storedPatents ? JSON.parse(storedPatents) : [];
-    
-    // Find and update the specific patent
-    const updatedPatents = patents.map((patent: Patent) => {
-      if (patent.id === patentId) {
-        return { ...patent, notes };
-      }
-      return patent;
-    });
-    
-    // Save back to storage
-    localStorage.setItem('patents', JSON.stringify(updatedPatents));
-    
-    return true;
-  } catch (error) {
-    console.error('Error updating patent notes:', error);
-    return false;
-  }
-};
-
+// Add new function to create a patent
 export const createPatent = async (patentData: PatentFormData): Promise<Patent | null> => {
   try {
     // Calculate initial completion statuses
@@ -381,6 +206,7 @@ export const createPatent = async (patentData: PatentFormData): Promise<Patent |
   }
 };
 
+// Add function to update a patent
 export const updatePatent = async (id: string, patentData: PatentFormData): Promise<boolean> => {
   try {
     const { error } = await supabase
@@ -462,6 +288,7 @@ export const updatePatent = async (id: string, patentData: PatentFormData): Prom
   }
 };
 
+// Add function to create an inventor
 export const createInventor = async (inventorData: { tracking_id: string, inventor_name: string, inventor_addr: string }): Promise<Inventor | null> => {
   try {
     const { data, error } = await supabase
@@ -486,6 +313,7 @@ export const createInventor = async (inventorData: { tracking_id: string, invent
   }
 };
 
+// Add function to update inventors
 export const updateInventor = async (id: string, inventorData: { inventor_name: string, inventor_addr: string }): Promise<boolean> => {
   try {
     const { error } = await supabase
@@ -504,6 +332,29 @@ export const updateInventor = async (id: string, inventorData: { inventor_name: 
   } catch (error) {
     console.error("Error updating inventor:", error);
     toast.error("Failed to update inventor");
+    return false;
+  }
+};
+
+// Function to update patent notes
+export const updatePatentNotes = async (
+  patentId: string,
+  notes: string
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("patents")
+      .update({ notes })
+      .eq("id", patentId);
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error updating patent notes:", error);
+    toast.error("Failed to update notes");
     return false;
   }
 };
