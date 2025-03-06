@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { 
   Dialog,
   DialogContent,
@@ -21,6 +22,9 @@ import StatusBadge from '@/components/StatusBadge';
 import RefreshButton from '@/components/approvals/RefreshButton';
 import LoadingSpinner from '@/components/approvals/LoadingSpinner';
 import EmptyApprovals from '@/components/approvals/EmptyApprovals';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+const ITEMS_PER_PAGE = 6; // Number of items to show per page
 
 const Filings = () => {
   const navigate = useNavigate();
@@ -30,6 +34,9 @@ const Filings = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPatent, setSelectedPatent] = useState<Patent | null>(null);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [activePage, setActivePage] = useState(1);
+  const [completedPage, setCompletedPage] = useState(1);
+  const isMobile = useIsMobile();
   
   const [form26, setForm26] = useState(false);
   const [form18, setForm18] = useState(false);
@@ -84,6 +91,12 @@ const Filings = () => {
       setActivePatents(sortedActivePatents);
       setCompletedPatents(completedData);
       setInitialLoadComplete(true);
+      
+      // Reset to first page when refreshing data
+      if (isRefresh) {
+        setActivePage(1);
+        setCompletedPage(1);
+      }
     } catch (error) {
       console.error('Error loading filer assignments:', error);
       toast.error('Failed to load assignments');
@@ -224,45 +237,94 @@ const Filings = () => {
     return patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0;
   };
 
+  // Pagination logic
+  const paginateData = (data: Patent[], pageNumber: number) => {
+    const startIndex = (pageNumber - 1) * ITEMS_PER_PAGE;
+    return data.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  };
+
+  const activePatentsPaginated = paginateData(activePatents, activePage);
+  const completedPatentsPaginated = paginateData(completedPatents, completedPage);
+  
+  const renderPagination = (data: Patent[], currentPage: number, setPage: React.Dispatch<React.SetStateAction<number>>) => {
+    const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+    
+    if (totalPages <= 1) return null;
+    
+    return (
+      <Pagination className="mt-4">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious 
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+            />
+          </PaginationItem>
+          
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <PaginationItem key={i} className={isMobile && totalPages > 5 && ![0, 1, totalPages - 2, totalPages - 1].includes(i) && i !== currentPage - 1 ? "hidden" : ""}>
+              <PaginationLink
+                onClick={() => setPage(i + 1)}
+                isActive={currentPage === i + 1}
+              >
+                {i + 1}
+              </PaginationLink>
+            </PaginationItem>
+          ))}
+          
+          <PaginationItem>
+            <PaginationNext 
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    );
+  };
+
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="container mx-auto py-6 px-4 sm:px-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
         <h1 className="text-2xl font-bold">Filing Assignments</h1>
         <RefreshButton onRefresh={handleRefresh} loading={refreshing} />
       </div>
       
       <Tabs defaultValue="active" className="w-full">
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 w-full sm:w-auto justify-start overflow-x-auto">
           <TabsTrigger value="active">Active Tasks ({activePatents.length})</TabsTrigger>
           <TabsTrigger value="completed">Completed Tasks ({completedPatents.length})</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="active">
+        <TabsContent value="active" className="min-h-[50vh]">
           {loading ? (
             <LoadingSpinner />
           ) : activePatents.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activePatents.map(patent => (
-                <Card key={patent.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex justify-between items-start">
-                      <div className="truncate">{patent.patent_title}</div>
-                      <StatusBadge status={isTaskAvailable(patent) ? 'active' : 'pending'} />
-                    </CardTitle>
-                    <CardDescription>ID: {patent.tracking_id}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
-                      <div><span className="font-medium">Applicant:</span> {patent.patent_applicant}</div>
-                      <div><span className="font-medium">Task:</span> {getTaskType(patent)}</div>
-                      <div><span className="font-medium">Client ID:</span> {patent.client_id}</div>
-                      <div><span className="font-medium">Deadline:</span> {formatDate(getDeadline(patent))}</div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {activePatentsPaginated.map(patent => (
+                  <Card key={patent.id} className="hover:shadow-md transition-shadow flex flex-col">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex justify-between items-start">
+                        <div className="truncate">{patent.patent_title}</div>
+                        <StatusBadge status={isTaskAvailable(patent) ? 'active' : 'pending'} />
+                      </CardTitle>
+                      <CardDescription>ID: {patent.tracking_id}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow flex flex-col">
+                      <div className="space-y-2 text-sm flex-grow">
+                        <div><span className="font-medium">Applicant:</span> {patent.patent_applicant}</div>
+                        <div><span className="font-medium">Task:</span> {getTaskType(patent)}</div>
+                        <div><span className="font-medium">Client ID:</span> {patent.client_id}</div>
+                        <div><span className="font-medium">Deadline:</span> {formatDate(getDeadline(patent))}</div>
+                      </div>
                       
-                      <div className="pt-2 flex justify-between">
+                      <div className="pt-4 mt-auto flex flex-col sm:flex-row justify-between gap-2">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => navigate(`/patents/${patent.id}`)}
+                          className="w-full sm:w-auto"
                         >
                           View Details
                         </Button>
@@ -272,56 +334,61 @@ const Filings = () => {
                             size="sm"
                             onClick={() => handleShowFormsDialog(patent)}
                             disabled={!isTaskAvailable(patent)}
+                            className="w-full sm:w-auto"
                           >
-                            Complete & Submit for Review
+                            Complete & Submit
                           </Button>
                         ) : (
                           <Button
                             size="sm"
                             onClick={() => handleComplete(patent)}
                             disabled={!isTaskAvailable(patent)}
+                            className="w-full sm:w-auto"
                           >
-                            Complete & Submit for Review
+                            Complete & Submit
                           </Button>
                         )}
                       </div>
                       
                       {!isTaskAvailable(patent) && (
-                        <div className="text-amber-600 font-medium text-xs mt-1">
+                        <div className="text-amber-600 font-medium text-xs mt-2">
                           Waiting for previous stage to be completed
                         </div>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              {renderPagination(activePatents, activePage, setActivePage)}
+            </>
           ) : (
             <EmptyApprovals />
           )}
         </TabsContent>
         
-        <TabsContent value="completed">
+        <TabsContent value="completed" className="min-h-[50vh]">
           {loading ? (
             <LoadingSpinner />
           ) : completedPatents.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {completedPatents.map(patent => (
-                <Card key={patent.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex justify-between items-start">
-                      <div className="truncate">{patent.patent_title}</div>
-                      <StatusBadge status="completed" />
-                    </CardTitle>
-                    <CardDescription>ID: {patent.tracking_id}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
-                      <div><span className="font-medium">Applicant:</span> {patent.patent_applicant}</div>
-                      <div><span className="font-medium">Client ID:</span> {patent.client_id}</div>
-                      <div><span className="font-medium">Filing Date:</span> {formatDate(patent.date_of_filing)}</div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {completedPatentsPaginated.map(patent => (
+                  <Card key={patent.id} className="hover:shadow-md transition-shadow flex flex-col">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex justify-between items-start">
+                        <div className="truncate">{patent.patent_title}</div>
+                        <StatusBadge status="completed" />
+                      </CardTitle>
+                      <CardDescription>ID: {patent.tracking_id}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow flex flex-col">
+                      <div className="space-y-2 text-sm flex-grow">
+                        <div><span className="font-medium">Applicant:</span> {patent.patent_applicant}</div>
+                        <div><span className="font-medium">Client ID:</span> {patent.client_id}</div>
+                        <div><span className="font-medium">Filing Date:</span> {formatDate(patent.date_of_filing)}</div>
+                      </div>
                       
-                      <div className="pt-2">
+                      <div className="pt-4 mt-auto">
                         <Button
                           size="sm"
                           variant="outline"
@@ -331,11 +398,12 @@ const Filings = () => {
                           View Details
                         </Button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              {renderPagination(completedPatents, completedPage, setCompletedPage)}
+            </>
           ) : (
             <EmptyApprovals />
           )}
@@ -343,7 +411,7 @@ const Filings = () => {
       </Tabs>
       
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md mx-auto">
           <DialogHeader>
             <DialogTitle>Complete Specification Forms</DialogTitle>
             <DialogDescription>
@@ -383,9 +451,14 @@ const Filings = () => {
             </div>
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={() => selectedPatent && handleComplete(selectedPatent)}>Submit & Complete</Button>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button 
+              onClick={() => selectedPatent && handleComplete(selectedPatent)}
+              className="w-full sm:w-auto"
+            >
+              Submit & Complete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
