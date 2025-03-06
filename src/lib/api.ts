@@ -877,3 +877,24 @@ export const updatePatentNotes = async (
     return false;
   }
 };
+
+// Add function to fetch patent timeline
+export const fetchPatentTimeline = async (patentId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("patent_timeline")
+      .select("*")
+      .eq("patent_id", patentId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching patent timeline:", error);
+    toast.error("Failed to load patent timeline");
+    return [];
+  }
+};

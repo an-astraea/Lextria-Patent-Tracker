@@ -37,6 +37,8 @@ const PatentNotes: React.FC<PatentNotesProps> = ({ patent, onNotesUpdated, canEd
   };
 
   const convertLinksToAnchors = (text: string) => {
+    if (!text) return [];
+    
     // Regular expression to find URLs
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     

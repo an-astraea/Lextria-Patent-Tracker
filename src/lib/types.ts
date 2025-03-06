@@ -120,3 +120,14 @@ export interface User {
   email: string;
   role: 'admin' | 'drafter' | 'filer';
 }
+
+export interface PatientTimeline {
+  id: string;
+  patent_id: string;
+  event_type: string;
+  event_description: string;
+  created_at: string;
+  status: number;
+  employee_name?: string;
+  deadline_date?: string;
+}

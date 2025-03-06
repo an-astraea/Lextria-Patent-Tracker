@@ -112,6 +112,47 @@ export type Database = {
           },
         ]
       }
+      patent_timeline: {
+        Row: {
+          created_at: string
+          deadline_date: string | null
+          employee_name: string | null
+          event_description: string
+          event_type: string
+          id: string
+          patent_id: string
+          status: number | null
+        }
+        Insert: {
+          created_at?: string
+          deadline_date?: string | null
+          employee_name?: string | null
+          event_description: string
+          event_type: string
+          id?: string
+          patent_id: string
+          status?: number | null
+        }
+        Update: {
+          created_at?: string
+          deadline_date?: string | null
+          employee_name?: string | null
+          event_description?: string
+          event_type?: string
+          id?: string
+          patent_id?: string
+          status?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patent_timeline_patent_id_fkey"
+            columns: ["patent_id"]
+            isOneToOne: false
+            referencedRelation: "patents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patents: {
         Row: {
           applicant_addr: string
