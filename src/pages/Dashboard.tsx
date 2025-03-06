@@ -3,10 +3,10 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Patent } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, FileText, FileCheck, Clock, AlertTriangle } from 'lucide-react';
+import { ChevronRight, FileText, FileCheck, Clock, AlertTriangle, Users, Briefcase, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PatentCard from '@/components/PatentCard';
-import { fetchPatents, fetchDrafterAssignments, fetchFilerAssignments, fetchPendingReviews } from '@/lib/api';
+import { fetchPatents, fetchDrafterAssignments, fetchFilerAssignments, fetchPendingReviews, fetchEmployees } from '@/lib/api';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
@@ -14,6 +14,7 @@ const Dashboard = () => {
   const [patents, setPatents] = React.useState<Patent[]>([]);
   const [userAssignedPatents, setUserAssignedPatents] = React.useState<Patent[]>([]);
   const [pendingApprovals, setPendingApprovals] = React.useState<Patent[]>([]);
+  const [employees, setEmployees] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   
   // Get user from localStorage
@@ -26,6 +27,12 @@ const Dashboard = () => {
         setLoading(true);
         const patentsData = await fetchPatents();
         setPatents(patentsData);
+        
+        // Fetch employee data for admin dashboard
+        if (user?.role === 'admin') {
+          const employeeData = await fetchEmployees();
+          setEmployees(employeeData);
+        }
         
         // Fetch user-specific assignments
         if (user?.role === 'drafter') {
@@ -119,6 +126,241 @@ const Dashboard = () => {
   };
   
   const pendingApprovalCount = getPendingApprovalCount();
+
+  // New statistics for admin dashboard
+  const getEmployeeStatistics = () => {
+    if (user?.role !== 'admin' || !patents.length) return null;
+
+    // Count assignments by employee
+    const employeeStats = new Map();
+    
+    patents.forEach(patent => {
+      // PS drafting assignments
+      if (patent.ps_drafter_assgn) {
+        const key = patent.ps_drafter_assgn;
+        if (!employeeStats.has(key)) {
+          employeeStats.set(key, { 
+            drafting: 0, 
+            filing: 0, 
+            completed: 0,
+            inProgress: 0 
+          });
+        }
+        employeeStats.get(key).drafting += 1;
+        
+        if (patent.ps_drafting_status === 1) {
+          employeeStats.get(key).completed += 1;
+        } else {
+          employeeStats.get(key).inProgress += 1;
+        }
+      }
+      
+      // PS filing assignments
+      if (patent.ps_filer_assgn) {
+        const key = patent.ps_filer_assgn;
+        if (!employeeStats.has(key)) {
+          employeeStats.set(key, { 
+            drafting: 0, 
+            filing: 0, 
+            completed: 0,
+            inProgress: 0 
+          });
+        }
+        employeeStats.get(key).filing += 1;
+        
+        if (patent.ps_filing_status === 1) {
+          employeeStats.get(key).completed += 1;
+        } else {
+          employeeStats.get(key).inProgress += 1;
+        }
+      }
+      
+      // CS drafting assignments
+      if (patent.cs_drafter_assgn) {
+        const key = patent.cs_drafter_assgn;
+        if (!employeeStats.has(key)) {
+          employeeStats.set(key, { 
+            drafting: 0, 
+            filing: 0, 
+            completed: 0,
+            inProgress: 0 
+          });
+        }
+        employeeStats.get(key).drafting += 1;
+        
+        if (patent.cs_drafting_status === 1) {
+          employeeStats.get(key).completed += 1;
+        } else {
+          employeeStats.get(key).inProgress += 1;
+        }
+      }
+      
+      // CS filing assignments
+      if (patent.cs_filer_assgn) {
+        const key = patent.cs_filer_assgn;
+        if (!employeeStats.has(key)) {
+          employeeStats.set(key, { 
+            drafting: 0, 
+            filing: 0, 
+            completed: 0,
+            inProgress: 0 
+          });
+        }
+        employeeStats.get(key).filing += 1;
+        
+        if (patent.cs_filing_status === 1) {
+          employeeStats.get(key).completed += 1;
+        } else {
+          employeeStats.get(key).inProgress += 1;
+        }
+      }
+      
+      // FER drafting assignments
+      if (patent.fer_drafter_assgn) {
+        const key = patent.fer_drafter_assgn;
+        if (!employeeStats.has(key)) {
+          employeeStats.set(key, { 
+            drafting: 0, 
+            filing: 0, 
+            completed: 0,
+            inProgress: 0 
+          });
+        }
+        employeeStats.get(key).drafting += 1;
+        
+        if (patent.fer_drafter_status === 1) {
+          employeeStats.get(key).completed += 1;
+        } else {
+          employeeStats.get(key).inProgress += 1;
+        }
+      }
+      
+      // FER filing assignments
+      if (patent.fer_filer_assgn) {
+        const key = patent.fer_filer_assgn;
+        if (!employeeStats.has(key)) {
+          employeeStats.set(key, { 
+            drafting: 0, 
+            filing: 0, 
+            completed: 0,
+            inProgress: 0 
+          });
+        }
+        employeeStats.get(key).filing += 1;
+        
+        if (patent.fer_filing_status === 1) {
+          employeeStats.get(key).completed += 1;
+        } else {
+          employeeStats.get(key).inProgress += 1;
+        }
+      }
+    });
+    
+    return employeeStats;
+  };
+  
+  const getClientStatistics = () => {
+    if (user?.role !== 'admin' || !patents.length) return null;
+
+    // Count patents by client
+    const clientStats = new Map();
+    
+    patents.forEach(patent => {
+      const clientId = patent.client_id;
+      if (!clientStats.has(clientId)) {
+        clientStats.set(clientId, {
+          total: 0,
+          completed: 0,
+          inProgress: 0,
+          employees: new Set()
+        });
+      }
+      
+      clientStats.get(clientId).total += 1;
+      
+      // Count as completed if PS and CS are completed and FER is either not required or completed
+      if (patent.ps_completion_status === 1 && 
+          patent.cs_completion_status === 1 && 
+          (patent.fer_status === 0 || patent.fer_completion_status === 1)) {
+        clientStats.get(clientId).completed += 1;
+      } else {
+        clientStats.get(clientId).inProgress += 1;
+      }
+      
+      // Track employees working on this client's patents
+      [
+        patent.ps_drafter_assgn, 
+        patent.ps_filer_assgn,
+        patent.cs_drafter_assgn,
+        patent.cs_filer_assgn,
+        patent.fer_drafter_assgn,
+        patent.fer_filer_assgn
+      ].filter(Boolean).forEach(emp => {
+        if (emp) clientStats.get(clientId).employees.add(emp);
+      });
+    });
+    
+    // Convert employee Sets to counts
+    for (const [clientId, stats] of clientStats.entries()) {
+      clientStats.set(clientId, {
+        ...stats,
+        employeeCount: stats.employees.size,
+        employees: Array.from(stats.employees)
+      });
+    }
+    
+    return clientStats;
+  };
+  
+  const getPatentStatusStats = () => {
+    if (user?.role !== 'admin' || !patents.length) return null;
+    
+    return {
+      ps: {
+        drafted: patents.filter(p => p.ps_drafting_status === 1).length,
+        filed: patents.filter(p => p.ps_filing_status === 1).length,
+        completed: patents.filter(p => p.ps_completion_status === 1).length,
+      },
+      cs: {
+        drafted: patents.filter(p => p.cs_drafting_status === 1).length,
+        filed: patents.filter(p => p.cs_filing_status === 1).length,
+        completed: patents.filter(p => p.cs_completion_status === 1).length,
+      },
+      fer: {
+        required: patents.filter(p => p.fer_status === 1).length,
+        drafted: patents.filter(p => p.fer_drafter_status === 1).length,
+        filed: patents.filter(p => p.fer_filing_status === 1).length,
+        completed: patents.filter(p => p.fer_completion_status === 1).length,
+      }
+    };
+  };
+  
+  const employeeStats = getEmployeeStatistics();
+  const clientStats = getClientStatistics();
+  const statusStats = getPatentStatusStats();
+  
+  // Get top employees by assignments completed
+  const getTopEmployees = () => {
+    if (!employeeStats) return [];
+    
+    return Array.from(employeeStats.entries())
+      .map(([name, stats]) => ({ name, ...stats }))
+      .sort((a, b) => b.completed - a.completed)
+      .slice(0, 5);
+  };
+  
+  // Get top clients by patent count
+  const getTopClients = () => {
+    if (!clientStats) return [];
+    
+    return Array.from(clientStats.entries())
+      .map(([clientId, stats]) => ({ clientId, ...stats }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+  };
+  
+  const topEmployees = getTopEmployees();
+  const topClients = getTopClients();
   
   if (loading) {
     return (
@@ -200,6 +442,160 @@ const Dashboard = () => {
           </Card>
         )}
       </div>
+      
+      {/* Admin specific statistics */}
+      {user?.role === 'admin' && statusStats && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Provisional Specification</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-2 py-2">
+                <div className="text-center">
+                  <div className="text-xl font-bold">{statusStats.ps.drafted}</div>
+                  <p className="text-xs text-muted-foreground">Drafted</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold">{statusStats.ps.filed}</div>
+                  <p className="text-xs text-muted-foreground">Filed</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold">{statusStats.ps.completed}</div>
+                  <p className="text-xs text-muted-foreground">Completed</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Complete Specification</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-2 py-2">
+                <div className="text-center">
+                  <div className="text-xl font-bold">{statusStats.cs.drafted}</div>
+                  <p className="text-xs text-muted-foreground">Drafted</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold">{statusStats.cs.filed}</div>
+                  <p className="text-xs text-muted-foreground">Filed</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold">{statusStats.cs.completed}</div>
+                  <p className="text-xs text-muted-foreground">Completed</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">First Examination Report</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-4 gap-2 py-2">
+                <div className="text-center">
+                  <div className="text-xl font-bold">{statusStats.fer.required}</div>
+                  <p className="text-xs text-muted-foreground">Required</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold">{statusStats.fer.drafted}</div>
+                  <p className="text-xs text-muted-foreground">Drafted</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold">{statusStats.fer.filed}</div>
+                  <p className="text-xs text-muted-foreground">Filed</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold">{statusStats.fer.completed}</div>
+                  <p className="text-xs text-muted-foreground">Completed</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      
+      {/* Employee Statistics */}
+      {user?.role === 'admin' && topEmployees.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Employee Performance</CardTitle>
+              <Users className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <CardDescription>Top employees by completed tasks</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {topEmployees.map((employee, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Users className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{employee.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {employee.drafting} drafting, {employee.filing} filing tasks
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{employee.completed} completed</p>
+                    <p className="text-xs text-muted-foreground">
+                      {employee.inProgress} in progress
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Client Statistics */}
+      {user?.role === 'admin' && topClients.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Client Overview</CardTitle>
+              <Building className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <CardDescription>Patents by client</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {topClients.map((client, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Briefcase className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Client {client.clientId}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {client.employeeCount} employees assigned
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{client.total} patents</p>
+                    <p className="text-xs text-muted-foreground">
+                      {client.completed} completed, {client.inProgress} in progress
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       {user?.role === 'admin' && pendingApprovalCount > 0 && (
         <Card>
