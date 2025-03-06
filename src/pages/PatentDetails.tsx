@@ -1,15 +1,15 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { fetchPatentById } from '@/lib/api'; // Update to use API function instead of data.ts
+import { fetchPatentById } from '@/lib/api';
 import { Patent } from '@/lib/types';
 import { ArrowLeft, Edit, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
+import PatentNotes from '@/components/patent/PatentNotes';
 
 const PatentDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,7 +17,6 @@ const PatentDetails = () => {
   const [patent, setPatent] = React.useState<Patent | null>(null);
   const [loading, setLoading] = React.useState(true);
 
-  // Get user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
 
@@ -40,10 +39,28 @@ const PatentDetails = () => {
   }, [id]);
 
   const handleDelete = () => {
-    // This would delete the patent in a real application
     toast.success('Patent deleted successfully');
     navigate('/patents');
   };
+
+  const handleNotesUpdated = (notes: string) => {
+    if (patent) {
+      setPatent({ ...patent, notes });
+    }
+  };
+
+  const canEditNotes = React.useMemo(() => {
+    if (!user || !patent) return false;
+    
+    return (
+      user.role === 'admin' || 
+      (user.role === 'drafter' && (
+        patent.ps_drafter_assgn === user.full_name ||
+        patent.cs_drafter_assgn === user.full_name ||
+        patent.fer_drafter_assgn === user.full_name
+      ))
+    );
+  }, [user, patent]);
 
   if (loading) {
     return (
@@ -165,6 +182,12 @@ const PatentDetails = () => {
           </CardContent>
         </Card>
       </div>
+      
+      <PatentNotes 
+        patent={patent} 
+        onNotesUpdated={handleNotesUpdated} 
+        canEdit={canEditNotes}
+      />
       
       <Tabs defaultValue="provisional">
         <TabsList className="grid w-full grid-cols-3">

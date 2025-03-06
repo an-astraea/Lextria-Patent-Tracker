@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Inventor, Patent, PatentFormData } from "../types";
 import { toast } from "sonner";
@@ -294,7 +293,33 @@ export const approvePatentReview = async (
   }
 };
 
-// Add function to create a patent
+export const updatePatentNotes = async (patentId: string, notes: string): Promise<boolean> => {
+  try {
+    // In a real application, this would make an API call to update notes
+    // For this demo, we'll simulate it with local storage
+    
+    // Get all patents from storage
+    const storedPatents = localStorage.getItem('patents');
+    const patents = storedPatents ? JSON.parse(storedPatents) : [];
+    
+    // Find and update the specific patent
+    const updatedPatents = patents.map((patent: Patent) => {
+      if (patent.id === patentId) {
+        return { ...patent, notes };
+      }
+      return patent;
+    });
+    
+    // Save back to storage
+    localStorage.setItem('patents', JSON.stringify(updatedPatents));
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating patent notes:', error);
+    return false;
+  }
+};
+
 export const createPatent = async (patentData: PatentFormData): Promise<Patent | null> => {
   try {
     // Calculate initial completion statuses
@@ -356,7 +381,6 @@ export const createPatent = async (patentData: PatentFormData): Promise<Patent |
   }
 };
 
-// Add function to update a patent
 export const updatePatent = async (id: string, patentData: PatentFormData): Promise<boolean> => {
   try {
     const { error } = await supabase
@@ -438,7 +462,6 @@ export const updatePatent = async (id: string, patentData: PatentFormData): Prom
   }
 };
 
-// Add function to create an inventor
 export const createInventor = async (inventorData: { tracking_id: string, inventor_name: string, inventor_addr: string }): Promise<Inventor | null> => {
   try {
     const { data, error } = await supabase
@@ -463,7 +486,6 @@ export const createInventor = async (inventorData: { tracking_id: string, invent
   }
 };
 
-// Add function to update inventors
 export const updateInventor = async (id: string, inventorData: { inventor_name: string, inventor_addr: string }): Promise<boolean> => {
   try {
     const { error } = await supabase

@@ -1,4 +1,3 @@
-
 export interface Inventor {
   id: string;
   tracking_id: string;
@@ -64,6 +63,7 @@ export interface Patent {
   updated_at: string;
   inventors?: Inventor[];
   fer_history?: FERHistory[];
+  notes?: string;
 }
 
 export interface Employee {
