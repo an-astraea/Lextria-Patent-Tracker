@@ -52,7 +52,7 @@ const Index = () => {
           <div className="relative w-20 h-20 mb-2 sm:mb-0">
             <div className="absolute inset-0 bg-primary/20 rounded-full animate-pulse"></div>
             <img 
-              src="/public/logo.png" 
+              src="src/pages/logo.png" 
               alt="Lextria Research Logo" 
               className="h-full w-full p-2 relative z-10 object-contain"
               id="company-logo"
