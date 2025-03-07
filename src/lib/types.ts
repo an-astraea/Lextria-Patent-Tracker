@@ -133,7 +133,7 @@ export interface PatientTimeline {
   deadline_date?: string;
 }
 
-// Add enums to represent workflow states
+// Enhanced enum types to better represent the workflow states
 export enum ApprovalStatus {
   Pending = 0,      // Not yet reviewed
   Submitted = 1,    // Submitted for review
@@ -148,4 +148,11 @@ export enum WorkflowStage {
   CS_Filing = 'cs_file',
   FER_Drafting = 'fer_draft',
   FER_Filing = 'fer_file'
+}
+
+export enum WorkflowStatus {
+  NotStarted = 0,   // Task not yet started
+  InProgress = 1,   // Task in progress
+  UnderReview = 2,  // Task submitted for review
+  Completed = 3     // Task approved and completed
 }

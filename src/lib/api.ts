@@ -806,7 +806,7 @@ export const approvePatentReview = async (
       case 'ps_file':
         updateData.ps_review_file_status = 0; // Approve the review
         updateData.ps_completion_status = 1; // Set PS as completed
-        // If CS drafter is assigned but drafting status is still 0, update it to indicate it's ready
+        // Only now after PS filing is approved, enable CS drafting if CS drafter is assigned
         if (patent.cs_drafter_assgn && patent.cs_drafting_status === 0) {
           updateData.cs_drafting_status = 0; // Keep as pending, but ready for action
         }
@@ -821,7 +821,7 @@ export const approvePatentReview = async (
       case 'cs_file':
         updateData.cs_review_file_status = 0; // Approve the review
         updateData.cs_completion_status = 1; // Set CS as completed
-        // If FER drafter is assigned, FER is enabled, and drafting status is still 0, update it to indicate it's ready
+        // Only now after CS filing is approved, enable FER drafting if FER is enabled and drafter is assigned
         if (patent.fer_drafter_assgn && patent.fer_status === 1 && patent.fer_drafter_status === 0) {
           updateData.fer_drafter_status = 0; // Keep as pending, but ready for action
         }
