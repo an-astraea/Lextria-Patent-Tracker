@@ -74,7 +74,7 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
   const closestDeadline = findClosestDeadline();
 
   const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return 'Not Filed Yet';
     return new Date(dateString).toLocaleDateString();
   };
 
