@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2, Shield, FileText } from 'lucide-react';
+import { Loader2, FileText } from 'lucide-react';
 import { loginUser } from '@/lib/api';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -51,7 +51,12 @@ const Index = () => {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mb-2">
           <div className="relative w-20 h-20 mb-2 sm:mb-0">
             <div className="absolute inset-0 bg-primary/20 rounded-full animate-pulse"></div>
-            <Shield className="h-full w-full text-primary p-3 relative z-10" />
+            <img 
+              src="/placeholder.svg" 
+              alt="Lextria Research Logo" 
+              className="h-full w-full p-2 relative z-10 object-contain"
+              id="company-logo"
+            />
           </div>
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-1">Lextria Research</h1>
