@@ -1,3 +1,4 @@
+
 export interface Inventor {
   id: string;
   tracking_id: string;
@@ -130,4 +131,21 @@ export interface PatientTimeline {
   status: number;
   employee_name?: string;
   deadline_date?: string;
+}
+
+// Add enums to represent workflow states
+export enum ApprovalStatus {
+  Pending = 0,      // Not yet reviewed
+  Submitted = 1,    // Submitted for review
+  Approved = 2,     // Approved by admin
+  Rejected = 3      // Rejected by admin (not used currently)
+}
+
+export enum WorkflowStage {
+  PS_Drafting = 'ps_draft',
+  PS_Filing = 'ps_file',
+  CS_Drafting = 'cs_draft',
+  CS_Filing = 'cs_file',
+  FER_Drafting = 'fer_draft',
+  FER_Filing = 'fer_file'
 }

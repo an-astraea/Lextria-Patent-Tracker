@@ -107,6 +107,17 @@
     @apply backdrop-blur-sm bg-white/70 dark:bg-black/30 border border-white/20 dark:border-white/10;
   }
 
+  /* Mobile background specific styles */
+  @media (max-width: 640px) {
+    body {
+      @apply bg-white dark:bg-[#121212];
+    }
+    
+    .glass {
+      @apply bg-white dark:bg-[#121212] border-none;
+    }
+  }
+
   /* Transitions */
   .page-transition {
     @apply transition-all duration-300 ease-in-out;

@@ -224,22 +224,26 @@ export const fetchDrafterAssignments = async (drafterName: string): Promise<Pate
       throw error;
     }
 
-    // Now we need to filter for proper queue order: PS -> CS -> FER
+    // Now we need to filter for proper queue order with approval dependencies: PS -> CS -> FER
     return (data || []).filter(patent => {
       // If assigned to PS drafting and it's not completed
       if (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 0) {
         return true;
       }
       
-      // If assigned to CS drafting and PS is not assigned or PS is completed
+      // If assigned to CS drafting and PS drafting is completed and approved
       if (patent.cs_drafter_assgn === drafterName && patent.cs_drafting_status === 0) {
-        return !patent.ps_drafter_assgn || patent.ps_drafting_status === 1;
+        // For CS drafting to be ready, PS must be completed or not required
+        // If PS was required, it must be both drafted and approved
+        const psCompleted = !patent.ps_drafter_assgn || 
+                           (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0);
+        return psCompleted;
       }
       
-      // If assigned to FER drafting and (PS and CS not assigned or they are completed)
+      // If assigned to FER drafting and previous stages are completed or not required
       if (patent.fer_drafter_assgn === drafterName && patent.fer_drafter_status === 0 && patent.fer_status === 1) {
-        const psCompleted = !patent.ps_drafter_assgn || patent.ps_drafting_status === 1;
-        const csCompleted = !patent.cs_drafter_assgn || patent.cs_drafting_status === 1;
+        const psCompleted = !patent.ps_drafter_assgn || patent.ps_completion_status === 1;
+        const csCompleted = !patent.cs_drafter_assgn || patent.cs_completion_status === 1;
         return psCompleted && csCompleted;
       }
       
@@ -294,27 +298,31 @@ export const fetchFilerAssignments = async (filerName: string): Promise<Patent[]
       throw error;
     }
 
-    // Filter for proper queue order and dependencies: PS -> CS -> FER
+    // Filter for proper queue order and dependencies with approval requirements: PS -> CS -> FER
     return (data || []).filter(patent => {
-      // If assigned to PS filing and it's not completed and PS drafting is completed
+      // If assigned to PS filing and it's not completed
+      // For PS filing to be ready, PS drafting must be completed and approved
       if (patent.ps_filer_assgn === filerName && patent.ps_filing_status === 0) {
-        return patent.ps_drafting_status === 1;
+        return patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0;
       }
       
-      // If assigned to CS filing and PS is not required or PS filing is completed
+      // If assigned to CS filing
       if (patent.cs_filer_assgn === filerName && patent.cs_filing_status === 0) {
-        const psNotRequired = !patent.ps_filer_assgn;
-        const psCompleted = patent.ps_filing_status === 1;
-        return (psNotRequired || psCompleted) && patent.cs_drafting_status === 1;
+        // PS must be completed or not required
+        const psCompleted = !patent.ps_filer_assgn || patent.ps_completion_status === 1;
+        // CS drafting must be completed and approved
+        const csDraftApproved = patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0;
+        return psCompleted && csDraftApproved;
       }
       
-      // If assigned to FER filing and previous stages are completed or not required
+      // If assigned to FER filing
       if (patent.fer_filer_assgn === filerName && patent.fer_filing_status === 0 && patent.fer_status === 1) {
-        const psNotRequired = !patent.ps_filer_assgn;
-        const csNotRequired = !patent.cs_filer_assgn;
-        const psCompleted = patent.ps_filing_status === 1;
-        const csCompleted = patent.cs_filing_status === 1;
-        return (psNotRequired || psCompleted) && (csNotRequired || csCompleted) && patent.fer_drafter_status === 1;
+        // Previous stages must be completed or not required
+        const psCompleted = !patent.ps_filer_assgn || patent.ps_completion_status === 1;
+        const csCompleted = !patent.cs_filer_assgn || patent.cs_completion_status === 1;
+        // FER drafting must be completed and approved
+        const ferDraftApproved = patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0;
+        return psCompleted && csCompleted && ferDraftApproved;
       }
       
       return false;
@@ -790,20 +798,40 @@ export const approvePatentReview = async (
     switch (reviewType) {
       case 'ps_draft':
         updateData.ps_review_draft_status = 0; // Approve the review (reset to 0 since it's approved)
+        // If PS filer is assigned but filing status is still 0, update filing status to indicate it's ready
+        if (patent.ps_filer_assgn && patent.ps_filing_status === 0) {
+          updateData.ps_filing_status = 0; // Keep as pending, but ready for action
+        }
         break;
       case 'ps_file':
         updateData.ps_review_file_status = 0; // Approve the review
         updateData.ps_completion_status = 1; // Set PS as completed
+        // If CS drafter is assigned but drafting status is still 0, update it to indicate it's ready
+        if (patent.cs_drafter_assgn && patent.cs_drafting_status === 0) {
+          updateData.cs_drafting_status = 0; // Keep as pending, but ready for action
+        }
         break;
       case 'cs_draft':
         updateData.cs_review_draft_status = 0; // Approve the review
+        // If CS filer is assigned but filing status is still 0, update filing status to indicate it's ready
+        if (patent.cs_filer_assgn && patent.cs_filing_status === 0) {
+          updateData.cs_filing_status = 0; // Keep as pending, but ready for action
+        }
         break;
       case 'cs_file':
         updateData.cs_review_file_status = 0; // Approve the review
         updateData.cs_completion_status = 1; // Set CS as completed
+        // If FER drafter is assigned, FER is enabled, and drafting status is still 0, update it to indicate it's ready
+        if (patent.fer_drafter_assgn && patent.fer_status === 1 && patent.fer_drafter_status === 0) {
+          updateData.fer_drafter_status = 0; // Keep as pending, but ready for action
+        }
         break;
       case 'fer_draft':
         updateData.fer_review_draft_status = 0; // Approve the review
+        // If FER filer is assigned but filing status is still 0, update filing status to indicate it's ready
+        if (patent.fer_filer_assgn && patent.fer_filing_status === 0) {
+          updateData.fer_filing_status = 0; // Keep as pending, but ready for action
+        }
         break;
       case 'fer_file':
         updateData.fer_review_file_status = 0; // Approve the review
