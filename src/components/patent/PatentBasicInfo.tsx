@@ -1,57 +1,67 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Patent } from '@/lib/types';
-import FilingDateDisplay from './FilingDateDisplay';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Building, CalendarClock, FileText, User } from 'lucide-react';
 
 interface PatentBasicInfoProps {
   patent: Patent;
 }
 
 const PatentBasicInfo: React.FC<PatentBasicInfoProps> = ({ patent }) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'Not specified';
+    return new Date(dateString).toLocaleDateString();
+  };
+
   return (
     <Card>
-      <CardContent className="pt-6">
-        <div className="space-y-4">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">Basic Information</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
             <div>
-              <h2 className="text-xl font-semibold">{patent.patent_title}</h2>
-              <p className="text-sm text-muted-foreground">Tracking ID: {patent.tracking_id}</p>
-            </div>
-            {patent.application_no && (
-              <Badge variant="outline" className="md:self-start">
-                Application: {patent.application_no}
-              </Badge>
-            )}
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="font-medium">Applicant</p>
-              <p>{patent.patent_applicant}</p>
-            </div>
-            <div>
-              <p className="font-medium">Client ID</p>
-              <p>{patent.client_id}</p>
-            </div>
-            <div>
-              <p className="font-medium">Filing Date</p>
-              <FilingDateDisplay date={patent.date_of_filing} />
-            </div>
-            <div>
-              <p className="font-medium">Applicant Address</p>
-              <p className="break-words">{patent.applicant_addr}</p>
-            </div>
-            <div>
-              <p className="font-medium">Inventor Phone</p>
-              <p>{patent.inventor_ph_no}</p>
-            </div>
-            <div>
-              <p className="font-medium">Inventor Email</p>
-              <p className="break-words">{patent.inventor_email}</p>
+              <p className="text-sm font-medium">Tracking ID</p>
+              <p className="text-sm text-muted-foreground">{patent.tracking_id}</p>
             </div>
           </div>
+
+          <div className="flex items-center gap-2">
+            <Building className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">Applicant</p>
+              <p className="text-sm text-muted-foreground">{patent.patent_applicant}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">Client ID</p>
+              <p className="text-sm text-muted-foreground">{patent.client_id}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <CalendarClock className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">Filing Date</p>
+              <p className="text-sm text-muted-foreground">{formatDate(patent.date_of_filing)}</p>
+            </div>
+          </div>
+
+          {patent.application_no && (
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Application No.</p>
+                <p className="text-sm text-muted-foreground">{patent.application_no}</p>
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
