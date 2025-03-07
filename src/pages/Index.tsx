@@ -5,11 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2, Shield, FileSearch } from 'lucide-react';
+import { Loader2, Shield, FileText } from 'lucide-react';
 import { loginUser } from '@/lib/api';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Index = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
@@ -44,25 +46,30 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
-      <div className="w-full max-w-md text-center mb-8 animate-fade-in">
-        <div className="flex items-center justify-center mb-2">
-          <Shield className="h-10 w-10 text-primary mr-2" />
-          <h1 className="text-3xl font-bold text-gray-800">Lextria Research</h1>
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4 sm:p-6 md:p-8">
+      <div className="w-full max-w-md text-center mb-6 md:mb-8 animate-fade-in">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mb-2">
+          <div className="relative w-20 h-20 mb-2 sm:mb-0">
+            <div className="absolute inset-0 bg-primary/20 rounded-full animate-pulse"></div>
+            <Shield className="h-full w-full text-primary p-3 relative z-10" />
+          </div>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-1">Lextria Research</h1>
+            <p className="text-gray-600 text-sm md:text-base">Patent Tracking & Management System</p>
+          </div>
         </div>
-        <p className="text-gray-600">Patent Tracking & Management System</p>
       </div>
       
-      <Card className="w-full max-w-md border-none shadow-lg animate-fade-in">
+      <Card className="w-full max-w-md border shadow-lg animate-fade-in bg-white/80 backdrop-blur-sm">
         <div className="absolute -top-6 left-0 right-0 flex justify-center">
           <div className="bg-primary text-white p-3 rounded-full shadow-md">
-            <FileSearch className="h-6 w-6" />
+            <FileText className="h-6 w-6" />
           </div>
         </div>
         
         <CardHeader className="space-y-1 pt-10">
-          <CardTitle className="text-2xl font-bold text-center text-gray-800">Sign in to your account</CardTitle>
-          <CardDescription className="text-center text-gray-600">
+          <CardTitle className="text-xl sm:text-2xl font-bold text-center text-gray-800">Sign in to your account</CardTitle>
+          <CardDescription className="text-center text-gray-600 text-sm sm:text-base">
             Enter your credentials to access the patent management portal
           </CardDescription>
         </CardHeader>
@@ -117,9 +124,17 @@ const Index = () => {
         </CardFooter>
       </Card>
       
-      <div className="mt-8 text-center text-sm text-gray-500 animate-fade-in">
+      <div className="mt-6 md:mt-8 text-center text-xs sm:text-sm text-gray-500 animate-fade-in">
         <p>© {new Date().getFullYear()} Lextria Research. All rights reserved.</p>
       </div>
+
+      {/* Decorative elements that only appear on larger screens */}
+      {!isMobile && (
+        <>
+          <div className="fixed top-20 left-20 w-64 h-64 bg-primary/5 rounded-full filter blur-3xl animate-pulse"></div>
+          <div className="fixed bottom-10 right-20 w-80 h-80 bg-indigo-100/20 rounded-full filter blur-3xl"></div>
+        </>
+      )}
     </div>
   );
 };
