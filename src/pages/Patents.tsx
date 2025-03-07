@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Search, Filter, X } from 'lucide-react';
@@ -43,6 +44,7 @@ const Patents = () => {
   const [loading, setLoading] = useState(true);
   const [patentToDelete, setPatentToDelete] = useState<string | null>(null);
   
+  // Advanced filters
   const [filters, setFilters] = useState({
     draftingStatus: null as string | null,
     filingStatus: null as string | null,
@@ -54,13 +56,17 @@ const Patents = () => {
     },
   });
   
+  // For non-realtime search
   const [pendingSearchQuery, setPendingSearchQuery] = useState('');
   
+  // Get unique client IDs for filtering
   const uniqueClientIds = [...new Set(patents.map(patent => patent.client_id))];
   
+  // Get user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
+  // Fetch patents from Supabase
   useEffect(() => {
     const getData = async () => {
       try {
@@ -79,9 +85,11 @@ const Patents = () => {
     getData();
   }, []);
   
+  // Apply filters but not search query (it will only apply on button click)
   useEffect(() => {
     let filtered = patents;
     
+    // Apply drafting status filter
     if (filters.draftingStatus) {
       filtered = filtered.filter(patent => {
         if (filters.draftingStatus === 'ps_drafting_complete') {
@@ -101,6 +109,7 @@ const Patents = () => {
       });
     }
     
+    // Apply filing status filter
     if (filters.filingStatus) {
       filtered = filtered.filter(patent => {
         if (filters.filingStatus === 'ps_filing_complete') {
@@ -120,6 +129,7 @@ const Patents = () => {
       });
     }
     
+    // Apply FER status filter
     if (filters.ferStatus) {
       filtered = filtered.filter(patent => {
         if (filters.ferStatus === 'active') {
@@ -131,16 +141,14 @@ const Patents = () => {
       });
     }
     
+    // Apply client ID filter
     if (filters.clientId) {
       filtered = filtered.filter(patent => patent.client_id === filters.clientId);
     }
     
+    // Apply date range filter
     if (filters.dateRange.start || filters.dateRange.end) {
       filtered = filtered.filter(patent => {
-        if (!patent.date_of_filing) {
-          return false;
-        }
-        
         const filingDate = new Date(patent.date_of_filing);
         const startDate = filters.dateRange.start ? new Date(filters.dateRange.start) : null;
         const endDate = filters.dateRange.end ? new Date(filters.dateRange.end) : null;
@@ -157,6 +165,7 @@ const Patents = () => {
       });
     }
     
+    // Apply text search filter only if there's an active search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(
@@ -178,10 +187,12 @@ const Patents = () => {
     setFilteredPatents(filtered);
   }, [searchQuery, patents, filters]);
   
+  // Function to handle search execution (only on button click)
   const handleSearch = () => {
     setSearchQuery(pendingSearchQuery);
   };
   
+  // Handle delete patent
   const handleDeletePatent = async (id: string) => {
     try {
       const success = await deletePatent(id);
@@ -245,60 +256,6 @@ const Patents = () => {
     if (filters.dateRange.start || filters.dateRange.end) count++;
     if (searchQuery) count++;
     return count;
-  };
-
-  const getFiledStatus = () => {
-    return (
-      <div className="space-y-2">
-        <h5 className="text-sm font-medium">Filing Date</h5>
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="filed-filter" 
-              checked={!!filters.dateRange.start || !!filters.dateRange.end}
-              onCheckedChange={(checked) => {
-                if (!checked) {
-                  setFilters({
-                    ...filters, 
-                    dateRange: {start: null, end: null}
-                  });
-                }
-              }}
-            />
-            <Label htmlFor="filed-filter">Show only filed patents</Label>
-          </div>
-          
-          {(!!filters.dateRange.start || !!filters.dateRange.end) && (
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <div>
-                <Label htmlFor="start-date">From</Label>
-                <Input
-                  id="start-date"
-                  type="date"
-                  value={filters.dateRange.start || ''}
-                  onChange={(e) => setFilters({
-                    ...filters, 
-                    dateRange: {...filters.dateRange, start: e.target.value || null}
-                  })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="end-date">To</Label>
-                <Input
-                  id="end-date"
-                  type="date"
-                  value={filters.dateRange.end || ''}
-                  onChange={(e) => setFilters({
-                    ...filters, 
-                    dateRange: {...filters.dateRange, end: e.target.value || null}
-                  })}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
   };
 
   if (loading) {
@@ -437,7 +394,35 @@ const Patents = () => {
                 </Select>
               </div>
               
-              {getFiledStatus()}
+              <div className="space-y-2">
+                <h5 className="text-sm font-medium">Filing Date Range</h5>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="start-date">From</Label>
+                    <Input
+                      id="start-date"
+                      type="date"
+                      value={filters.dateRange.start || ''}
+                      onChange={(e) => setFilters({
+                        ...filters, 
+                        dateRange: {...filters.dateRange, start: e.target.value || null}
+                      })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="end-date">To</Label>
+                    <Input
+                      id="end-date"
+                      type="date"
+                      value={filters.dateRange.end || ''}
+                      onChange={(e) => setFilters({
+                        ...filters, 
+                        dateRange: {...filters.dateRange, end: e.target.value || null}
+                      })}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </PopoverContent>
         </Popover>
@@ -584,4 +569,3 @@ const Patents = () => {
 };
 
 export default Patents;
-
