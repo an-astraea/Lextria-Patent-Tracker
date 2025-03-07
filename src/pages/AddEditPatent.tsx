@@ -180,7 +180,7 @@ const AddEditPatent = () => {
   const validateForm = () => {
     // Basic validation
     if (!formData.patent_applicant || !formData.client_id || 
-        !formData.date_of_filing || !formData.patent_title || !formData.applicant_addr) {
+        !formData.patent_title || !formData.applicant_addr) {
       toast.error('Please fill in all required fields');
       return false;
     }
@@ -303,15 +303,20 @@ const AddEditPatent = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="date_of_filing">Date of Filing *</Label>
+                <Label htmlFor="date_of_filing">Date of Filing</Label>
                 <Input 
                   id="date_of_filing" 
                   name="date_of_filing" 
                   type="date" 
                   value={formData.date_of_filing} 
-                  onChange={handleChange} 
-                  required
+                  onChange={handleChange}
+                  placeholder="Will be set automatically upon filing"
                 />
+                {!formData.date_of_filing && (
+                  <p className="text-sm text-gray-500">
+                    Will be set automatically when filing is completed
+                  </p>
+                )}
               </div>
               
               <div className="space-y-2">

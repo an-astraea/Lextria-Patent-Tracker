@@ -22,7 +22,7 @@ interface PendingReviewCardProps {
 
 // Format date for display
 const formatDate = (dateString: string | null) => {
-  if (!dateString) return 'N/A';
+  if (!dateString) return 'Not Filed Yet';
   return new Date(dateString).toLocaleDateString();
 };
 
