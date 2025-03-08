@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,8 +39,7 @@ const Filings = () => {
   const isMobile = useIsMobile();
   
   const [form01, setForm01] = useState(false);
-  const [form02PS, setForm02PS] = useState(false);
-  const [form02CS, setForm02CS] = useState(false);
+  const [form02, setForm02] = useState(false);
   const [form03, setForm03] = useState(false);
   const [form04, setForm04] = useState(false);
   const [form05, setForm05] = useState(false);
@@ -144,8 +142,7 @@ const Filings = () => {
 
   const resetFormState = () => {
     setForm01(false);
-    setForm02PS(false);
-    setForm02CS(false);
+    setForm02(false);
     setForm03(false);
     setForm04(false);
     setForm05(false);
@@ -189,8 +186,7 @@ const Filings = () => {
     resetFormState();
     
     if (patent.form_01) setForm01(true);
-    if (patent.form_02_ps) setForm02PS(true);
-    if (patent.form_02_cs) setForm02CS(true);
+    if (patent.form_02) setForm02(true);
     if (patent.form_03) setForm03(true);
     if (patent.form_04) setForm04(true);
     if (patent.form_05) setForm05(true);
@@ -239,14 +235,14 @@ const Filings = () => {
       if (patent.ps_filer_assgn === user?.full_name && patent.ps_filing_status === 0) {
         formData = {
           form_01: form01,
-          form_02_ps: form02PS,
+          form_02: form02,
           form_26: form26,
           other_forms: otherForms
         };
       } else if (patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0) {
         formData = {
           form_01: form01,
-          form_02_cs: form02CS,
+          form_02: form02,
           form_03: form03,
           form_04: form04,
           form_05: form05,
@@ -572,7 +568,6 @@ const Filings = () => {
           <div className="grid gap-4 py-4">
             {selectedPatent && (
               <>
-                {/* Provisional Specification Forms */}
                 {(selectedPatent.ps_filer_assgn === user?.full_name && selectedPatent.ps_filing_status === 0) && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-center space-x-2">
@@ -580,8 +575,8 @@ const Filings = () => {
                       <Label htmlFor="form01">Form 01 - Application for Grant of Patent</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="form02_ps" checked={form02PS} onCheckedChange={(checked) => setForm02PS(checked === true)} />
-                      <Label htmlFor="form02_ps">Form 02 - Provisional Specification</Label>
+                      <Checkbox id="form02" checked={form02} onCheckedChange={(checked) => setForm02(checked === true)} />
+                      <Label htmlFor="form02">Form 02 - Provisional Specification</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="form26" checked={form26} onCheckedChange={(checked) => setForm26(checked === true)} />
@@ -590,7 +585,6 @@ const Filings = () => {
                   </div>
                 )}
 
-                {/* Complete Specification Forms */}
                 {(selectedPatent.cs_filer_assgn === user?.full_name && selectedPatent.cs_filing_status === 0) && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-center space-x-2">
@@ -598,8 +592,8 @@ const Filings = () => {
                       <Label htmlFor="form01">Form 01 - Application for Grant of Patent</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="form02_cs" checked={form02CS} onCheckedChange={(checked) => setForm02CS(checked === true)} />
-                      <Label htmlFor="form02_cs">Form 02 - Complete Specification</Label>
+                      <Checkbox id="form02" checked={form02} onCheckedChange={(checked) => setForm02(checked === true)} />
+                      <Label htmlFor="form02">Form 02 - Complete Specification</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="form03" checked={form03} onCheckedChange={(checked) => setForm03(checked === true)} />
@@ -740,7 +734,6 @@ const Filings = () => {
                   </div>
                 )}
 
-                {/* FER Forms */}
                 {(selectedPatent.fer_filer_assgn === user?.full_name && selectedPatent.fer_filing_status === 0) && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-center space-x-2">
@@ -789,3 +782,4 @@ const Filings = () => {
 };
 
 export default Filings;
+
