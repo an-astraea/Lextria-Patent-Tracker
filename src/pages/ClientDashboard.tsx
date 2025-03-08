@@ -1,316 +1,302 @@
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { useQuery } from '@tanstack/react-query';
 import { fetchPatents } from '@/lib/api';
 import { Patent } from '@/lib/types';
-import PageHeader from '@/components/common/PageHeader';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Download, PieChart, FileText, Users, Clock } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import PatentCard from '@/components/PatentCard';
-import LoadingState from '@/components/common/LoadingState';
-import EmptyState from '@/components/common/EmptyState';
-import * as XLSX from 'xlsx';
+import { useEffect } from 'react';
 
-const ClientDashboard = () => {
-  const [patents, setPatents] = useState<Patent[]>([]);
-  const [filteredPatents, setFilteredPatents] = useState<Patent[]>([]);
-  const [clients, setClients] = useState<string[]>([]);
-  const [selectedClient, setSelectedClient] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
+interface DashboardCardProps {
+  title: string;
+  value: number;
+  description: string;
+  variant?: "default" | "destructive";
+}
+
+const DashboardCard: React.FC<DashboardCardProps> = ({
+  title,
+  value,
+  description,
+  variant
+}) => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
+  );
+};
+
+interface ClientDashboardProps { }
+
+const ClientDashboard: React.FC<ClientDashboardProps> = () => {
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
+
+  const { data: patents, isLoading, isError } = useQuery({
+    queryKey: ['patents'],
+    queryFn: fetchPatents,
+  });
 
   useEffect(() => {
-    const loadPatents = async () => {
-      setIsLoading(true);
-      try {
-        const allPatents = await fetchPatents();
-        setPatents(allPatents);
-        
-        const uniqueClients = Array.from(new Set(allPatents.map(patent => patent.client_id)));
-        setClients(uniqueClients);
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error loading patents:', error);
-        setIsLoading(false);
+    if (isError) {
+      console.error("Failed to fetch patents");
+    }
+  }, [isError]);
+
+  const assignedPatents = React.useMemo(() => {
+    if (!patents || !user) return [];
+
+    return patents.filter(patent =>
+      patent.ps_drafter_assgn === user?.full_name ||
+      patent.ps_filer_assgn === user?.full_name ||
+      patent.cs_drafter_assgn === user?.full_name ||
+      patent.cs_filer_assgn === user?.full_name ||
+      patent.fer_drafter_assgn === user?.full_name ||
+      patent.fer_filer_assgn === user?.full_name
+    );
+  }, [patents, user]);
+
+  const pendingPatents = React.useMemo(() => {
+    return assignedPatents.filter(patent =>
+      patent.ps_drafting_status === 1 ||
+      patent.ps_review_draft_status === 1 ||
+      patent.ps_filing_status === 0 ||
+      patent.cs_drafting_status === 1 ||
+      patent.cs_review_draft_status === 1 ||
+      patent.cs_filing_status === 0 ||
+      patent.fer_drafter_status === 1 ||
+      patent.fer_review_draft_status === 1 ||
+      patent.fer_filing_status === 0
+    );
+  }, [assignedPatents]);
+
+  const completedPatents = React.useMemo(() => {
+    return assignedPatents.filter(patent =>
+      patent.ps_completion_status === 1 &&
+      patent.cs_completion_status === 1 &&
+      patent.fer_completion_status === 1
+    );
+  }, [assignedPatents]);
+
+  const draftingPending = React.useMemo(() => {
+    return assignedPatents.filter(patent =>
+      (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0) ||
+      (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0) ||
+      (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0)
+    );
+  }, [assignedPatents]);
+
+  const filingPending = React.useMemo(() => {
+    return assignedPatents.filter(patent =>
+      (patent.ps_review_draft_status === 1 && patent.ps_filing_status === 0) ||
+      (patent.cs_review_draft_status === 1 && patent.cs_filing_status === 0) ||
+      (patent.fer_review_draft_status === 1 && patent.fer_filing_status === 0)
+    );
+  }, [assignedPatents]);
+
+  const calculateProgress = (patent: Patent): number => {
+    let progress = 0;
+    let totalStages = 0;
+
+    // Provisional Specification Stage
+    if (patent.ps_drafter_assgn) {
+      totalStages++;
+      if (patent.ps_drafting_status === 1) {
+        progress++;
       }
-    };
-    
-    loadPatents();
-  }, []);
-
-  useEffect(() => {
-    if (selectedClient) {
-      const clientPatents = patents.filter(patent => patent.client_id === selectedClient);
-      setFilteredPatents(clientPatents);
-    } else {
-      setFilteredPatents([]);
     }
-  }, [selectedClient, patents]);
-
-  const handleExportToExcel = () => {
-    if (filteredPatents.length === 0) return;
-
-    const exportData = filteredPatents.map(patent => {
-      // Create base data object with patent information
-      const baseData = {
-        'Tracking ID': patent.tracking_id,
-        'Patent Applicant': patent.patent_applicant,
-        'Client ID': patent.client_id,
-        'Application No': patent.application_no || 'N/A',
-        'Date of Filing': patent.date_of_filing || 'Not Filed Yet',
-        'Patent Title': patent.patent_title,
-        'Applicant Address': patent.applicant_addr,
-        'Inventor Phone': patent.inventor_ph_no,
-        'Inventor Email': patent.inventor_email,
-      };
-      
-      // Add only the forms that are marked as Yes/true
-      const formData = {};
-      
-      if (patent.form_26) formData['Form 26'] = 'Yes';
-      if (patent.form_18) formData['Form 18'] = 'Yes';
-      if (patent.form_18a) formData['Form 18A'] = 'Yes';
-      if (patent.form_9) formData['Form 9'] = 'Yes';
-      if (patent.form_9a) formData['Form 9A'] = 'Yes';
-      if (patent.form_13) formData['Form 13'] = 'Yes';
-      
-      // Return combined data
-      return { ...baseData, ...formData };
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, `${selectedClient}_Patents`);
-    
-    XLSX.writeFile(workbook, `${selectedClient}_Patents_Report.xlsx`);
-  };
-
-  const getCompletionStats = () => {
-    if (filteredPatents.length === 0) return { total: 0, completed: 0, percentage: 0 };
-    
-    const completedPatents = filteredPatents.filter(patent => {
-      const psDone = patent.ps_completion_status === 1;
-      const csDone = patent.cs_completion_status === 1;
-      const ferDone = patent.fer_status === 0 || patent.fer_completion_status === 1;
-      
-      return psDone && csDone && ferDone;
-    });
-    
-    const percentage = Math.round((completedPatents.length / filteredPatents.length) * 100);
-    
-    return {
-      total: filteredPatents.length,
-      completed: completedPatents.length,
-      percentage
-    };
-  };
-
-  const getStageStats = () => {
-    if (filteredPatents.length === 0) {
-      return {
-        psOnly: 0,
-        psAndCs: 0,
-        all: 0,
-        fer: 0
-      };
+    if (patent.ps_filer_assgn) {
+      totalStages++;
+      if (patent.ps_filing_status === 1) {
+        progress++;
+      }
     }
-    
-    const psOnly = filteredPatents.filter(p => 
-      p.ps_completion_status === 1 && 
-      p.cs_completion_status === 0
-    ).length;
-    
-    const psAndCs = filteredPatents.filter(p => 
-      p.ps_completion_status === 1 && 
-      p.cs_completion_status === 1 && 
-      (p.fer_status === 0 || p.fer_completion_status === 0)
-    ).length;
-    
-    const all = filteredPatents.filter(p => 
-      p.ps_completion_status === 1 && 
-      p.cs_completion_status === 1 && 
-      (p.fer_status === 0 || p.fer_completion_status === 1)
-    ).length;
-    
-    const fer = filteredPatents.filter(p => p.fer_status === 1).length;
-    
-    return { psOnly, psAndCs, all, fer };
+
+    // Complete Specification Stage
+    if (patent.cs_drafter_assgn) {
+      totalStages++;
+      if (patent.cs_drafting_status === 1) {
+        progress++;
+      }
+    }
+    if (patent.cs_filer_assgn) {
+      totalStages++;
+      if (patent.cs_filing_status === 1) {
+        progress++;
+      }
+    }
+
+    // FER Stage
+    if (patent.fer_drafter_assgn) {
+      totalStages++;
+      if (patent.fer_drafter_status === 1) {
+        progress++;
+      }
+    }
+    if (patent.fer_filer_assgn) {
+      totalStages++;
+      if (patent.fer_filing_status === 1) {
+        progress++;
+      }
+    }
+
+    // Check for form completion
+    const hasForm01 = patent.form_01;
+    const hasForm02Ps = patent.form_02_ps;
+    const hasForm02Cs = patent.form_02_cs;
+    const hasForm03 = patent.form_03;
+    const hasForm04 = patent.form_04;
+    const hasForm05 = patent.form_05;
+    const hasForm06 = patent.form_06;
+    const hasForm07 = patent.form_07;
+    const hasForm07a = patent.form_07a;
+    const hasForm08 = patent.form_08;
+    const hasForm08a = patent.form_08a;
+    const hasForm09 = patent.form_09;
+    const hasForm09a = patent.form_09a; // Using the correct property names
+    const hasForm10 = patent.form_10;
+    const hasForm11 = patent.form_11;
+    const hasForm12 = patent.form_12;
+    const hasForm13 = patent.form_13;
+    const hasForm14 = patent.form_14;
+    const hasForm15 = patent.form_15;
+    const hasForm16 = patent.form_16;
+    const hasForm17 = patent.form_17;
+    const hasForm18 = patent.form_18;
+    const hasForm18a = patent.form_18a;
+    const hasForm19 = patent.form_19;
+    const hasForm20 = patent.form_20;
+    const hasForm21 = patent.form_21;
+    const hasForm22 = patent.form_22;
+    const hasForm23 = patent.form_23;
+    const hasForm24 = patent.form_24;
+    const hasForm25 = patent.form_25;
+    const hasForm26 = patent.form_26;
+    const hasForm27 = patent.form_27;
+    const hasForm28 = patent.form_28;
+    const hasForm29 = patent.form_29;
+    const hasForm30 = patent.form_30;
+    const hasForm31 = patent.form_31;
+
+    let formsCompleted = 0;
+    if (hasForm01) formsCompleted++;
+    if (hasForm02Ps) formsCompleted++;
+    if (hasForm02Cs) formsCompleted++;
+    if (hasForm03) formsCompleted++;
+    if (hasForm04) formsCompleted++;
+    if (hasForm05) formsCompleted++;
+    if (hasForm06) formsCompleted++;
+    if (hasForm07) formsCompleted++;
+    if (hasForm07a) formsCompleted++;
+    if (hasForm08) formsCompleted++;
+    if (hasForm08a) formsCompleted++;
+    if (hasForm09) formsCompleted++;
+    if (hasForm09a) formsCompleted++;
+    if (hasForm10) formsCompleted++;
+    if (hasForm11) formsCompleted++;
+    if (hasForm12) formsCompleted++;
+    if (hasForm13) formsCompleted++;
+    if (hasForm14) formsCompleted++;
+    if (hasForm15) formsCompleted++;
+    if (hasForm16) formsCompleted++;
+    if (hasForm17) formsCompleted++;
+    if (hasForm18) formsCompleted++;
+    if (hasForm18a) formsCompleted++;
+    if (hasForm19) formsCompleted++;
+    if (hasForm20) formsCompleted++;
+    if (hasForm21) formsCompleted++;
+    if (hasForm22) formsCompleted++;
+    if (hasForm23) formsCompleted++;
+    if (hasForm24) formsCompleted++;
+    if (hasForm25) formsCompleted++;
+    if (hasForm26) formsCompleted++;
+    if (hasForm27) formsCompleted++;
+    if (hasForm28) formsCompleted++;
+    if (hasForm29) formsCompleted++;
+    if (hasForm30) formsCompleted++;
+    if (hasForm31) formsCompleted++;
+
+    const totalForms = 31; // Total number of forms
+    const formCompletionPercentage = (formsCompleted / totalForms) * 100;
+
+    // Add form completion to the overall progress
+    progress += formCompletionPercentage / 100 * 2; // Weighing forms as 20% of the total progress
+    totalStages += 2; // Adding 2 to total stages to account for form completion
+
+    const overallProgress = (progress / totalStages) * 100;
+    return Math.min(overallProgress, 100); // Ensure progress doesn't exceed 100%
   };
 
-  const stats = getCompletionStats();
-  const stageStats = getStageStats();
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <div className="container px-4 py-6 mx-auto max-w-7xl">
-      <PageHeader
-        title="Client Dashboard"
-        subtitle="View patent statistics and details for specific clients"
-      />
-
-      <div className="flex flex-col md:flex-row items-start gap-4 mb-6">
-        <div className="w-full md:w-1/3">
-          <Select value={selectedClient} onValueChange={setSelectedClient}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select Client" />
-            </SelectTrigger>
-            <SelectContent>
-              {clients.map(client => (
-                <SelectItem key={client} value={client}>
-                  {client}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {selectedClient && (
-          <Button 
-            onClick={handleExportToExcel} 
-            variant="outline" 
-            className="w-full md:w-auto"
-            disabled={filteredPatents.length === 0}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Export to Excel
-          </Button>
-        )}
+    <div className="container py-8">
+      <h1 className="text-2xl font-bold mb-4">Client Dashboard</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <DashboardCard
+          title="Assigned Patents"
+          value={assignedPatents.length}
+          description="Total patents assigned to you"
+        />
+        <DashboardCard
+          title="Pending Filings"
+          value={pendingPatents.length}
+          description="Patents awaiting your action"
+        />
+        <DashboardCard
+          title="Completed Filings"
+          value={completedPatents.length}
+          description="Patents successfully completed"
+        />
+        <DashboardCard
+          title="Drafting Pending"
+          value={draftingPending.length}
+          description="Patents pending drafting"
+        />
+        <DashboardCard
+          title="Filing Pending"
+          value={filingPending.length}
+          description="Patents pending filing"
+        />
       </div>
 
-      {isLoading ? (
-        <LoadingState 
-          size="lg" 
-          text="Loading client data..."
-          className="py-12" 
-        />
-      ) : selectedClient ? (
-        <>
-          {filteredPatents.length > 0 ? (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Total Patents</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <FileText className="h-6 w-6 text-blue-500 mr-2" />
-                      <div className="text-2xl font-bold">{filteredPatents.length}</div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <PieChart className="h-6 w-6 text-green-500 mr-2" />
-                      <div className="text-2xl font-bold">{stats.percentage}%</div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {stats.completed} of {stats.total} patents completed
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold mb-4">Patent Progress</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {assignedPatents.map((patent) => (
+            <div key={patent.id} className="bg-white rounded-lg shadow-md p-4">
+              <h3 className="font-semibold">{patent.patent_title}</h3>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Progress value={calculateProgress(patent)} className="h-4 mt-2" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {`Progress: ${calculateProgress(patent).toFixed(2)}%`}
                     </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">FER Patents</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <Users className="h-6 w-6 text-yellow-500 mr-2" />
-                      <div className="text-2xl font-bold">{stageStats.fer}</div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Patents requiring further examination
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">PS Only Completed</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <Clock className="h-6 w-6 text-purple-500 mr-2" />
-                      <div className="text-2xl font-bold">{stageStats.psOnly}</div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Patents with only PS stage completed
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Tabs defaultValue="all" className="mb-6">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="all">All Patents</TabsTrigger>
-                  <TabsTrigger value="ps">PS Stage</TabsTrigger>
-                  <TabsTrigger value="cs">CS Stage</TabsTrigger>
-                  <TabsTrigger value="fer">FER Stage</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="all">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredPatents.map(patent => (
-                      <PatentCard key={patent.id} patent={patent} />
-                    ))}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="ps">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredPatents
-                      .filter(p => p.ps_drafter_assgn)
-                      .map(patent => (
-                        <PatentCard key={patent.id} patent={patent} />
-                      ))}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="cs">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredPatents
-                      .filter(p => p.cs_drafter_assgn)
-                      .map(patent => (
-                        <PatentCard key={patent.id} patent={patent} />
-                      ))}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="fer">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredPatents
-                      .filter(p => p.fer_status === 1)
-                      .map(patent => (
-                        <PatentCard key={patent.id} patent={patent} />
-                      ))}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </>
-          ) : (
-            <EmptyState
-              title="No patents found"
-              message={`There are no patents assigned to client ${selectedClient}`}
-              icon={<FileText />}
-            />
-          )}
-        </>
-      ) : (
-        <Card className="text-center p-8">
-          <CardHeader>
-            <CardTitle>Select a Client</CardTitle>
-            <CardDescription>Choose a client from the dropdown to view their patent dashboard</CardDescription>
-          </CardHeader>
-        </Card>
-      )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <p className="text-sm text-gray-500 mt-1">Tracking ID: {patent.tracking_id}</p>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

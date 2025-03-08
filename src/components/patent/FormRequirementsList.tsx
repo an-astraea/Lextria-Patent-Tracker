@@ -21,7 +21,7 @@ const FormRequirementsList: React.FC<FormRequirementsListProps> = ({
   // Define common forms that should be available in all stages
   const commonForms = [
     'form_01', 'form_03', 'form_04', 'form_05', 'form_06', 'form_07', 'form_07a', 
-    'form_08', 'form_08a', 'form_09', 'form_10', 'form_11', 'form_12', 'form_13', 
+    'form_08', 'form_08a', 'form_09', 'form_09a', 'form_10', 'form_11', 'form_12', 'form_13', 
     'form_14', 'form_15', 'form_16', 'form_17', 'form_18', 'form_18a', 'form_19', 
     'form_20', 'form_21', 'form_22', 'form_23', 'form_24', 'form_25', 'form_26', 
     'form_27', 'form_28', 'form_29', 'form_30', 'form_31'
@@ -44,16 +44,20 @@ const FormRequirementsList: React.FC<FormRequirementsListProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
       {relevantForms.map((formKey) => (
-        <div key={formKey} className="flex items-center space-x-2">
+        <div key={formKey} className="flex items-start space-x-2 mb-2">
           <Checkbox
             id={`${stage}-${formKey}`}
             checked={isFormSelected(patent, formKey)}
             onCheckedChange={(checked) => handleCheckboxChange(formKey, !!checked)}
             disabled={readonly}
+            className="mt-1"
           />
-          <Label htmlFor={`${stage}-${formKey}`} className="cursor-pointer">
+          <Label 
+            htmlFor={`${stage}-${formKey}`} 
+            className="cursor-pointer text-sm leading-tight"
+          >
             {formatFormName(formKey)}
           </Label>
         </div>

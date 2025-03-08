@@ -8,12 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Patent } from '@/lib/types';
 import PatentCard from '@/components/PatentCard';
 import { toast } from 'sonner';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import EmptyState from '@/components/common/EmptyState';
 import LoadingState from '@/components/common/LoadingState';
 import PageHeader from '@/components/common/PageHeader';
 import FormRequirementsList from '@/components/patent/FormRequirementsList';
+import SelectedFormsList from '@/components/patent/SelectedFormsList';
 
 const Filings: React.FC = () => {
   const [selectedPatent, setSelectedPatent] = useState<Patent | null>(null);
@@ -417,6 +416,7 @@ const Filings: React.FC = () => {
                     patent={selectedPatent}
                     onChange={handleFormChange}
                     stage={getCurrentStage()}
+                    readonly={false}
                   />
                   
                   <div className="flex flex-col space-y-3 mt-6">

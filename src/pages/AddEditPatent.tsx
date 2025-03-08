@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -24,6 +23,9 @@ import {
   createInventor
 } from '@/lib/api';
 import { Patent, PatentFormData, Employee } from '@/lib/types';
+import FormRequirementsList from '@/components/patent/FormRequirementsList';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatFormName } from '@/lib/data';
 
 const AddEditPatent = () => {
   const { id } = useParams<{ id: string }>();
@@ -94,39 +96,42 @@ const AddEditPatent = () => {
     getEmployees();
   }, []);
   
+  const [patent, setPatent] = useState<Patent | null>(null);
+
   // Load patent data if in edit mode
   useEffect(() => {
     const getPatent = async () => {
       if (isEditMode && id) {
         try {
           setLoading(true);
-          const patent = await fetchPatentById(id);
-          if (patent) {
+          const patentData = await fetchPatentById(id);
+          if (patentData) {
+            setPatent(patentData);
             setFormData({
-              tracking_id: patent.tracking_id,
-              patent_applicant: patent.patent_applicant,
-              client_id: patent.client_id,
-              application_no: patent.application_no || '',
-              date_of_filing: patent.date_of_filing ? patent.date_of_filing.split('T')[0] : '', // Format date for input
-              patent_title: patent.patent_title,
-              applicant_addr: patent.applicant_addr,
-              inventor_ph_no: patent.inventor_ph_no,
-              inventor_email: patent.inventor_email,
-              ps_drafter_assgn: patent.ps_drafter_assgn || '',
-              ps_drafter_deadline: patent.ps_drafter_deadline ? patent.ps_drafter_deadline.split('T')[0] : '',
-              ps_filer_assgn: patent.ps_filer_assgn || '',
-              ps_filer_deadline: patent.ps_filer_deadline ? patent.ps_filer_deadline.split('T')[0] : '',
-              cs_drafter_assgn: patent.cs_drafter_assgn || '',
-              cs_drafter_deadline: patent.cs_drafter_deadline ? patent.cs_drafter_deadline.split('T')[0] : '',
-              cs_filer_assgn: patent.cs_filer_assgn || '',
-              cs_filer_deadline: patent.cs_filer_deadline ? patent.cs_filer_deadline.split('T')[0] : '',
-              fer_status: patent.fer_status,
-              fer_drafter_assgn: patent.fer_drafter_assgn || '',
-              fer_drafter_deadline: patent.fer_drafter_deadline ? patent.fer_drafter_deadline.split('T')[0] : '',
-              fer_filer_assgn: patent.fer_filer_assgn || '',
-              fer_filer_deadline: patent.fer_filer_deadline ? patent.fer_filer_deadline.split('T')[0] : '',
-              inventors: patent.inventors && patent.inventors.length > 0
-                ? patent.inventors.map(inv => ({ inventor_name: inv.inventor_name, inventor_addr: inv.inventor_addr }))
+              tracking_id: patentData.tracking_id,
+              patent_applicant: patentData.patent_applicant,
+              client_id: patentData.client_id,
+              application_no: patentData.application_no || '',
+              date_of_filing: patentData.date_of_filing ? patentData.date_of_filing.split('T')[0] : '', // Format date for input
+              patent_title: patentData.patent_title,
+              applicant_addr: patentData.applicant_addr,
+              inventor_ph_no: patentData.inventor_ph_no,
+              inventor_email: patentData.inventor_email,
+              ps_drafter_assgn: patentData.ps_drafter_assgn || '',
+              ps_drafter_deadline: patentData.ps_drafter_deadline ? patentData.ps_drafter_deadline.split('T')[0] : '',
+              ps_filer_assgn: patentData.ps_filer_assgn || '',
+              ps_filer_deadline: patentData.ps_filer_deadline ? patentData.ps_filer_deadline.split('T')[0] : '',
+              cs_drafter_assgn: patentData.cs_drafter_assgn || '',
+              cs_drafter_deadline: patentData.cs_drafter_deadline ? patentData.cs_drafter_deadline.split('T')[0] : '',
+              cs_filer_assgn: patentData.cs_filer_assgn || '',
+              cs_filer_deadline: patentData.cs_filer_deadline ? patentData.cs_filer_deadline.split('T')[0] : '',
+              fer_status: patentData.fer_status,
+              fer_drafter_assgn: patentData.fer_drafter_assgn || '',
+              fer_drafter_deadline: patentData.fer_drafter_deadline ? patentData.fer_drafter_deadline.split('T')[0] : '',
+              fer_filer_assgn: patentData.fer_filer_assgn || '',
+              fer_filer_deadline: patentData.fer_filer_deadline ? patentData.fer_filer_deadline.split('T')[0] : '',
+              inventors: patentData.inventors && patentData.inventors.length > 0
+                ? patentData.inventors.map(inv => ({ inventor_name: inv.inventor_name, inventor_addr: inv.inventor_addr }))
                 : [{ inventor_name: '', inventor_addr: '' }]
             });
           } else {
@@ -144,7 +149,24 @@ const AddEditPatent = () => {
     
     getPatent();
   }, [id, isEditMode, navigate]);
-  
+
+  // Add this after the existing useEffect hooks in the component
+  // Create state for form checkboxes
+  const [formSelections, setFormSelections] = useState<Record<string, boolean>>({});
+
+  // Initialize form selections when patent data is loaded
+  useEffect(() => {
+    if (isEditMode && id && patent) {
+      const initialFormSelections: Record<string, boolean> = {};
+      Object.entries(patent).forEach(([key, value]) => {
+        if (key.startsWith('form_')) {
+          initialFormSelections[key] = Boolean(value);
+        }
+      });
+      setFormSelections(initialFormSelections);
+    }
+  }, [isEditMode, id, patent]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -176,6 +198,14 @@ const AddEditPatent = () => {
       toast.error('At least one inventor is required');
     }
   };
+
+  // Function to handle form checkbox changes
+  const handleFormChange = (formKey: string, checked: boolean) => {
+    setFormSelections(prev => ({
+      ...prev,
+      [formKey]: checked
+    }));
+  };
   
   const validateForm = () => {
     // Basic validation
@@ -206,9 +236,19 @@ const AddEditPatent = () => {
     try {
       setLoading(true);
       
+      let updateData = { ...formData };
+
+      // Include form selections in the data to update
+      if (isEditMode && id) {
+        updateData = {
+          ...updateData,
+          ...formSelections
+        };
+      }
+      
       if (isEditMode && id) {
         // Update existing patent
-        const success = await updatePatent(id, formData);
+        const success = await updatePatent(id, updateData as any);
         if (success) {
           toast.success('Patent updated successfully');
           navigate('/patents');
@@ -655,6 +695,63 @@ const AddEditPatent = () => {
             )}
           </CardContent>
         </Card>
+
+        {isEditMode && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Patent Forms</CardTitle>
+              <CardDescription>Select the forms associated with this patent</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="ps">
+                <TabsList className="grid w-full grid-cols-3 mb-4">
+                  <TabsTrigger value="ps">Provisional Specification</TabsTrigger>
+                  <TabsTrigger value="cs">Complete Specification</TabsTrigger>
+                  <TabsTrigger value="fer">FER</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="ps">
+                  <FormRequirementsList 
+                    patent={patent as Patent} 
+                    onChange={handleFormChange}
+                    stage="ps"
+                  />
+                </TabsContent>
+                
+                <TabsContent value="cs">
+                  <FormRequirementsList 
+                    patent={patent as Patent} 
+                    onChange={handleFormChange}
+                    stage="cs"
+                  />
+                </TabsContent>
+                
+                <TabsContent value="fer">
+                  <FormRequirementsList 
+                    patent={patent as Patent} 
+                    onChange={handleFormChange}
+                    stage="fer"
+                  />
+                </TabsContent>
+              </Tabs>
+              
+              {Object.keys(formSelections).length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium mb-2">Selected Forms:</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {Object.entries(formSelections)
+                      .filter(([_, isSelected]) => isSelected)
+                      .map(([formKey]) => (
+                        <div key={formKey} className="bg-secondary/20 px-2 py-1 rounded text-xs">
+                          {formatFormName(formKey)}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
         
         <div className="flex justify-end space-x-4">
           <Button type="button" variant="outline" onClick={() => navigate('/patents')}>

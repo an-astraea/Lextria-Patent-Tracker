@@ -26,7 +26,7 @@ const SelectedFormsList: React.FC<SelectedFormsListProps> = ({
         <CardTitle className="text-lg">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {selectedForms.map((formKey) => (
             <div key={formKey} className="flex items-center space-x-2 bg-secondary/30 p-2 rounded-md">
               <Check className="h-4 w-4 text-green-500 flex-shrink-0" />

@@ -47,6 +47,7 @@ export const formatFormName = (formKey: string): string => {
   if (formKey === 'form_08') return 'Form 08 - Mention of Inventor';
   if (formKey === 'form_08a') return 'Form 08A - Certificate of Inventorship';
   if (formKey === 'form_09') return 'Form 09 - Request for Publication';
+  if (formKey === 'form_09a') return 'Form 09A - Additional Document';
   if (formKey === 'form_10') return 'Form 10 - Amendment of Patent';
   if (formKey === 'form_11') return 'Form 11 - Direction of Controller';
   if (formKey === 'form_12') return 'Form 12 - Grant Under Section 26/52';
