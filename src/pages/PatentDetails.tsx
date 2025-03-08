@@ -237,6 +237,26 @@ const PatentDetails = () => {
                   <div>{patent.ps_filer_deadline ? new Date(patent.ps_filer_deadline).toLocaleDateString() : 'Not set'}</div>
                 </div>
               </div>
+              
+              {patent.ps_filing_status ? (
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground mb-2">Forms</div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="flex items-center space-x-2">
+                      <div className={`h-4 w-4 rounded-full ${patent.form_01 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span>Form 01 - Application</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className={`h-4 w-4 rounded-full ${patent.form_02 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span>Form 02 - Provisional Spec</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className={`h-4 w-4 rounded-full ${patent.form_26 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span>Form 26 - Power of Attorney</span>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         </TabsContent>
@@ -287,31 +307,59 @@ const PatentDetails = () => {
                 <div>
                   <div className="text-sm font-medium text-muted-foreground mb-2">Forms</div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    <div className="flex items-center space-x-2">
-                      <div className={`h-4 w-4 rounded-full ${patent.form_26 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span>Form 26</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className={`h-4 w-4 rounded-full ${patent.form_18 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span>Form 18</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className={`h-4 w-4 rounded-full ${patent.form_18a ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span>Form 18A</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className={`h-4 w-4 rounded-full ${patent.form_9 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                    {patent.form_01 && <div className="flex items-center space-x-2">
+                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
+                      <span>Form 01</span>
+                    </div>}
+                    {patent.form_02 && <div className="flex items-center space-x-2">
+                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
+                      <span>Form 02 - Complete Spec</span>
+                    </div>}
+                    {patent.form_9 && <div className="flex items-center space-x-2">
+                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
                       <span>Form 9</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className={`h-4 w-4 rounded-full ${patent.form_9a ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                    </div>}
+                    {patent.form_9a && <div className="flex items-center space-x-2">
+                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
                       <span>Form 9A</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className={`h-4 w-4 rounded-full ${patent.form_13 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                    </div>}
+                    {patent.form_18 && <div className="flex items-center space-x-2">
+                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
+                      <span>Form 18</span>
+                    </div>}
+                    {patent.form_18a && <div className="flex items-center space-x-2">
+                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
+                      <span>Form 18A</span>
+                    </div>}
+                    {patent.form_13 && <div className="flex items-center space-x-2">
+                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
                       <span>Form 13</span>
-                    </div>
+                    </div>}
+                    {patent.form_26 && <div className="flex items-center space-x-2">
+                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
+                      <span>Form 26</span>
+                    </div>}
+                    
+                    {Object.entries(patent).filter(([key, value]) => 
+                      key.startsWith('form_') && value === true
+                    ).length > 8 && (
+                      <div className="flex items-center space-x-2 col-span-full">
+                        <div className="h-4 w-4 rounded-full bg-green-500"></div>
+                        <span>
+                          {Object.entries(patent).filter(([key, value]) => 
+                            key.startsWith('form_') && value === true
+                          ).length} Forms Submitted
+                        </span>
+                      </div>
+                    )}
                   </div>
+                  
+                  {patent.other_forms && (
+                    <div className="mt-3">
+                      <div className="text-sm font-medium text-muted-foreground">Other Forms / Notes</div>
+                      <div className="mt-1 text-sm">{patent.other_forms}</div>
+                    </div>
+                  )}
                 </div>
               ) : null}
             </CardContent>

@@ -183,43 +183,45 @@ const Filings = () => {
   const handleShowFormsDialog = (patent: Patent) => {
     setSelectedPatent(patent);
     
-    setForm01(patent.form_01 === true);
-    setForm02(patent.form_02 === true);
-    setForm03(patent.form_03 === true);
-    setForm04(patent.form_04 === true);
-    setForm05(patent.form_05 === true);
-    setForm06(patent.form_06 === true);
-    setForm07(patent.form_07 === true);
-    setForm07a(patent.form_07a === true);
-    setForm08(patent.form_08 === true);
-    setForm08a(patent.form_08a === true);
-    setForm09(patent.form_09 === true);
-    setForm10(patent.form_10 === true);
-    setForm11(patent.form_11 === true);
-    setForm12(patent.form_12 === true);
-    setForm13(patent.form_13 === true);
-    setForm14(patent.form_14 === true);
-    setForm15(patent.form_15 === true);
-    setForm16(patent.form_16 === true);
-    setForm17(patent.form_17 === true);
-    setForm18(patent.form_18 === true);
-    setForm18a(patent.form_18a === true);
-    setForm19(patent.form_19 === true);
-    setForm20(patent.form_20 === true);
-    setForm21(patent.form_21 === true);
-    setForm22(patent.form_22 === true);
-    setForm23(patent.form_23 === true);
-    setForm24(patent.form_24 === true);
-    setForm25(patent.form_25 === true);
-    setForm26(patent.form_26 === true);
-    setForm27(patent.form_27 === true);
-    setForm28(patent.form_28 === true);
-    setForm29(patent.form_29 === true);
-    setForm30(patent.form_30 === true);
-    setForm31(patent.form_31 === true);
-    setForm9(patent.form_9 === true);
-    setForm9a(patent.form_9a === true);
-    setOtherForms(patent.other_forms || '');
+    resetFormState();
+    
+    if (patent.form_01) setForm01(true);
+    if (patent.form_02) setForm02(true);
+    if (patent.form_03) setForm03(true);
+    if (patent.form_04) setForm04(true);
+    if (patent.form_05) setForm05(true);
+    if (patent.form_06) setForm06(true);
+    if (patent.form_07) setForm07(true);
+    if (patent.form_07a) setForm07a(true);
+    if (patent.form_08) setForm08(true);
+    if (patent.form_08a) setForm08a(true);
+    if (patent.form_09) setForm09(true);
+    if (patent.form_10) setForm10(true);
+    if (patent.form_11) setForm11(true);
+    if (patent.form_12) setForm12(true);
+    if (patent.form_13) setForm13(true);
+    if (patent.form_14) setForm14(true);
+    if (patent.form_15) setForm15(true);
+    if (patent.form_16) setForm16(true);
+    if (patent.form_17) setForm17(true);
+    if (patent.form_18) setForm18(true);
+    if (patent.form_18a) setForm18a(true);
+    if (patent.form_19) setForm19(true);
+    if (patent.form_20) setForm20(true);
+    if (patent.form_21) setForm21(true);
+    if (patent.form_22) setForm22(true);
+    if (patent.form_23) setForm23(true);
+    if (patent.form_24) setForm24(true);
+    if (patent.form_25) setForm25(true);
+    if (patent.form_26) setForm26(true);
+    if (patent.form_27) setForm27(true);
+    if (patent.form_28) setForm28(true);
+    if (patent.form_29) setForm29(true);
+    if (patent.form_30) setForm30(true);
+    if (patent.form_31) setForm31(true);
+    if (patent.form_9) setForm9(true);
+    if (patent.form_9a) setForm9a(true);
+    if (patent.other_forms) setOtherForms(patent.other_forms);
     
     setDialogOpen(true);
   };
@@ -378,13 +380,13 @@ const Filings = () => {
 
   const getFormDialogTitle = (patent: Patent) => {
     if (patent.ps_filer_assgn === user?.full_name && patent.ps_filing_status === 0) {
-      return 'Provisional Specification Forms';
+      return 'Provisional Specification Filing';
     } else if (patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0) {
-      return 'Complete Specification Forms';
+      return 'Complete Specification Filing';
     } else if (patent.fer_filer_assgn === user?.full_name && patent.fer_filing_status === 0) {
-      return 'First Examination Report Forms';
+      return 'First Examination Report Filing';
     }
-    return 'Patent Forms';
+    return 'Patent Filing';
   };
 
   const paginateData = (data: Patent[], pageNumber: number) => {
@@ -553,7 +555,13 @@ const Filings = () => {
           <DialogHeader>
             <DialogTitle>{selectedPatent && getFormDialogTitle(selectedPatent)}</DialogTitle>
             <DialogDescription>
-              Select the forms that you have completed for this patent.
+              {selectedPatent && (
+                selectedPatent.ps_filer_assgn === user?.full_name && selectedPatent.ps_filing_status === 0
+                  ? "Select the forms for Provisional Specification filing."
+                  : selectedPatent.cs_filer_assgn === user?.full_name && selectedPatent.cs_filing_status === 0
+                  ? "Select the forms for Complete Specification filing."
+                  : "Select the forms that you have completed for this patent."
+              )}
             </DialogDescription>
           </DialogHeader>
           
@@ -774,3 +782,4 @@ const Filings = () => {
 };
 
 export default Filings;
+
