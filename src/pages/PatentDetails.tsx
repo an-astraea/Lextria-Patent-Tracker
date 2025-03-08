@@ -1,15 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { fetchPatentById, updatePatentForms, fetchPatentTimeline, updatePatentNotes } from '@/lib/api';
+import { fetchPatentById, updatePatentNotes, fetchPatentTimeline } from '@/lib/api';
 import { Patent } from '@/lib/types';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -18,43 +17,33 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Textarea } from "@/components/ui/textarea"
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { format } from 'date-fns';
+import FormRequirementsList from '@/components/patent/FormRequirementsList';
 
 const PatentDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [patent, setPatent] = useState<Patent | null>(null);
   const [loading, setLoading] = useState(true);
-  const [formValues, setFormValues] = useState({
-    form_26: false,
-    form_18: false,
-    form_18a: false,
-    form_09: false,
-    form_09a: false,
-    form_13: false,
-  });
   const [isSaving, setIsSaving] = useState(false);
   const [timeline, setTimeline] = useState([]);
   const [notes, setNotes] = useState('');
   const [isNotesSaving, setIsNotesSaving] = useState(false);
+  const [userRole, setUserRole] = useState<string>('');
 
   useEffect(() => {
+    // Get user role from localStorage
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    setUserRole(user.role || '');
+
     const fetchPatent = async () => {
       if (id) {
         try {
           const patentData = await fetchPatentById(id);
           if (patentData) {
             setPatent(patentData);
-            setFormValues({
-              form_26: patentData.form_26 || false,
-              form_18: patentData.form_18 || false,
-              form_18a: patentData.form_18a || false,
-              form_09: patentData.form_09 || false,
-              form_09a: patentData.form_09a || false,
-              form_13: patentData.form_13 || false,
-            });
             setNotes(patentData.notes || '');
           } else {
             toast.error('Patent not found');
@@ -85,35 +74,31 @@ const PatentDetails = () => {
     fetchTimelineData();
   }, [id, navigate]);
 
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setFormValues(prev => ({ ...prev, [name]: checked }));
-  };
-
-  const handleSaveForms = async () => {
-    if (!id) {
-      toast.error('Patent ID is missing');
-      return;
-    }
-
+  const handleFormUpdate = async (formName: string, value: boolean) => {
+    if (!patent || !id) return;
+    
     setIsSaving(true);
-
     try {
-      const success = await updatePatentForms(id, {
-        form_26: formValues.form_26,
-        form_18: formValues.form_18,
-        form_18a: formValues.form_18a,
-        form_09: formValues.form_09,
-        form_09a: formValues.form_09a,
-        form_13: formValues.form_13,
-      });
-
+      // Create an object with just the updated form field
+      const formData: Record<string, boolean> = {
+        [formName]: value
+      };
+      
+      const success = await updatePatentForms(id, formData);
       if (success) {
-        toast.success('Forms updated successfully');
+        // Update local state to reflect the change
+        setPatent(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            [formName]: value
+          };
+        });
+        toast.success(`${formName.toUpperCase()} updated successfully`);
       }
     } catch (error) {
-      console.error('Error updating forms:', error);
-      toast.error('Failed to update forms');
+      console.error('Error updating form:', error);
+      toast.error('Failed to update form');
     } finally {
       setIsSaving(false);
     }
@@ -145,6 +130,9 @@ const PatentDetails = () => {
     }
   };
 
+  // Check if user is allowed to edit forms (admin or filer)
+  const canEditForms = userRole === 'admin' || userRole === 'filer';
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -175,39 +163,39 @@ const PatentDetails = () => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label>Tracking ID</Label>
+              <div className="text-sm font-medium text-gray-500">Tracking ID</div>
               <div className="font-semibold">{patent.tracking_id}</div>
             </div>
             <div>
-              <Label>Patent Applicant</Label>
+              <div className="text-sm font-medium text-gray-500">Patent Applicant</div>
               <div className="font-semibold">{patent.patent_applicant}</div>
             </div>
             <div>
-              <Label>Client ID</Label>
+              <div className="text-sm font-medium text-gray-500">Client ID</div>
               <div className="font-semibold">{patent.client_id}</div>
             </div>
             <div>
-              <Label>Application No</Label>
+              <div className="text-sm font-medium text-gray-500">Application No</div>
               <div className="font-semibold">{patent.application_no || 'N/A'}</div>
             </div>
             <div>
-              <Label>Date of Filing</Label>
-              <div className="font-semibold">{patent.date_of_filing}</div>
+              <div className="text-sm font-medium text-gray-500">Date of Filing</div>
+              <div className="font-semibold">{patent.date_of_filing || 'N/A'}</div>
             </div>
             <div>
-              <Label>Patent Title</Label>
+              <div className="text-sm font-medium text-gray-500">Patent Title</div>
               <div className="font-semibold">{patent.patent_title}</div>
             </div>
             <div>
-              <Label>Applicant Address</Label>
+              <div className="text-sm font-medium text-gray-500">Applicant Address</div>
               <div className="font-semibold">{patent.applicant_addr}</div>
             </div>
             <div>
-              <Label>Inventor Phone No</Label>
+              <div className="text-sm font-medium text-gray-500">Inventor Phone No</div>
               <div className="font-semibold">{patent.inventor_ph_no}</div>
             </div>
             <div>
-              <Label>Inventor Email</Label>
+              <div className="text-sm font-medium text-gray-500">Inventor Email</div>
               <div className="font-semibold">{patent.inventor_email}</div>
             </div>
           </div>
@@ -251,123 +239,75 @@ const PatentDetails = () => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label>PS Drafting Status</Label>
-              <Badge variant="secondary">{patent.ps_drafting_status}</Badge>
+              <div className="text-sm font-medium text-gray-500">PS Drafting Status</div>
+              <Badge variant={patent.ps_drafting_status === 1 ? "success" : "secondary"}>
+                {patent.ps_drafting_status === 1 ? "Completed" : "Pending"}
+              </Badge>
             </div>
             <div>
-              <Label>PS Filing Status</Label>
-              <Badge variant="secondary">{patent.ps_filing_status}</Badge>
+              <div className="text-sm font-medium text-gray-500">PS Filing Status</div>
+              <Badge variant={patent.ps_filing_status === 1 ? "success" : "secondary"}>
+                {patent.ps_filing_status === 1 ? "Completed" : "Pending"}
+              </Badge>
             </div>
             <div>
-              <Label>PS Completion Status</Label>
-              <Badge variant="secondary">{patent.ps_completion_status}</Badge>
+              <div className="text-sm font-medium text-gray-500">PS Completion Status</div>
+              <Badge variant={patent.ps_completion_status === 1 ? "success" : "secondary"}>
+                {patent.ps_completion_status === 1 ? "Completed" : "Pending"}
+              </Badge>
             </div>
             <div>
-              <Label>CS Drafting Status</Label>
-              <Badge variant="secondary">{patent.cs_drafting_status}</Badge>
+              <div className="text-sm font-medium text-gray-500">CS Drafting Status</div>
+              <Badge variant={patent.cs_drafting_status === 1 ? "success" : "secondary"}>
+                {patent.cs_drafting_status === 1 ? "Completed" : "Pending"}
+              </Badge>
             </div>
             <div>
-              <Label>CS Filing Status</Label>
-              <Badge variant="secondary">{patent.cs_filing_status}</Badge>
+              <div className="text-sm font-medium text-gray-500">CS Filing Status</div>
+              <Badge variant={patent.cs_filing_status === 1 ? "success" : "secondary"}>
+                {patent.cs_filing_status === 1 ? "Completed" : "Pending"}
+              </Badge>
             </div>
             <div>
-              <Label>CS Completion Status</Label>
-              <Badge variant="secondary">{patent.cs_completion_status}</Badge>
+              <div className="text-sm font-medium text-gray-500">CS Completion Status</div>
+              <Badge variant={patent.cs_completion_status === 1 ? "success" : "secondary"}>
+                {patent.cs_completion_status === 1 ? "Completed" : "Pending"}
+              </Badge>
             </div>
             <div>
-              <Label>FER Status</Label>
-              <Badge variant="secondary">{patent.fer_status}</Badge>
+              <div className="text-sm font-medium text-gray-500">FER Status</div>
+              <Badge variant={patent.fer_status === 1 ? "success" : "secondary"}>
+                {patent.fer_status === 1 ? "Enabled" : "Disabled"}
+              </Badge>
             </div>
             <div>
-              <Label>FER Drafting Status</Label>
-              <Badge variant="secondary">{patent.fer_drafter_status}</Badge>
+              <div className="text-sm font-medium text-gray-500">FER Drafting Status</div>
+              <Badge variant={patent.fer_drafter_status === 1 ? "success" : "secondary"}>
+                {patent.fer_drafter_status === 1 ? "Completed" : "Pending"}
+              </Badge>
             </div>
             <div>
-              <Label>FER Filing Status</Label>
-              <Badge variant="secondary">{patent.fer_filing_status}</Badge>
+              <div className="text-sm font-medium text-gray-500">FER Filing Status</div>
+              <Badge variant={patent.fer_filing_status === 1 ? "success" : "secondary"}>
+                {patent.fer_filing_status === 1 ? "Completed" : "Pending"}
+              </Badge>
             </div>
             <div>
-              <Label>FER Completion Status</Label>
-              <Badge variant="secondary">{patent.fer_completion_status}</Badge>
+              <div className="text-sm font-medium text-gray-500">FER Completion Status</div>
+              <Badge variant={patent.fer_completion_status === 1 ? "success" : "secondary"}>
+                {patent.fer_completion_status === 1 ? "Completed" : "Pending"}
+              </Badge>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Forms</CardTitle>
-          <CardDescription>Update the status of required forms</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="form_26">Form 26</Label>
-              <Checkbox
-                id="form_26"
-                name="form_26"
-                checked={formValues.form_26}
-                onCheckedChange={checked => setFormValues(prev => ({ ...prev, form_26: !!checked }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="form_18">Form 18</Label>
-              <Checkbox
-                id="form_18"
-                name="form_18"
-                checked={formValues.form_18}
-                onCheckedChange={checked => setFormValues(prev => ({ ...prev, form_18: !!checked }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="form_18a">Form 18A</Label>
-              <Checkbox
-                id="form_18a"
-                name="form_18a"
-                checked={formValues.form_18a}
-                onCheckedChange={checked => setFormValues(prev => ({ ...prev, form_18a: !!checked }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="form_09">Form 09</Label>
-              <Checkbox
-                id="form_09"
-                name="form_09"
-                checked={formValues.form_09}
-                onCheckedChange={checked => setFormValues(prev => ({ ...prev, form_09: !!checked }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="form_09a">Form 09A</Label>
-              <Checkbox
-                id="form_09a"
-                name="form_09a"
-                checked={formValues.form_09a}
-                onCheckedChange={checked => setFormValues(prev => ({ ...prev, form_09a: !!checked }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="form_13">Form 13</Label>
-              <Checkbox
-                id="form_13"
-                name="form_13"
-                checked={formValues.form_13}
-                onCheckedChange={checked => setFormValues(prev => ({ ...prev, form_13: !!checked }))}
-              />
-            </div>
-          </div>
-          <Button onClick={handleSaveForms} disabled={isSaving}>
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              'Save Forms'
-            )}
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Form Requirements Card */}
+      <FormRequirementsList 
+        patent={patent} 
+        userRole={userRole} 
+        onUpdate={canEditForms ? handleFormUpdate : undefined} 
+      />
 
       <Card>
         <CardHeader>
@@ -377,7 +317,6 @@ const PatentDetails = () => {
         <CardContent>
           <div className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="notes">Notes</Label>
               <Textarea
                 id="notes"
                 value={notes}
@@ -431,5 +370,8 @@ const PatentDetails = () => {
     </div>
   );
 };
+
+// Missing import for updatePatentForms
+import { updatePatentForms } from '@/lib/api';
 
 export default PatentDetails;

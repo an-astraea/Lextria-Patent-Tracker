@@ -93,14 +93,7 @@ export const deletePatent = async (id: string): Promise<boolean> => {
 
 export const updatePatentForms = async (
   id: string,
-  formData: {
-    form_26?: boolean;
-    form_18?: boolean;
-    form_18a?: boolean;
-    form_09?: boolean;
-    form_09a?: boolean;
-    form_13?: boolean;
-  }
+  formData: Record<string, boolean>
 ): Promise<boolean> => {
   try {
     const { error } = await supabase
@@ -423,14 +416,7 @@ export const completeDrafterTask = async (
 export const completeFilerTask = async (
   patent: Patent,
   filerName: string,
-  formData?: {
-    form_26?: boolean;
-    form_18?: boolean;
-    form_18a?: boolean;
-    form_09?: boolean;
-    form_09a?: boolean;
-    form_13?: boolean;
-  }
+  formData?: Record<string, boolean>
 ): Promise<boolean> => {
   try {
     const updateData: Record<string, any> = {};
@@ -862,57 +848,85 @@ export const approvePatentReview = async (
 // Function to reject a patent review and reset status for the assignee
 export const rejectPatentReview = async (
   patent: Patent,
-  reviewType: 'ps_draft' | 'ps_file' | 'cs_draft' | 'cs_file' | 'fer_draft' | 'fer_file'
+  reviewType: 'ps_draft' | 'ps_file' | 'cs_draft' | 'cs_file' | 'fer_draft' | 'fer_file',
+  rejectionReason?: string
 ): Promise<boolean> => {
   try {
     const updateData: Record<string, any> = {};
+    let eventDescription = '';
     
     switch (reviewType) {
       case 'ps_draft':
         // Reset drafting status back to in-progress (0) and clear review status
         updateData.ps_drafting_status = 0;
         updateData.ps_review_draft_status = 0;
+        eventDescription = 'PS Draft rejected by admin';
         break;
       case 'ps_file':
         // Reset filing status back to in-progress (0) and clear review status
         updateData.ps_filing_status = 0;
         updateData.ps_review_file_status = 0;
         updateData.ps_completion_status = 0; // Reset completion status
+        eventDescription = 'PS Filing rejected by admin';
         break;
       case 'cs_draft':
         // Reset drafting status back to in-progress (0) and clear review status
         updateData.cs_drafting_status = 0;
         updateData.cs_review_draft_status = 0;
+        eventDescription = 'CS Draft rejected by admin';
         break;
       case 'cs_file':
         // Reset filing status back to in-progress (0) and clear review status
         updateData.cs_filing_status = 0;
         updateData.cs_review_file_status = 0;
         updateData.cs_completion_status = 0; // Reset completion status
+        eventDescription = 'CS Filing rejected by admin';
         break;
       case 'fer_draft':
         // Reset drafting status back to in-progress (0) and clear review status
         updateData.fer_drafter_status = 0;
         updateData.fer_review_draft_status = 0;
+        eventDescription = 'FER Draft rejected by admin';
         break;
       case 'fer_file':
         // Reset filing status back to in-progress (0) and clear review status
         updateData.fer_filing_status = 0;
         updateData.fer_review_file_status = 0;
         updateData.fer_completion_status = 0; // Reset completion status
+        eventDescription = 'FER Filing rejected by admin';
         break;
       default:
         toast.error("Invalid review type");
         return false;
     }
 
-    const { error } = await supabase
+    if (rejectionReason) {
+      eventDescription += `: ${rejectionReason}`;
+    }
+
+    // Update the patent status
+    const { error: updateError } = await supabase
       .from("patents")
       .update(updateData)
       .eq("id", patent.id);
 
-    if (error) {
-      throw error;
+    if (updateError) {
+      throw updateError;
+    }
+
+    // Add a timeline event for the rejection
+    const { error: timelineError } = await supabase
+      .from("patent_timeline")
+      .insert({
+        patent_id: patent.id,
+        event_type: `${reviewType}_rejected`,
+        event_description: eventDescription,
+        status: 0
+      });
+
+    if (timelineError) {
+      console.error("Error adding timeline event:", timelineError);
+      // Continue anyway since the status update is more important
     }
 
     return true;
