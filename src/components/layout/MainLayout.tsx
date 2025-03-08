@@ -40,14 +40,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
         </div>
       )}
       
-      <main className={cn("flex-1 w-full", {
+      {/* Single scrollable area for the main content */}
+      <main className={cn("flex-1 w-full overflow-hidden", {
         "pl-0": !hasSidebar || isMobile || !isSidebarOpen
       })}>
-        <div className="h-full overflow-auto">
-          <div className="min-h-full p-6">
+        <ScrollArea className="h-full w-full">
+          <div className="p-6">
             {children}
           </div>
-        </div>
+        </ScrollArea>
       </main>
     </div>
   );
