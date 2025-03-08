@@ -42,7 +42,15 @@ const AdminSidebar: React.FC = () => {
     },
   ];
 
-  return <Sidebar navItems={navItems} />;
+  return (
+    <Sidebar 
+      navItems={navItems} 
+      user={{
+        full_name: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).full_name : 'Admin',
+        role: 'admin'
+      }}
+    />
+  );
 };
 
 export default AdminSidebar;

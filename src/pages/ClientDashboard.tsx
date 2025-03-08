@@ -157,7 +157,7 @@ const ClientDashboard = () => {
     <div className="container px-4 py-6 mx-auto max-w-7xl">
       <PageHeader
         title="Client Dashboard"
-        description="View patent statistics and details for specific clients"
+        subtitle="View patent statistics and details for specific clients"
       />
 
       <div className="flex flex-col md:flex-row items-start gap-4 mb-6">
@@ -190,7 +190,9 @@ const ClientDashboard = () => {
       </div>
 
       {isLoading ? (
-        <LoadingState message="Loading client data..." />
+        <LoadingState>
+          Loading client data...
+        </LoadingState>
       ) : selectedClient ? (
         <>
           {filteredPatents.length > 0 ? (

@@ -21,6 +21,11 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
     }
   }, [navigate]);
 
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/');
+  };
+
   if (!user) {
     return <MainLayout>{children}</MainLayout>;
   }
@@ -56,7 +61,19 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
         },
       ];
 
-  return <MainLayout sidebarComponent={<Sidebar navItems={navItems} />}>{children}</MainLayout>;
+  return (
+    <MainLayout 
+      sidebarComponent={
+        <Sidebar 
+          navItems={navItems} 
+          user={user} 
+          onLogout={handleLogout}
+        />
+      }
+    >
+      {children}
+    </MainLayout>
+  );
 };
 
 export default MainLayoutWrapper;
