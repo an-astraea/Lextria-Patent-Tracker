@@ -180,7 +180,8 @@ export type Database = {
           fer_review_file_status: number
           fer_status: number
           form_01: boolean | null
-          form_02: boolean | null
+          form_02_cs: boolean | null
+          form_02_ps: boolean | null
           form_03: boolean | null
           form_04: boolean | null
           form_05: boolean | null
@@ -260,7 +261,8 @@ export type Database = {
           fer_review_file_status?: number
           fer_status?: number
           form_01?: boolean | null
-          form_02?: boolean | null
+          form_02_cs?: boolean | null
+          form_02_ps?: boolean | null
           form_03?: boolean | null
           form_04?: boolean | null
           form_05?: boolean | null
@@ -340,7 +342,8 @@ export type Database = {
           fer_review_file_status?: number
           fer_status?: number
           form_01?: boolean | null
-          form_02?: boolean | null
+          form_02_cs?: boolean | null
+          form_02_ps?: boolean | null
           form_03?: boolean | null
           form_04?: boolean | null
           form_05?: boolean | null

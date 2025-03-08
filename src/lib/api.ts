@@ -425,7 +425,8 @@ export const completeFilerTask = async (
   filerName: string,
   formData?: {
     form_01?: boolean;
-    form_02?: boolean;
+    form_02_ps?: boolean;
+    form_02_cs?: boolean;
     form_03?: boolean;
     form_04?: boolean;
     form_05?: boolean;
