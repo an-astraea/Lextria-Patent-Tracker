@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchFilerAssignments, fetchFilerCompletedAssignments, completeFilerTask } from '@/lib/api';
 import { Patent } from '@/lib/types';
@@ -7,19 +8,25 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { ClipboardList, CheckCircle, Clock, FileText } from 'lucide-react';
+import { ClipboardList, CheckCircle, Clock, FileText, RefreshCw } from 'lucide-react';
 import PageHeader from '@/components/common/PageHeader';
 import EmptyState from '@/components/common/EmptyState';
 import LoadingState from '@/components/common/LoadingState';
+
+const CACHE_KEY_PENDING = 'patent_filer_pending';
+const CACHE_KEY_COMPLETED = 'patent_filer_completed';
+const CACHE_EXPIRATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 const Filings = () => {
   const [pending, setPending] = useState<Patent[]>([]);
   const [completed, setCompleted] = useState<Patent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [activePatent, setActivePatent] = useState<Patent | null>(null);
   const [formValues, setFormValues] = useState<{[key: string]: boolean}>({});
   const [otherForms, setOtherForms] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const navigate = useNavigate();
   
   // Get user from localStorage
@@ -34,28 +41,96 @@ const Filings = () => {
     }
   }, [user, navigate]);
   
-  // Fetch data
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user) return;
+  const loadCachedData = useCallback(() => {
+    try {
+      // Try to load from cache first
+      const pendingCacheString = localStorage.getItem(CACHE_KEY_PENDING);
+      const completedCacheString = localStorage.getItem(CACHE_KEY_COMPLETED);
+      const pendingTimestampString = localStorage.getItem(`${CACHE_KEY_PENDING}_timestamp`);
+      const completedTimestampString = localStorage.getItem(`${CACHE_KEY_COMPLETED}_timestamp`);
       
-      try {
-        setLoading(true);
-        const pendingAssignments = await fetchFilerAssignments(user.full_name);
-        const completedAssignments = await fetchFilerCompletedAssignments(user.full_name);
-        
-        setPending(pendingAssignments);
-        setCompleted(completedAssignments);
-      } catch (error) {
-        console.error('Error loading filer assignments:', error);
-        toast.error('Failed to load assignment data');
-      } finally {
-        setLoading(false);
+      const pendingTimestamp = pendingTimestampString ? parseInt(pendingTimestampString) : 0;
+      const completedTimestamp = completedTimestampString ? parseInt(completedTimestampString) : 0;
+      const now = Date.now();
+      
+      // Check if cache is still valid (not expired)
+      const isPendingValid = now - pendingTimestamp < CACHE_EXPIRATION;
+      const isCompletedValid = now - completedTimestamp < CACHE_EXPIRATION;
+      
+      // Set cached data if valid
+      if (pendingCacheString && isPendingValid) {
+        const pendingCache = JSON.parse(pendingCacheString);
+        setPending(pendingCache);
+        setLastUpdated(new Date(pendingTimestamp));
       }
-    };
+      
+      if (completedCacheString && isCompletedValid) {
+        const completedCache = JSON.parse(completedCacheString);
+        setCompleted(completedCache);
+        if (!lastUpdated && !pendingCacheString) {
+          setLastUpdated(new Date(completedTimestamp));
+        }
+      }
+      
+      // Return whether we could use cache for everything
+      return isPendingValid && isCompletedValid && pendingCacheString && completedCacheString;
+    } catch (error) {
+      console.error('Error loading cached data:', error);
+      return false;
+    }
+  }, [lastUpdated]);
+  
+  // Fetch data from API and update cache
+  const fetchData = useCallback(async (showLoading = true) => {
+    if (!user) return;
     
-    loadData();
+    try {
+      if (showLoading) setLoading(true);
+      
+      // Fetch data in parallel using Promise.all
+      const [pendingAssignments, completedAssignments] = await Promise.all([
+        fetchFilerAssignments(user.full_name),
+        fetchFilerCompletedAssignments(user.full_name)
+      ]);
+      
+      // Update state
+      setPending(pendingAssignments);
+      setCompleted(completedAssignments);
+      setLastUpdated(new Date());
+      
+      // Cache the data with timestamp
+      localStorage.setItem(CACHE_KEY_PENDING, JSON.stringify(pendingAssignments));
+      localStorage.setItem(CACHE_KEY_COMPLETED, JSON.stringify(completedAssignments));
+      localStorage.setItem(`${CACHE_KEY_PENDING}_timestamp`, Date.now().toString());
+      localStorage.setItem(`${CACHE_KEY_COMPLETED}_timestamp`, Date.now().toString());
+      
+      if (showLoading) {
+        setInitialLoadDone(true);
+      }
+    } catch (error) {
+      console.error('Error loading filer assignments:', error);
+      toast.error('Failed to load assignment data');
+    } finally {
+      if (showLoading) setLoading(false);
+    }
   }, [user]);
+  
+  // Initial load - try cache first, then API
+  useEffect(() => {
+    if (!user || initialLoadDone) return;
+    
+    const usedCache = loadCachedData();
+    
+    if (usedCache) {
+      // If we used cache successfully, set loading to false and then refresh in background
+      setLoading(false);
+      setInitialLoadDone(true);
+      fetchData(false); // Silent refresh in background without showing loading state
+    } else {
+      // If no cache or expired, fetch from API with loading state
+      fetchData(true);
+    }
+  }, [user, fetchData, initialLoadDone, loadCachedData]);
   
   const handleOpenPatent = (patent: Patent) => {
     setActivePatent(patent);
@@ -105,6 +180,10 @@ const Filings = () => {
     }));
   };
   
+  const handleRefresh = () => {
+    fetchData(true);
+  };
+  
   const handleSubmit = async () => {
     if (!activePatent || !user) return;
     
@@ -122,12 +201,8 @@ const Filings = () => {
       if (success) {
         toast.success('Filing completed and submitted for review');
         
-        // Update lists
-        const pendingAssignments = await fetchFilerAssignments(user.full_name);
-        const completedAssignments = await fetchFilerCompletedAssignments(user.full_name);
-        
-        setPending(pendingAssignments);
-        setCompleted(completedAssignments);
+        // Update cache by fetching fresh data
+        await fetchData(false);
         
         handleClosePatent();
       } else {
@@ -255,121 +330,135 @@ const Filings = () => {
   };
   
   const renderPatentList = () => (
-    <Tabs defaultValue="pending" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="pending" className="flex items-center">
-          <Clock className="w-4 h-4 mr-2" />
-          Pending ({pending.length})
-        </TabsTrigger>
-        <TabsTrigger value="completed" className="flex items-center">
-          <CheckCircle className="w-4 h-4 mr-2" />
-          Completed ({completed.length})
-        </TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="pending">
-        {pending.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {pending.map(patent => (
-              <Card key={patent.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleOpenPatent(patent)}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">{patent.patent_title}</CardTitle>
-                  <CardDescription>ID: {patent.tracking_id}</CardDescription>
-                </CardHeader>
-                <CardContent className="pb-2">
-                  <div className="text-sm">
-                    <p>Applicant: {patent.patent_applicant}</p>
-                    <p>Client: {patent.client_id}</p>
-                    
-                    {/* Show which filing stage this patent is in for this filer */}
-                    {user?.full_name === patent.ps_filer_assgn && patent.ps_filing_status === 0 && (
-                      <div className="mt-2 bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-medium">
-                        PS Filing Stage
-                      </div>
-                    )}
-                    {user?.full_name === patent.cs_filer_assgn && patent.cs_filing_status === 0 && (
-                      <div className="mt-2 bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-medium">
-                        CS Filing Stage
-                      </div>
-                    )}
-                    {user?.full_name === patent.fer_filer_assgn && patent.fer_filing_status === 0 && (
-                      <div className="mt-2 bg-yellow-50 text-yellow-700 px-2 py-1 rounded text-xs font-medium">
-                        FER Filing Stage
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button variant="ghost" size="sm" className="w-full">
-                    <ClipboardList className="w-4 h-4 mr-2" />
-                    Fill Forms
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <Tabs defaultValue="pending" className="w-full">
+          <div className="flex justify-between items-center mb-4">
+            <TabsList>
+              <TabsTrigger value="pending" className="flex items-center">
+                <Clock className="w-4 h-4 mr-2" />
+                Pending ({pending.length})
+              </TabsTrigger>
+              <TabsTrigger value="completed" className="flex items-center">
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Completed ({completed.length})
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+              {lastUpdated && <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>}
+              <Button variant="outline" size="sm" onClick={handleRefresh}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
           </div>
-        ) : (
-          <EmptyState
-            icon={<FileText className="w-10 h-10 text-muted-foreground" />}
-            title="No pending assignments"
-            message="You don't have any pending filing assignments at the moment."
-          />
-        )}
-      </TabsContent>
-      
-      <TabsContent value="completed">
-        {completed.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {completed.map(patent => (
-              <Card key={patent.id}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">{patent.patent_title}</CardTitle>
-                  <CardDescription>ID: {patent.tracking_id}</CardDescription>
-                </CardHeader>
-                <CardContent className="pb-2">
-                  <div className="text-sm">
-                    <p>Applicant: {patent.patent_applicant}</p>
-                    <p>Client: {patent.client_id}</p>
-                    
-                    {/* Show which filing was completed by this filer */}
-                    {user?.full_name === patent.ps_filer_assgn && patent.ps_filing_status === 1 && (
-                      <div className="mt-2 bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-medium">
-                        PS Filing Completed
-                        {patent.ps_review_file_status === 0 ? " - Approved" : " - Under Review"}
+          
+          <TabsContent value="pending">
+            {pending.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {pending.map(patent => (
+                  <Card key={patent.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleOpenPatent(patent)}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">{patent.patent_title}</CardTitle>
+                      <CardDescription>ID: {patent.tracking_id}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-2">
+                      <div className="text-sm">
+                        <p>Applicant: {patent.patent_applicant}</p>
+                        <p>Client: {patent.client_id}</p>
+                        
+                        {/* Show which filing stage this patent is in for this filer */}
+                        {user?.full_name === patent.ps_filer_assgn && patent.ps_filing_status === 0 && (
+                          <div className="mt-2 bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-medium">
+                            PS Filing Stage
+                          </div>
+                        )}
+                        {user?.full_name === patent.cs_filer_assgn && patent.cs_filing_status === 0 && (
+                          <div className="mt-2 bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-medium">
+                            CS Filing Stage
+                          </div>
+                        )}
+                        {user?.full_name === patent.fer_filer_assgn && patent.fer_filing_status === 0 && (
+                          <div className="mt-2 bg-yellow-50 text-yellow-700 px-2 py-1 rounded text-xs font-medium">
+                            FER Filing Stage
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {user?.full_name === patent.cs_filer_assgn && patent.cs_filing_status === 1 && (
-                      <div className="mt-2 bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-medium">
-                        CS Filing Completed
-                        {patent.cs_review_file_status === 0 ? " - Approved" : " - Under Review"}
+                    </CardContent>
+                    <CardFooter>
+                      <Button variant="ghost" size="sm" className="w-full">
+                        <ClipboardList className="w-4 h-4 mr-2" />
+                        Fill Forms
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={<FileText className="w-10 h-10 text-muted-foreground" />}
+                title="No pending assignments"
+                message="You don't have any pending filing assignments at the moment."
+              />
+            )}
+          </TabsContent>
+          
+          <TabsContent value="completed">
+            {completed.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {completed.map(patent => (
+                  <Card key={patent.id}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">{patent.patent_title}</CardTitle>
+                      <CardDescription>ID: {patent.tracking_id}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-2">
+                      <div className="text-sm">
+                        <p>Applicant: {patent.patent_applicant}</p>
+                        <p>Client: {patent.client_id}</p>
+                        
+                        {/* Show which filing was completed by this filer */}
+                        {user?.full_name === patent.ps_filer_assgn && patent.ps_filing_status === 1 && (
+                          <div className="mt-2 bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-medium">
+                            PS Filing Completed
+                            {patent.ps_review_file_status === 0 ? " - Approved" : " - Under Review"}
+                          </div>
+                        )}
+                        {user?.full_name === patent.cs_filer_assgn && patent.cs_filing_status === 1 && (
+                          <div className="mt-2 bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-medium">
+                            CS Filing Completed
+                            {patent.cs_review_file_status === 0 ? " - Approved" : " - Under Review"}
+                          </div>
+                        )}
+                        {user?.full_name === patent.fer_filer_assgn && patent.fer_filing_status === 1 && (
+                          <div className="mt-2 bg-yellow-50 text-yellow-700 px-2 py-1 rounded text-xs font-medium">
+                            FER Filing Completed
+                            {patent.fer_review_file_status === 0 ? " - Approved" : " - Under Review"}
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {user?.full_name === patent.fer_filer_assgn && patent.fer_filing_status === 1 && (
-                      <div className="mt-2 bg-yellow-50 text-yellow-700 px-2 py-1 rounded text-xs font-medium">
-                        FER Filing Completed
-                        {patent.fer_review_file_status === 0 ? " - Approved" : " - Under Review"}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button variant="outline" size="sm" className="w-full" onClick={() => navigate(`/patents/${patent.id}`)}>
-                    <FileText className="w-4 h-4 mr-2" />
-                    View Details
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon={<CheckCircle className="w-10 h-10 text-muted-foreground" />}
-            title="No completed assignments"
-            message="You haven't completed any filing assignments yet."
-          />
-        )}
-      </TabsContent>
-    </Tabs>
+                    </CardContent>
+                    <CardFooter>
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => navigate(`/patents/${patent.id}`)}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        View Details
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={<CheckCircle className="w-10 h-10 text-muted-foreground" />}
+                title="No completed assignments"
+                message="You haven't completed any filing assignments yet."
+              />
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
   );
 
   return (
