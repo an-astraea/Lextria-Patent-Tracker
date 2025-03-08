@@ -190,9 +190,11 @@ const ClientDashboard = () => {
       </div>
 
       {isLoading ? (
-        <LoadingState size="lg" className="py-12">
-          Loading client data...
-        </LoadingState>
+        <LoadingState 
+          size="lg" 
+          text="Loading client data..."
+          className="py-12" 
+        />
       ) : selectedClient ? (
         <>
           {filteredPatents.length > 0 ? (
@@ -306,8 +308,8 @@ const ClientDashboard = () => {
           ) : (
             <EmptyState
               title="No patents found"
-              description={`There are no patents assigned to client ${selectedClient}`}
-              icon={FileText}
+              message={`There are no patents assigned to client ${selectedClient}`}
+              icon={<FileText />}
             />
           )}
         </>
