@@ -1,13 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import { fetchFilerAssignments, fetchFilerCompletedAssignments, completeFilerTask } from '@/lib/api';
+import { fetchFilerAssignments, fetchFilerCompletedAssignments, completeFilerTask, updatePatentForms } from '@/lib/api';
 import { Patent } from '@/lib/types';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -16,11 +17,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+} from "@/components/ui/table";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { format } from 'date-fns';
+import FormRequirementsList from '@/components/patent/FormRequirementsList';
 
 const Filings = () => {
   const navigate = useNavigate();
@@ -30,14 +30,7 @@ const Filings = () => {
   const [user, setUser] = useState<any>(null);
   const [isCompleting, setIsCompleting] = useState(false);
   const [selectedPatent, setSelectedPatent] = useState<Patent | null>(null);
-  const [formValues, setFormValues] = useState({
-    form_26: false,
-    form_18: false,
-    form_18a: false,
-    form_09: false,
-    form_09a: false,
-    form_13: false,
-  });
+  const [viewingForms, setViewingForms] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -69,42 +62,78 @@ const Filings = () => {
     fetchAssignments();
   }, [user]);
 
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setFormValues(prev => ({ ...prev, [name]: checked }));
+  const handleUpdateForm = async (formName: string, value: boolean) => {
+    if (selectedPatent) {
+      try {
+        // Create an object with just the updated form
+        const formUpdates: Record<string, boolean> = {
+          [formName]: value
+        };
+        
+        // Send the update to the server
+        await updatePatentForms(selectedPatent.id, formUpdates);
+        
+        // Update the local state to reflect the changes
+        setSelectedPatent(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            [formName]: value
+          };
+        });
+        
+        toast.success(`Form ${formName} updated successfully`);
+      } catch (error) {
+        console.error("Error updating form:", error);
+        toast.error("Failed to update form");
+      }
+    }
   };
 
-  const handleOpenConfirmation = (patent: Patent) => {
-    setSelectedPatent(patent);
-    setFormValues({
-      form_26: patent.form_26 || false,
-      form_18: patent.form_18 || false,
-      form_18a: patent.form_18a || false,
-      form_09: patent.form_09 || false,
-      form_09a: patent.form_09a || false,
-      form_13: patent.form_13 || false,
-    });
-  };
-
-  // Fix the formData type issue
-  const handleCompleteFiling = async (patent: Patent) => {
+  const handleCompleteWithForms = async () => {
+    if (!selectedPatent) return;
+    
     setIsCompleting(true);
     
     try {
-      const selectedForms: Record<string, boolean> = {}; // Explicitly type as Record<string, boolean>
+      // Extract all form values from the selectedPatent
+      const formFields: Record<string, boolean> = {};
       
-      // Add all form values to the formData object
-      if (patent.cs_filer_assgn === user?.full_name) {
-        // For CS filing, include form data
-        Object.entries(formValues).forEach(([key, value]) => {
-          selectedForms[key] = value;
-        });
+      // We check for form fields from 01 to 31, and the special cases
+      for (let i = 1; i <= 31; i++) {
+        const formNum = i < 10 ? `0${i}` : `${i}`;
+        const formKey = `form_${formNum}` as keyof Patent;
+        
+        if (selectedPatent[formKey] !== undefined) {
+          formFields[formKey] = !!selectedPatent[formKey];
+        }
       }
       
-      const success = await completeFilerTask(patent, user?.full_name || '', selectedForms);
+      // Add special form_02 cases
+      if (selectedPatent.form_02_ps !== undefined) {
+        formFields.form_02_ps = !!selectedPatent.form_02_ps;
+      }
+      if (selectedPatent.form_02_cs !== undefined) {
+        formFields.form_02_cs = !!selectedPatent.form_02_cs;
+      }
+      
+      // Special form suffixes
+      ['a'].forEach(suffix => {
+        for (let i = 1; i <= 31; i++) {
+          const formNum = i < 10 ? `0${i}` : `${i}`;
+          const formKey = `form_${formNum}${suffix}` as keyof Patent;
+          
+          if (selectedPatent[formKey] !== undefined) {
+            formFields[formKey] = !!selectedPatent[formKey];
+          }
+        }
+      });
+      
+      const success = await completeFilerTask(selectedPatent, user?.full_name || '', formFields);
       
       if (success) {
         toast.success("Filing task completed and submitted for review!");
+        setViewingForms(false);
         fetchAssignments();
       }
     } catch (error) {
@@ -112,8 +141,22 @@ const Filings = () => {
       toast.error("Failed to complete filing task");
     } finally {
       setIsCompleting(false);
-      setSelectedPatent(null);
     }
+  };
+  
+  const handleOpenFormsDialog = (patent: Patent) => {
+    setSelectedPatent(patent);
+    setViewingForms(true);
+  };
+
+  const getPatentStage = (patent: Patent, userName: string) => {
+    if (patent.ps_filer_assgn === userName && patent.ps_filing_status === 0) return 'PS Filing';
+    if (patent.cs_filer_assgn === userName && patent.cs_filing_status === 0) return 'CS Filing';
+    if (patent.fer_filer_assgn === userName && patent.fer_filing_status === 0) return 'FER Filing';
+    if (patent.ps_filer_assgn === userName && patent.ps_filing_status === 1) return 'PS Filing';
+    if (patent.cs_filer_assgn === userName && patent.cs_filing_status === 1) return 'CS Filing';
+    if (patent.fer_filer_assgn === userName && patent.fer_filing_status === 1) return 'FER Filing';
+    return 'N/A';
   };
 
   if (loading) {
@@ -155,88 +198,14 @@ const Filings = () => {
                       <TableCell>{patent.tracking_id}</TableCell>
                       <TableCell>{patent.patent_title}</TableCell>
                       <TableCell>{patent.patent_applicant}</TableCell>
-                      <TableCell>
-                        {patent.ps_filer_assgn === user?.full_name && patent.ps_filing_status === 0 ? 'PS Filing' :
-                          patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0 ? 'CS Filing' :
-                            patent.fer_filer_assgn === user?.full_name && patent.fer_filing_status === 0 ? 'FER Filing' : 'N/A'}
-                      </TableCell>
+                      <TableCell>{getPatentStage(patent, user?.full_name)}</TableCell>
                       <TableCell className="text-right">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" onClick={() => handleOpenConfirmation(patent)}>
-                              Complete Filing
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                              <DialogTitle>Complete Filing</DialogTitle>
-                              <DialogDescription>
-                                Are you sure you want to complete the filing for {patent.patent_title}?
-                              </DialogDescription>
-                            </DialogHeader>
-                            {patent.cs_filer_assgn === user?.full_name && (
-                              <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                  <Label htmlFor="form_26" className="text-right">
-                                    Form 26
-                                  </Label>
-                                  <Checkbox id="form_26" checked={formValues.form_26} onCheckedChange={(checked) => setFormValues(prev => ({ ...prev, form_26: !!checked }))} />
-                                </div>
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                  <Label htmlFor="form_18" className="text-right">
-                                    Form 18
-                                  </Label>
-                                  <Checkbox id="form_18" checked={formValues.form_18} onCheckedChange={(checked) => setFormValues(prev => ({ ...prev, form_18: !!checked }))} />
-                                </div>
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                  <Label htmlFor="form_18a" className="text-right">
-                                    Form 18A
-                                  </Label>
-                                  <Checkbox id="form_18a" checked={formValues.form_18a} onCheckedChange={(checked) => setFormValues(prev => ({ ...prev, form_18a: !!checked }))} />
-                                </div>
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                  <Label htmlFor="form_09" className="text-right">
-                                    Form 09
-                                  </Label>
-                                  <Checkbox id="form_09" checked={formValues.form_09} onCheckedChange={(checked) => setFormValues(prev => ({ ...prev, form_09: !!checked }))} />
-                                </div>
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                  <Label htmlFor="form_09a" className="text-right">
-                                    Form 09A
-                                  </Label>
-                                  <Checkbox id="form_09a" checked={formValues.form_09a} onCheckedChange={(checked) => setFormValues(prev => ({ ...prev, form_09a: !!checked }))} />
-                                </div>
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                  <Label htmlFor="form_13" className="text-right">
-                                    Form 13
-                                  </Label>
-                                  <Checkbox id="form_13" checked={formValues.form_13} onCheckedChange={(checked) => setFormValues(prev => ({ ...prev, form_13: !!checked }))} />
-                                </div>
-                              </div>
-                            )}
-                            <DialogFooter>
-                              <DialogClose asChild>
-                                <Button type="button" variant="secondary">
-                                  Cancel
-                                </Button>
-                              </DialogClose>
-                              <Button
-                                type="submit"
-                                disabled={isCompleting}
-                                onClick={() => handleCompleteFiling(patent)}
-                              >
-                                {isCompleting ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Completing...
-                                  </>
-                                ) : (
-                                  "Complete Filing"
-                                )}
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => handleOpenFormsDialog(patent)}
+                        >
+                          View & Complete Forms
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -267,6 +236,7 @@ const Filings = () => {
                     <TableHead>Applicant</TableHead>
                     <TableHead>Stage</TableHead>
                     <TableHead>Completion Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -275,12 +245,16 @@ const Filings = () => {
                       <TableCell>{patent.tracking_id}</TableCell>
                       <TableCell>{patent.patent_title}</TableCell>
                       <TableCell>{patent.patent_applicant}</TableCell>
-                      <TableCell>
-                        {patent.ps_filer_assgn === user?.full_name && patent.ps_filing_status === 1 ? 'PS Filing' :
-                          patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 1 ? 'CS Filing' :
-                            patent.fer_filer_assgn === user?.full_name && patent.fer_filing_status === 1 ? 'FER Filing' : 'N/A'}
-                      </TableCell>
+                      <TableCell>{getPatentStage(patent, user?.full_name)}</TableCell>
                       <TableCell>{format(new Date(patent.updated_at), 'yyyy-MM-dd')}</TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          variant="secondary"
+                          onClick={() => handleOpenFormsDialog(patent)}
+                        >
+                          View Forms
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -291,6 +265,52 @@ const Filings = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Form Requirements Dialog */}
+      {selectedPatent && (
+        <Dialog open={viewingForms} onOpenChange={setViewingForms}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Patent Forms - {selectedPatent.patent_title}</DialogTitle>
+              <DialogDescription>
+                {selectedPatent.ps_filing_status === 0 || selectedPatent.cs_filing_status === 0 || selectedPatent.fer_filing_status === 0 ? 
+                  "Complete the required forms and submit for review" : 
+                  "View the forms you have completed"}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4">
+              <FormRequirementsList 
+                patent={selectedPatent} 
+                userRole="filer"
+                onUpdate={handleUpdateForm}
+              />
+            </div>
+            
+            <DialogFooter className="flex justify-end space-x-2">
+              <DialogClose asChild>
+                <Button variant="secondary">Close</Button>
+              </DialogClose>
+              
+              {(selectedPatent.ps_filing_status === 0 || selectedPatent.cs_filing_status === 0 || selectedPatent.fer_filing_status === 0) && (
+                <Button
+                  onClick={handleCompleteWithForms}
+                  disabled={isCompleting}
+                >
+                  {isCompleting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Complete & Submit for Review"
+                  )}
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
