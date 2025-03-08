@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { fetchPatents } from '@/lib/api';
 import { Patent } from '@/lib/types';
@@ -51,23 +52,33 @@ const ClientDashboard = () => {
   const handleExportToExcel = () => {
     if (filteredPatents.length === 0) return;
 
-    const exportData = filteredPatents.map(patent => ({
-      'Tracking ID': patent.tracking_id,
-      'Patent Applicant': patent.patent_applicant,
-      'Client ID': patent.client_id,
-      'Application No': patent.application_no || 'N/A',
-      'Date of Filing': patent.date_of_filing || 'Not Filed Yet',
-      'Patent Title': patent.patent_title,
-      'Applicant Address': patent.applicant_addr,
-      'Inventor Phone': patent.inventor_ph_no,
-      'Inventor Email': patent.inventor_email,
-      'Form 26': patent.form_26 ? 'Yes' : 'No',
-      'Form 18': patent.form_18 ? 'Yes' : 'No',
-      'Form 18A': patent.form_18a ? 'Yes' : 'No', 
-      'Form 9': patent.form_9 ? 'Yes' : 'No',
-      'Form 9A': patent.form_9a ? 'Yes' : 'No',
-      'Form 13': patent.form_13 ? 'Yes' : 'No',
-    }));
+    const exportData = filteredPatents.map(patent => {
+      // Create base data object with patent information
+      const baseData = {
+        'Tracking ID': patent.tracking_id,
+        'Patent Applicant': patent.patent_applicant,
+        'Client ID': patent.client_id,
+        'Application No': patent.application_no || 'N/A',
+        'Date of Filing': patent.date_of_filing || 'Not Filed Yet',
+        'Patent Title': patent.patent_title,
+        'Applicant Address': patent.applicant_addr,
+        'Inventor Phone': patent.inventor_ph_no,
+        'Inventor Email': patent.inventor_email,
+      };
+      
+      // Add only the forms that are marked as Yes/true
+      const formData = {};
+      
+      if (patent.form_26) formData['Form 26'] = 'Yes';
+      if (patent.form_18) formData['Form 18'] = 'Yes';
+      if (patent.form_18a) formData['Form 18A'] = 'Yes';
+      if (patent.form_9) formData['Form 9'] = 'Yes';
+      if (patent.form_9a) formData['Form 9A'] = 'Yes';
+      if (patent.form_13) formData['Form 13'] = 'Yes';
+      
+      // Return combined data
+      return { ...baseData, ...formData };
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     
