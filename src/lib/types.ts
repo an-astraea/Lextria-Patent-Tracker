@@ -1,3 +1,4 @@
+
 export interface Inventor {
   id: string;
   tracking_id: string;
@@ -53,7 +54,8 @@ export interface Patent {
   form_08: boolean | null;
   form_08a: boolean | null;
   form_09: boolean | null;
-  form_09a: boolean | null;
+  form_9: boolean | null; // Changed from form_09a to form_9 to match DB schema
+  form_9a: boolean | null; // Added to match the database field name
   form_10: boolean | null;
   form_11: boolean | null;
   form_12: boolean | null;
