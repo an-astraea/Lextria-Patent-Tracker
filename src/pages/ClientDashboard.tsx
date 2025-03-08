@@ -190,7 +190,7 @@ const ClientDashboard = () => {
       </div>
 
       {isLoading ? (
-        <LoadingState>
+        <LoadingState size="lg" className="py-12">
           Loading client data...
         </LoadingState>
       ) : selectedClient ? (

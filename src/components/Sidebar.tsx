@@ -63,18 +63,18 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
         <nav className="flex-1 px-2 py-4 space-y-1">
           {navItems.map((item) => (
             <Link
-              key={item.path || item.href}
-              to={item.path || item.href}
+              key={item.href}
+              to={item.href}
               className={cn(
                 "flex items-center px-3 py-2.5 rounded-md transition-all",
-                isActive(item.path || item.href)
+                isActive(item.href)
                   ? "bg-primary text-primary-foreground"
                   : "hover:bg-secondary text-foreground",
                 isCollapsed ? "justify-center" : ""
               )}
               onClick={closeMobileSidebar}
             >
-              <item.icon className={cn("h-5 w-5", isActive(item.path || item.href) ? "" : "text-muted-foreground")} />
+              <item.icon className={cn("h-5 w-5", isActive(item.href) ? "" : "text-muted-foreground")} />
               {!isCollapsed && <span className="ml-3">{item.label}</span>}
             </Link>
           ))}
