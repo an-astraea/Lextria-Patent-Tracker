@@ -3,7 +3,11 @@ import React from 'react';
 import { LayoutDashboard, FileText, Users, CheckSquare, FileSpreadsheet } from 'lucide-react';
 import Sidebar from './Sidebar';
 
-const AdminSidebar: React.FC = () => {
+interface AdminSidebarProps {
+  onLogout?: () => void;
+}
+
+const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
   const navItems = [
     {
       label: 'Dashboard',
@@ -32,13 +36,15 @@ const AdminSidebar: React.FC = () => {
     },
   ];
 
+  const userData = localStorage.getItem('user') 
+    ? JSON.parse(localStorage.getItem('user')!) 
+    : { full_name: 'Admin', role: 'admin' };
+
   return (
     <Sidebar 
       navItems={navItems} 
-      user={{
-        full_name: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).full_name : 'Admin',
-        role: 'admin'
-      }}
+      user={userData}
+      onLogout={onLogout}
     />
   );
 };

@@ -5,6 +5,7 @@ import {
   LogOut,
   Menu,
   X,
+  User,
   LucideIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -51,14 +52,56 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
 
   return (
     <>
+      {/* Mobile Header Menu Button */}
+      <div className={cn(
+        "fixed top-0 left-4 z-50 h-16 flex items-center",
+        !isMobile && "hidden"
+      )}>
+        <button
+          className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground"
+          onClick={toggleSidebar}
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      </div>
+
       {/* Desktop Sidebar */}
       <aside
         className={cn(
-          "h-full flex flex-col",
+          "h-full flex flex-col bg-sidebar border-r border-border",
           isCollapsed ? "w-20" : "w-64",
           isMobile && "hidden"
         )}
       >
+        {/* Logo */}
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          {!isCollapsed && (
+            <h2 className="text-xl font-semibold">PatentTrack</h2>
+          )}
+          <button
+            className={cn(
+              "p-2 rounded-md hover:bg-accent hover:text-accent-foreground",
+              isCollapsed && "mx-auto"
+            )}
+            onClick={toggleSidebar}
+          >
+            {isCollapsed ? <Menu className="h-5 w-5" /> : <X className="h-5 w-5" />}
+          </button>
+        </div>
+
+        {/* User Info */}
+        {user && !isCollapsed && (
+          <div className="p-4 border-b border-border">
+            <div className="flex items-center gap-2">
+              <User className="h-6 w-6 text-muted-foreground" />
+              <div>
+                <p className="font-medium">{user.full_name}</p>
+                <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Navigation Links */}
         <nav className="flex-1 px-2 py-4 space-y-1">
           {navItems.map((item) => (
@@ -85,13 +128,13 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
           <div className="p-4 border-t border-border">
             <button
               className={cn(
-                "w-full flex items-center px-3 py-2 text-muted-foreground hover:text-foreground",
+                "w-full flex items-center px-3 py-2.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-secondary",
                 isCollapsed && "justify-center"
               )}
               onClick={onLogout}
             >
               <LogOut className="h-5 w-5" />
-              {!isCollapsed && <span className="ml-2">Logout</span>}
+              {!isCollapsed && <span className="ml-3">Logout</span>}
             </button>
           </div>
         )}
@@ -111,15 +154,14 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
       {/* Mobile Sidebar (Content) */}
       <aside
         className={cn(
-          "fixed h-full z-40 transition-all duration-300 ease-in-out bg-sidebar border-r border-border shadow-lg w-64",
-          isMobileOpen ? "translate-x-0" : "-translate-x-full",
-          isMobile ? "block" : "hidden"
+          "fixed inset-y-0 left-0 z-40 w-72 transition-transform duration-300 ease-in-out bg-sidebar border-r border-border",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex flex-col h-full">
           {/* Mobile Sidebar Header */}
           <div className="p-4 flex items-center justify-between border-b border-border">
-            <h2 className="text-xl font-semibold ml-2">PatentTrack</h2>
+            <h2 className="text-xl font-semibold">PatentTrack</h2>
             <button
               className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground"
               onClick={toggleSidebar}
@@ -131,9 +173,12 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
           {/* User Info */}
           {user && (
             <div className="p-4 border-b border-border">
-              <div>
-                <p className="font-medium">{user.full_name}</p>
-                <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+              <div className="flex items-center gap-2">
+                <User className="h-6 w-6 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">{user.full_name}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+                </div>
               </div>
             </div>
           )}
@@ -162,11 +207,11 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
           {onLogout && (
             <div className="p-4 border-t border-border">
               <button
-                className="w-full flex items-center px-3 py-2 text-muted-foreground hover:text-foreground"
+                className="w-full flex items-center px-3 py-2.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-secondary"
                 onClick={onLogout}
               >
                 <LogOut className="h-5 w-5" />
-                <span className="ml-2">Logout</span>
+                <span className="ml-3">Logout</span>
               </button>
             </div>
           )}

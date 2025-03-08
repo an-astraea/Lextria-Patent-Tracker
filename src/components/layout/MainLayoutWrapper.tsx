@@ -31,7 +31,15 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
   }
 
   if (user.role === 'admin') {
-    return <MainLayout sidebarComponent={<AdminSidebar />}>{children}</MainLayout>;
+    return (
+      <MainLayout 
+        sidebarComponent={
+          <AdminSidebar onLogout={handleLogout} />
+        }
+      >
+        {children}
+      </MainLayout>
+    );
   }
 
   // Default sidebar for drafter/filer roles
