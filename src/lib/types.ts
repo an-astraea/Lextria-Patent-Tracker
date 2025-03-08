@@ -1,4 +1,3 @@
-
 export interface Inventor {
   id: string;
   tracking_id: string;
@@ -49,7 +48,8 @@ export interface Patent {
   form_9a: boolean | null;
   form_13: boolean | null;
   form_01: boolean | null;
-  form_02: boolean | null;
+  form_02_ps: boolean | null;
+  form_02_cs: boolean | null;
   form_03: boolean | null;
   form_04: boolean | null;
   form_05: boolean | null;
@@ -164,7 +164,6 @@ export interface PatientTimeline {
   deadline_date?: string;
 }
 
-// Enhanced enum types to better represent the workflow states
 export enum ApprovalStatus {
   Pending = 0,      // Not yet reviewed
   Submitted = 1,    // Submitted for review
