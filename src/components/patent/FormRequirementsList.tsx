@@ -99,7 +99,7 @@ const FormRequirementsList: React.FC<FormRequirementsListProps> = ({
     { name: 'form_31', value: patent.form_31 }
   ];
   
-  const handleToggle = (formName: string, currentValue: boolean | null) => {
+  const handleToggle = (formName: string, currentValue: boolean | null | undefined) => {
     if (onUpdate && isEditable) {
       onUpdate(formName, currentValue === true ? false : true);
     }
