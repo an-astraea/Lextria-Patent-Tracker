@@ -1,3 +1,6 @@
+
+import { DataItem, Patent } from './types';
+
 export interface DataItem {
   id: string;
   name: string;
