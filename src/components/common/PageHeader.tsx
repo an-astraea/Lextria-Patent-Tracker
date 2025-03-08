@@ -4,20 +4,25 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-interface PageHeaderProps {
+export interface PageHeaderProps {
   title: string;
   subtitle?: string;
+  description?: string; // Added for backward compatibility
   backButton?: boolean;
   action?: ReactNode;
 }
 
 const PageHeader: React.FC<PageHeaderProps> = ({ 
   title, 
-  subtitle, 
+  subtitle,
+  description, // Added for backward compatibility
   backButton = false,
   action
 }) => {
   const navigate = useNavigate();
+  
+  // Use subtitle or description (for backward compatibility)
+  const displaySubtitle = subtitle || description;
   
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -29,7 +34,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
         )}
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-          {subtitle && <p className="text-muted-foreground">{subtitle}</p>}
+          {displaySubtitle && <p className="text-muted-foreground">{displaySubtitle}</p>}
         </div>
       </div>
       
