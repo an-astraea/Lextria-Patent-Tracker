@@ -423,101 +423,39 @@ export const completeDrafterTask = async (
 export const completeFilerTask = async (
   patent: Patent,
   filerName: string,
-  formData?: {
-    form_01?: boolean;
-    form_02?: boolean;
-    form_03?: boolean;
-    form_04?: boolean;
-    form_05?: boolean;
-    form_06?: boolean;
-    form_07?: boolean;
-    form_07a?: boolean;
-    form_08?: boolean;
-    form_08a?: boolean;
-    form_09?: boolean;
-    form_10?: boolean;
-    form_11?: boolean;
-    form_12?: boolean;
-    form_13?: boolean;
-    form_14?: boolean;
-    form_15?: boolean;
-    form_16?: boolean;
-    form_17?: boolean;
-    form_18?: boolean;
-    form_18a?: boolean;
-    form_19?: boolean;
-    form_20?: boolean;
-    form_21?: boolean;
-    form_22?: boolean;
-    form_23?: boolean;
-    form_24?: boolean;
-    form_25?: boolean;
-    form_26?: boolean;
-    form_27?: boolean;
-    form_28?: boolean;
-    form_29?: boolean;
-    form_30?: boolean;
-    form_31?: boolean;
-    form_9?: boolean;
-    form_9a?: boolean;
-    other_forms?: string;
-  }
+  formData: any
 ): Promise<boolean> => {
   try {
-    const updateData: Record<string, any> = {};
-    
+    // Determine which filing stage is being completed
+    let updateData: Record<string, any> = { ...formData };
+
     if (patent.ps_filer_assgn === filerName && patent.ps_filing_status === 0) {
       updateData.ps_filing_status = 1;
-      updateData.ps_review_file_status = 1; // Set for review
-      // Update PS completion status if both drafting and filing are done
-      if (patent.ps_drafting_status === 1) {
-        updateData.ps_completion_status = 1;
-      }
-      // Add form data for PS filing
-      if (formData) {
-        Object.assign(updateData, formData);
-      }
+      updateData.ps_review_file_status = 1;
     } else if (patent.cs_filer_assgn === filerName && patent.cs_filing_status === 0) {
       updateData.cs_filing_status = 1;
-      updateData.cs_review_file_status = 1; // Set for review
-      // Add form data for CS filing
-      if (formData) {
-        Object.assign(updateData, formData);
-      }
-      // Update CS completion status if both drafting and filing are done
-      if (patent.cs_drafting_status === 1) {
-        updateData.cs_completion_status = 1;
-      }
+      updateData.cs_review_file_status = 1;
     } else if (patent.fer_filer_assgn === filerName && patent.fer_filing_status === 0) {
       updateData.fer_filing_status = 1;
-      updateData.fer_review_file_status = 1; // Set for review
-      // Add form data for FER filing
-      if (formData) {
-        Object.assign(updateData, formData);
-      }
-      // Update FER completion status if both drafting and filing are done
-      if (patent.fer_drafter_status === 1) {
-        updateData.fer_completion_status = 1;
-      }
+      updateData.fer_review_file_status = 1;
     } else {
-      toast.error("No valid filing task found");
-      return false;
+      throw new Error("No valid filing task found for this filer");
     }
 
-    const { error } = await supabase
-      .from("patents")
+    console.log("Sending update data:", updateData);
+
+    // Update the patent in the database
+    const { data, error } = await supabase
+      .from('patents')
       .update(updateData)
-      .eq("id", patent.id);
+      .eq('id', patent.id);
 
-    if (error) {
-      throw error;
-    }
-
+    if (error) throw error;
+    
     return true;
   } catch (error) {
-    console.error("Error completing filing task:", error);
-    toast.error("Failed to complete filing task");
-    return false;
+    console.error('Error completing filing task:', error);
+    throw error;
   }
 };
 
