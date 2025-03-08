@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -80,15 +79,12 @@ const Filings = () => {
   const handleUpdateForm = async (formName: string, value: boolean) => {
     if (selectedPatent) {
       try {
-        // Create an object with just the updated form
         const formUpdates: Record<string, boolean> = {
           [formName]: value
         };
         
-        // Send the update to the server
         await updatePatentForms(selectedPatent.id, formUpdates);
         
-        // Update the local state to reflect the changes
         setSelectedPatent(prev => {
           if (!prev) return null;
           return {
@@ -111,10 +107,8 @@ const Filings = () => {
     setIsCompleting(true);
     
     try {
-      // Extract all form values from the selectedPatent
       const formFields: Record<string, boolean> = {};
       
-      // We check for form fields from 01 to 31, and the special cases
       for (let i = 1; i <= 31; i++) {
         const formNum = i < 10 ? `0${i}` : `${i}`;
         const formKey = `form_${formNum}` as keyof Patent;
@@ -124,7 +118,6 @@ const Filings = () => {
         }
       }
       
-      // Add special form_02 cases
       if (selectedPatent.form_02_ps !== undefined) {
         formFields.form_02_ps = !!selectedPatent.form_02_ps;
       }
@@ -132,7 +125,6 @@ const Filings = () => {
         formFields.form_02_cs = !!selectedPatent.form_02_cs;
       }
       
-      // Special form suffixes
       ['a'].forEach(suffix => {
         for (let i = 1; i <= 31; i++) {
           const formNum = i < 10 ? `0${i}` : `${i}`;
@@ -222,7 +214,6 @@ const Filings = () => {
         </TabsList>
         
         <TabsContent value="patents" className="mt-6">
-          {/* Regular Patent Assignments */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Pending Patent Assignments</CardTitle>
@@ -317,7 +308,6 @@ const Filings = () => {
         </TabsContent>
         
         <TabsContent value="fers" className="mt-6">
-          {/* FER Assignments */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Pending FER Assignments</CardTitle>
@@ -341,7 +331,7 @@ const Filings = () => {
                       {ferAssignments.map((fer) => (
                         <TableRow key={fer.id}>
                           <TableCell>
-                            {fer.patents ? fer.patents.patent_title : 'Unknown Patent'}
+                            {fer.patent ? fer.patent.patent_title : 'Unknown Patent'}
                           </TableCell>
                           <TableCell>{fer.fer_number}</TableCell>
                           <TableCell>
@@ -382,7 +372,6 @@ const Filings = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Patent Forms Dialog */}
       {selectedPatent && (
         <Dialog open={viewingForms} onOpenChange={setViewingForms}>
           <DialogContent className="max-w-3xl">
@@ -428,7 +417,6 @@ const Filings = () => {
         </Dialog>
       )}
       
-      {/* FER Dialog */}
       {selectedFER && (
         <Dialog open={viewingForms} onOpenChange={setViewingForms}>
           <DialogContent className="max-w-3xl">

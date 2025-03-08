@@ -31,6 +31,8 @@ export interface FEREntry {
   fer_completion_status: number;
   created_at: string;
   updated_at: string;
+  // Add patent reference for joining
+  patent?: Patent;
 }
 
 export interface Patent {

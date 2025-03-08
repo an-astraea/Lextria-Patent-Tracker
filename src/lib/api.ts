@@ -1126,7 +1126,10 @@ export const fetchDrafterFERAssignments = async (drafterName: string): Promise<F
   try {
     const { data, error } = await supabase
       .from("fer_entries")
-      .select("*, patents!inner(*)")
+      .select(`
+        *,
+        patent:patent_id(*)
+      `)
       .eq("fer_drafter_assgn", drafterName)
       .eq("fer_drafter_status", 0);
 
