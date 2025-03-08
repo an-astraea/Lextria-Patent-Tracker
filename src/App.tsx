@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import MainLayout from "@/components/layout/MainLayout";
+import MainLayoutWrapper from "@/components/layout/MainLayoutWrapper";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Patents from "./pages/Patents";
@@ -16,6 +16,7 @@ import AddEditEmployee from "./pages/AddEditEmployee";
 import Drafts from "./pages/Drafts";
 import Filings from "./pages/Filings";
 import NotFound from "./pages/NotFound";
+import ClientDashboard from "./pages/ClientDashboard";
 
 const queryClient = new QueryClient();
 
@@ -25,7 +26,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <MainLayout>
+        <MainLayoutWrapper>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
@@ -39,9 +40,10 @@ const App = () => (
             <Route path="/approvals" element={<Approvals />} />
             <Route path="/drafts" element={<Drafts />} />
             <Route path="/filings" element={<Filings />} />
+            <Route path="/clients" element={<ClientDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </MainLayout>
+        </MainLayoutWrapper>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
