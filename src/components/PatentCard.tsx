@@ -11,12 +11,16 @@ interface PatentCardProps {
   patent: Patent;
   onSelect?: () => void;
   isSelected?: boolean;
+  showDeadline?: boolean;
+  onDelete?: () => void;
 }
 
 const PatentCard: React.FC<PatentCardProps> = ({ 
   patent, 
   onSelect,
-  isSelected = false
+  isSelected = false,
+  showDeadline = false,
+  onDelete
 }) => {
   const getStageStatus = (): { stage: string; status: string } => {
     if (patent.ps_filing_status === 0) {
@@ -39,6 +43,28 @@ const PatentCard: React.FC<PatentCardProps> = ({
       onSelect();
     }
   };
+  
+  const getClosestDeadline = (): string | null => {
+    if (!showDeadline) return null;
+    
+    const deadlines = [
+      patent.ps_drafter_deadline,
+      patent.ps_filer_deadline,
+      patent.cs_drafter_deadline,
+      patent.cs_filer_deadline,
+      patent.fer_drafter_deadline,
+      patent.fer_filer_deadline
+    ].filter(Boolean) as string[];
+    
+    if (deadlines.length === 0) return null;
+    
+    // Sort deadlines by date (earliest first)
+    deadlines.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    
+    return deadlines[0];
+  };
+  
+  const closestDeadline = getClosestDeadline();
 
   return (
     <Card 
@@ -70,6 +96,15 @@ const PatentCard: React.FC<PatentCardProps> = ({
               }
             </span>
           </div>
+          
+          {showDeadline && closestDeadline && (
+            <div className="col-span-2 mt-2">
+              <div className="flex items-center space-x-1 text-orange-500">
+                <CalendarIcon className="h-3 w-3" />
+                <span>Deadline: {format(new Date(closestDeadline), 'dd MMM yyyy')}</span>
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="pt-2">
@@ -77,6 +112,18 @@ const PatentCard: React.FC<PatentCardProps> = ({
           <span>ID: {patent.tracking_id}</span>
           <span className="font-medium text-foreground">Stage: {stage}</span>
         </div>
+        
+        {onDelete && (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            className="ml-2 text-xs text-destructive hover:text-destructive/80"
+          >
+            Delete
+          </button>
+        )}
       </CardFooter>
     </Card>
   );
