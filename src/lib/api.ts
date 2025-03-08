@@ -424,12 +424,43 @@ export const completeFilerTask = async (
   patent: Patent,
   filerName: string,
   formData?: {
-    form_26?: boolean;
+    form_01?: boolean;
+    form_02?: boolean;
+    form_03?: boolean;
+    form_04?: boolean;
+    form_05?: boolean;
+    form_06?: boolean;
+    form_07?: boolean;
+    form_07a?: boolean;
+    form_08?: boolean;
+    form_08a?: boolean;
+    form_09?: boolean;
+    form_10?: boolean;
+    form_11?: boolean;
+    form_12?: boolean;
+    form_13?: boolean;
+    form_14?: boolean;
+    form_15?: boolean;
+    form_16?: boolean;
+    form_17?: boolean;
     form_18?: boolean;
     form_18a?: boolean;
+    form_19?: boolean;
+    form_20?: boolean;
+    form_21?: boolean;
+    form_22?: boolean;
+    form_23?: boolean;
+    form_24?: boolean;
+    form_25?: boolean;
+    form_26?: boolean;
+    form_27?: boolean;
+    form_28?: boolean;
+    form_29?: boolean;
+    form_30?: boolean;
+    form_31?: boolean;
     form_9?: boolean;
     form_9a?: boolean;
-    form_13?: boolean;
+    other_forms?: string;
   }
 ): Promise<boolean> => {
   try {
@@ -441,6 +472,10 @@ export const completeFilerTask = async (
       // Update PS completion status if both drafting and filing are done
       if (patent.ps_drafting_status === 1) {
         updateData.ps_completion_status = 1;
+      }
+      // Add form data for PS filing
+      if (formData) {
+        Object.assign(updateData, formData);
       }
     } else if (patent.cs_filer_assgn === filerName && patent.cs_filing_status === 0) {
       updateData.cs_filing_status = 1;
@@ -456,6 +491,10 @@ export const completeFilerTask = async (
     } else if (patent.fer_filer_assgn === filerName && patent.fer_filing_status === 0) {
       updateData.fer_filing_status = 1;
       updateData.fer_review_file_status = 1; // Set for review
+      // Add form data for FER filing
+      if (formData) {
+        Object.assign(updateData, formData);
+      }
       // Update FER completion status if both drafting and filing are done
       if (patent.fer_drafter_status === 1) {
         updateData.fer_completion_status = 1;

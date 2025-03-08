@@ -179,16 +179,47 @@ export type Database = {
           fer_review_draft_status: number
           fer_review_file_status: number
           fer_status: number
+          form_01: boolean | null
+          form_02: boolean | null
+          form_03: boolean | null
+          form_04: boolean | null
+          form_05: boolean | null
+          form_06: boolean | null
+          form_07: boolean | null
+          form_07a: boolean | null
+          form_08: boolean | null
+          form_08a: boolean | null
+          form_09: boolean | null
+          form_10: boolean | null
+          form_11: boolean | null
+          form_12: boolean | null
           form_13: boolean | null
+          form_14: boolean | null
+          form_15: boolean | null
+          form_16: boolean | null
+          form_17: boolean | null
           form_18: boolean | null
           form_18a: boolean | null
+          form_19: boolean | null
+          form_20: boolean | null
+          form_21: boolean | null
+          form_22: boolean | null
+          form_23: boolean | null
+          form_24: boolean | null
+          form_25: boolean | null
           form_26: boolean | null
+          form_27: boolean | null
+          form_28: boolean | null
+          form_29: boolean | null
+          form_30: boolean | null
+          form_31: boolean | null
           form_9: boolean | null
           form_9a: boolean | null
           id: string
           inventor_email: string
           inventor_ph_no: string
           notes: string | null
+          other_forms: string | null
           patent_applicant: string
           patent_title: string
           ps_completion_status: number
@@ -228,16 +259,47 @@ export type Database = {
           fer_review_draft_status?: number
           fer_review_file_status?: number
           fer_status?: number
+          form_01?: boolean | null
+          form_02?: boolean | null
+          form_03?: boolean | null
+          form_04?: boolean | null
+          form_05?: boolean | null
+          form_06?: boolean | null
+          form_07?: boolean | null
+          form_07a?: boolean | null
+          form_08?: boolean | null
+          form_08a?: boolean | null
+          form_09?: boolean | null
+          form_10?: boolean | null
+          form_11?: boolean | null
+          form_12?: boolean | null
           form_13?: boolean | null
+          form_14?: boolean | null
+          form_15?: boolean | null
+          form_16?: boolean | null
+          form_17?: boolean | null
           form_18?: boolean | null
           form_18a?: boolean | null
+          form_19?: boolean | null
+          form_20?: boolean | null
+          form_21?: boolean | null
+          form_22?: boolean | null
+          form_23?: boolean | null
+          form_24?: boolean | null
+          form_25?: boolean | null
           form_26?: boolean | null
+          form_27?: boolean | null
+          form_28?: boolean | null
+          form_29?: boolean | null
+          form_30?: boolean | null
+          form_31?: boolean | null
           form_9?: boolean | null
           form_9a?: boolean | null
           id?: string
           inventor_email: string
           inventor_ph_no: string
           notes?: string | null
+          other_forms?: string | null
           patent_applicant: string
           patent_title: string
           ps_completion_status?: number
@@ -277,16 +339,47 @@ export type Database = {
           fer_review_draft_status?: number
           fer_review_file_status?: number
           fer_status?: number
+          form_01?: boolean | null
+          form_02?: boolean | null
+          form_03?: boolean | null
+          form_04?: boolean | null
+          form_05?: boolean | null
+          form_06?: boolean | null
+          form_07?: boolean | null
+          form_07a?: boolean | null
+          form_08?: boolean | null
+          form_08a?: boolean | null
+          form_09?: boolean | null
+          form_10?: boolean | null
+          form_11?: boolean | null
+          form_12?: boolean | null
           form_13?: boolean | null
+          form_14?: boolean | null
+          form_15?: boolean | null
+          form_16?: boolean | null
+          form_17?: boolean | null
           form_18?: boolean | null
           form_18a?: boolean | null
+          form_19?: boolean | null
+          form_20?: boolean | null
+          form_21?: boolean | null
+          form_22?: boolean | null
+          form_23?: boolean | null
+          form_24?: boolean | null
+          form_25?: boolean | null
           form_26?: boolean | null
+          form_27?: boolean | null
+          form_28?: boolean | null
+          form_29?: boolean | null
+          form_30?: boolean | null
+          form_31?: boolean | null
           form_9?: boolean | null
           form_9a?: boolean | null
           id?: string
           inventor_email?: string
           inventor_ph_no?: string
           notes?: string | null
+          other_forms?: string | null
           patent_applicant?: string
           patent_title?: string
           ps_completion_status?: number

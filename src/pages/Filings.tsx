@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { fetchFilerAssignments, fetchFilerCompletedAssignments, completeFilerTask } from '@/lib/api';
 import { Patent } from '@/lib/types';
@@ -38,12 +38,43 @@ const Filings = () => {
   const [completedPage, setCompletedPage] = useState(1);
   const isMobile = useIsMobile();
   
-  const [form26, setForm26] = useState(false);
+  const [form01, setForm01] = useState(false);
+  const [form02, setForm02] = useState(false);
+  const [form03, setForm03] = useState(false);
+  const [form04, setForm04] = useState(false);
+  const [form05, setForm05] = useState(false);
+  const [form06, setForm06] = useState(false);
+  const [form07, setForm07] = useState(false);
+  const [form07a, setForm07a] = useState(false);
+  const [form08, setForm08] = useState(false);
+  const [form08a, setForm08a] = useState(false);
+  const [form09, setForm09] = useState(false);
+  const [form10, setForm10] = useState(false);
+  const [form11, setForm11] = useState(false);
+  const [form12, setForm12] = useState(false);
+  const [form13, setForm13] = useState(false);
+  const [form14, setForm14] = useState(false);
+  const [form15, setForm15] = useState(false);
+  const [form16, setForm16] = useState(false);
+  const [form17, setForm17] = useState(false);
   const [form18, setForm18] = useState(false);
   const [form18a, setForm18a] = useState(false);
+  const [form19, setForm19] = useState(false);
+  const [form20, setForm20] = useState(false);
+  const [form21, setForm21] = useState(false);
+  const [form22, setForm22] = useState(false);
+  const [form23, setForm23] = useState(false);
+  const [form24, setForm24] = useState(false);
+  const [form25, setForm25] = useState(false);
+  const [form26, setForm26] = useState(false);
+  const [form27, setForm27] = useState(false);
+  const [form28, setForm28] = useState(false);
+  const [form29, setForm29] = useState(false);
+  const [form30, setForm30] = useState(false);
+  const [form31, setForm31] = useState(false);
   const [form9, setForm9] = useState(false);
   const [form9a, setForm9a] = useState(false);
-  const [form13, setForm13] = useState(false);
+  const [otherForms, setOtherForms] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const userString = localStorage.getItem('user');
@@ -92,7 +123,6 @@ const Filings = () => {
       setCompletedPatents(completedData);
       setInitialLoadComplete(true);
       
-      // Reset to first page when refreshing data
       if (isRefresh) {
         setActivePage(1);
         setCompletedPage(1);
@@ -111,24 +141,85 @@ const Filings = () => {
   };
 
   const resetFormState = () => {
-    setForm26(false);
+    setForm01(false);
+    setForm02(false);
+    setForm03(false);
+    setForm04(false);
+    setForm05(false);
+    setForm06(false);
+    setForm07(false);
+    setForm07a(false);
+    setForm08(false);
+    setForm08a(false);
+    setForm09(false);
+    setForm10(false);
+    setForm11(false);
+    setForm12(false);
+    setForm13(false);
+    setForm14(false);
+    setForm15(false);
+    setForm16(false);
+    setForm17(false);
     setForm18(false);
     setForm18a(false);
+    setForm19(false);
+    setForm20(false);
+    setForm21(false);
+    setForm22(false);
+    setForm23(false);
+    setForm24(false);
+    setForm25(false);
+    setForm26(false);
+    setForm27(false);
+    setForm28(false);
+    setForm29(false);
+    setForm30(false);
+    setForm31(false);
     setForm9(false);
     setForm9a(false);
-    setForm13(false);
+    setOtherForms('');
   };
 
   const handleShowFormsDialog = (patent: Patent) => {
     setSelectedPatent(patent);
     
-    // Initialize form states with values from the patent
-    setForm26(patent.form_26 === true);
+    setForm01(patent.form_01 === true);
+    setForm02(patent.form_02 === true);
+    setForm03(patent.form_03 === true);
+    setForm04(patent.form_04 === true);
+    setForm05(patent.form_05 === true);
+    setForm06(patent.form_06 === true);
+    setForm07(patent.form_07 === true);
+    setForm07a(patent.form_07a === true);
+    setForm08(patent.form_08 === true);
+    setForm08a(patent.form_08a === true);
+    setForm09(patent.form_09 === true);
+    setForm10(patent.form_10 === true);
+    setForm11(patent.form_11 === true);
+    setForm12(patent.form_12 === true);
+    setForm13(patent.form_13 === true);
+    setForm14(patent.form_14 === true);
+    setForm15(patent.form_15 === true);
+    setForm16(patent.form_16 === true);
+    setForm17(patent.form_17 === true);
     setForm18(patent.form_18 === true);
     setForm18a(patent.form_18a === true);
+    setForm19(patent.form_19 === true);
+    setForm20(patent.form_20 === true);
+    setForm21(patent.form_21 === true);
+    setForm22(patent.form_22 === true);
+    setForm23(patent.form_23 === true);
+    setForm24(patent.form_24 === true);
+    setForm25(patent.form_25 === true);
+    setForm26(patent.form_26 === true);
+    setForm27(patent.form_27 === true);
+    setForm28(patent.form_28 === true);
+    setForm29(patent.form_29 === true);
+    setForm30(patent.form_30 === true);
+    setForm31(patent.form_31 === true);
     setForm9(patent.form_9 === true);
     setForm9a(patent.form_9a === true);
-    setForm13(patent.form_13 === true);
+    setOtherForms(patent.other_forms || '');
     
     setDialogOpen(true);
   };
@@ -138,14 +229,60 @@ const Filings = () => {
     
     try {
       let formData;
-      if (patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0) {
+      
+      if (patent.ps_filer_assgn === user?.full_name && patent.ps_filing_status === 0) {
         formData = {
+          form_01: form01,
+          form_02: form02,
           form_26: form26,
+          other_forms: otherForms
+        };
+      } else if (patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0) {
+        formData = {
+          form_01: form01,
+          form_02: form02,
+          form_03: form03,
+          form_04: form04,
+          form_05: form05,
+          form_06: form06,
+          form_07: form07,
+          form_07a: form07a,
+          form_08: form08,
+          form_08a: form08a,
+          form_09: form09,
+          form_10: form10,
+          form_11: form11,
+          form_12: form12,
+          form_13: form13,
+          form_14: form14,
+          form_15: form15,
+          form_16: form16,
+          form_17: form17,
           form_18: form18,
           form_18a: form18a,
+          form_19: form19,
+          form_20: form20,
+          form_21: form21,
+          form_22: form22,
+          form_23: form23,
+          form_24: form24,
+          form_25: form25,
+          form_26: form26,
+          form_27: form27,
+          form_28: form28,
+          form_29: form29,
+          form_30: form30,
+          form_31: form31,
           form_9: form9,
           form_9a: form9a,
-          form_13: form13
+          other_forms: otherForms
+        };
+      } else if (patent.fer_filer_assgn === user?.full_name && patent.fer_filing_status === 0) {
+        formData = {
+          form_04: form04,
+          form_13: form13,
+          form_20: form20,
+          other_forms: otherForms
         };
       }
       
@@ -155,12 +292,14 @@ const Filings = () => {
         setDialogOpen(false);
         resetFormState();
         
-        // Update our local state without needing to reload
         const updatedPatent = { ...patent };
         
         if (patent.ps_filer_assgn === user.full_name) {
           updatedPatent.ps_filing_status = 1;
           updatedPatent.ps_review_file_status = 1;
+          if (formData) {
+            Object.assign(updatedPatent, formData);
+          }
         } else if (patent.cs_filer_assgn === user.full_name) {
           updatedPatent.cs_filing_status = 1;
           updatedPatent.cs_review_file_status = 1;
@@ -170,12 +309,12 @@ const Filings = () => {
         } else if (patent.fer_filer_assgn === user.full_name) {
           updatedPatent.fer_filing_status = 1;
           updatedPatent.fer_review_file_status = 1;
+          if (formData) {
+            Object.assign(updatedPatent, formData);
+          }
         }
         
-        // Remove from active patents
         setActivePatents(prevPatents => prevPatents.filter(p => p.id !== patent.id));
-        
-        // Add to completed patents
         setCompletedPatents(prevPatents => [updatedPatent, ...prevPatents]);
       }
     } catch (error) {
@@ -237,7 +376,17 @@ const Filings = () => {
     return patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0;
   };
 
-  // Pagination logic
+  const getFormDialogTitle = (patent: Patent) => {
+    if (patent.ps_filer_assgn === user?.full_name && patent.ps_filing_status === 0) {
+      return 'Provisional Specification Forms';
+    } else if (patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0) {
+      return 'Complete Specification Forms';
+    } else if (patent.fer_filer_assgn === user?.full_name && patent.fer_filing_status === 0) {
+      return 'First Examination Report Forms';
+    }
+    return 'Patent Forms';
+  };
+
   const paginateData = (data: Patent[], pageNumber: number) => {
     const startIndex = (pageNumber - 1) * ITEMS_PER_PAGE;
     return data.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -329,25 +478,14 @@ const Filings = () => {
                           View Details
                         </Button>
                         
-                        {requiresForms(patent) ? (
-                          <Button
-                            size="sm"
-                            onClick={() => handleShowFormsDialog(patent)}
-                            disabled={!isTaskAvailable(patent)}
-                            className="w-full sm:w-auto"
-                          >
-                            Complete & Submit
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => handleComplete(patent)}
-                            disabled={!isTaskAvailable(patent)}
-                            className="w-full sm:w-auto"
-                          >
-                            Complete & Submit
-                          </Button>
-                        )}
+                        <Button
+                          size="sm"
+                          onClick={() => handleShowFormsDialog(patent)}
+                          disabled={!isTaskAvailable(patent)}
+                          className="w-full sm:w-auto"
+                        >
+                          Complete & Submit
+                        </Button>
                       </div>
                       
                       {!isTaskAvailable(patent) && (
@@ -411,44 +549,213 @@ const Filings = () => {
       </Tabs>
       
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md mx-auto">
+        <DialogContent className="max-w-3xl mx-auto max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Complete Specification Forms</DialogTitle>
+            <DialogTitle>{selectedPatent && getFormDialogTitle(selectedPatent)}</DialogTitle>
             <DialogDescription>
               Select the forms that you have completed for this patent.
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox id="form26" checked={form26} onCheckedChange={(checked) => setForm26(checked === true)} />
-              <Label htmlFor="form26">Form 26 - Power of Attorney</Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox id="form18" checked={form18} onCheckedChange={(checked) => setForm18(checked === true)} />
-              <Label htmlFor="form18">Form 18 - Request for Examination</Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox id="form18a" checked={form18a} onCheckedChange={(checked) => setForm18a(checked === true)} />
-              <Label htmlFor="form18a">Form 18A - Fast Track Examination</Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox id="form9" checked={form9} onCheckedChange={(checked) => setForm9(checked === true)} />
-              <Label htmlFor="form9">Form 9 - Complete Specification</Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox id="form9a" checked={form9a} onCheckedChange={(checked) => setForm9a(checked === true)} />
-              <Label htmlFor="form9a">Form 9A - PCT National Phase</Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox id="form13" checked={form13} onCheckedChange={(checked) => setForm13(checked === true)} />
-              <Label htmlFor="form13">Form 13 - Request for Amendment</Label>
-            </div>
+            {selectedPatent && (
+              <>
+                {(selectedPatent.ps_filer_assgn === user?.full_name && selectedPatent.ps_filing_status === 0) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form01" checked={form01} onCheckedChange={(checked) => setForm01(checked === true)} />
+                      <Label htmlFor="form01">Form 01 - Application for Grant of Patent</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form02" checked={form02} onCheckedChange={(checked) => setForm02(checked === true)} />
+                      <Label htmlFor="form02">Form 02 - Provisional Specification</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form26" checked={form26} onCheckedChange={(checked) => setForm26(checked === true)} />
+                      <Label htmlFor="form26">Form 26 - Power of Attorney</Label>
+                    </div>
+                  </div>
+                )}
+
+                {(selectedPatent.cs_filer_assgn === user?.full_name && selectedPatent.cs_filing_status === 0) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form01" checked={form01} onCheckedChange={(checked) => setForm01(checked === true)} />
+                      <Label htmlFor="form01">Form 01 - Application for Grant of Patent</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form02" checked={form02} onCheckedChange={(checked) => setForm02(checked === true)} />
+                      <Label htmlFor="form02">Form 02 - Complete Specification</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form03" checked={form03} onCheckedChange={(checked) => setForm03(checked === true)} />
+                      <Label htmlFor="form03">Form 03 - Statement Under Section 8</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form04" checked={form04} onCheckedChange={(checked) => setForm04(checked === true)} />
+                      <Label htmlFor="form04">Form 04 - Request for Extension of Time</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form05" checked={form05} onCheckedChange={(checked) => setForm05(checked === true)} />
+                      <Label htmlFor="form05">Form 05 - Declaration as to Inventorship</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form06" checked={form06} onCheckedChange={(checked) => setForm06(checked === true)} />
+                      <Label htmlFor="form06">Form 06 - Change in Applicant</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form07" checked={form07} onCheckedChange={(checked) => setForm07(checked === true)} />
+                      <Label htmlFor="form07">Form 07 - Notice of Opposition</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form07a" checked={form07a} onCheckedChange={(checked) => setForm07a(checked === true)} />
+                      <Label htmlFor="form07a">Form 07A - Opposition to Grant of Patent</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form08" checked={form08} onCheckedChange={(checked) => setForm08(checked === true)} />
+                      <Label htmlFor="form08">Form 08 - Mention of Inventor</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form08a" checked={form08a} onCheckedChange={(checked) => setForm08a(checked === true)} />
+                      <Label htmlFor="form08a">Form 8A - Certificate of Inventorship</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form09" checked={form09} onCheckedChange={(checked) => setForm09(checked === true)} />
+                      <Label htmlFor="form09">Form 09 - Request for Publication</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form9" checked={form9} onCheckedChange={(checked) => setForm9(checked === true)} />
+                      <Label htmlFor="form9">Form 9 - Complete Specification</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form9a" checked={form9a} onCheckedChange={(checked) => setForm9a(checked === true)} />
+                      <Label htmlFor="form9a">Form 9A - PCT National Phase</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form10" checked={form10} onCheckedChange={(checked) => setForm10(checked === true)} />
+                      <Label htmlFor="form10">Form 10 - Amendment of Patent</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form11" checked={form11} onCheckedChange={(checked) => setForm11(checked === true)} />
+                      <Label htmlFor="form11">Form 11 - Application for Direction</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form12" checked={form12} onCheckedChange={(checked) => setForm12(checked === true)} />
+                      <Label htmlFor="form12">Form 12 - Request Under Section 26(1)</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form13" checked={form13} onCheckedChange={(checked) => setForm13(checked === true)} />
+                      <Label htmlFor="form13">Form 13 - Request for Amendment</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form14" checked={form14} onCheckedChange={(checked) => setForm14(checked === true)} />
+                      <Label htmlFor="form14">Form 14 - Notice of Opposition</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form15" checked={form15} onCheckedChange={(checked) => setForm15(checked === true)} />
+                      <Label htmlFor="form15">Form 15 - Application for Restoration</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form16" checked={form16} onCheckedChange={(checked) => setForm16(checked === true)} />
+                      <Label htmlFor="form16">Form 16 - Restoration of Title/Interest</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form17" checked={form17} onCheckedChange={(checked) => setForm17(checked === true)} />
+                      <Label htmlFor="form17">Form 17 - Compulsory Licence Application</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form18" checked={form18} onCheckedChange={(checked) => setForm18(checked === true)} />
+                      <Label htmlFor="form18">Form 18 - Request for Examination</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form18a" checked={form18a} onCheckedChange={(checked) => setForm18a(checked === true)} />
+                      <Label htmlFor="form18a">Form 18A - Fast Track Examination</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form19" checked={form19} onCheckedChange={(checked) => setForm19(checked === true)} />
+                      <Label htmlFor="form19">Form 19 - Revocation for Non-Working</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form20" checked={form20} onCheckedChange={(checked) => setForm20(checked === true)} />
+                      <Label htmlFor="form20">Form 20 - Revision of Terms</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form21" checked={form21} onCheckedChange={(checked) => setForm21(checked === true)} />
+                      <Label htmlFor="form21">Form 21 - Termination of Licence</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form22" checked={form22} onCheckedChange={(checked) => setForm22(checked === true)} />
+                      <Label htmlFor="form22">Form 22 - Registration of Patent Agent</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form23" checked={form23} onCheckedChange={(checked) => setForm23(checked === true)} />
+                      <Label htmlFor="form23">Form 23 - Restoration of Name</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form24" checked={form24} onCheckedChange={(checked) => setForm24(checked === true)} />
+                      <Label htmlFor="form24">Form 24 - Review/Setting Aside</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form25" checked={form25} onCheckedChange={(checked) => setForm25(checked === true)} />
+                      <Label htmlFor="form25">Form 25 - Permission for Application</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form26" checked={form26} onCheckedChange={(checked) => setForm26(checked === true)} />
+                      <Label htmlFor="form26">Form 26 - Power of Attorney</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form27" checked={form27} onCheckedChange={(checked) => setForm27(checked === true)} />
+                      <Label htmlFor="form27">Form 27 - Statement of Working</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form28" checked={form28} onCheckedChange={(checked) => setForm28(checked === true)} />
+                      <Label htmlFor="form28">Form 28 - Small Entity/Startup</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form29" checked={form29} onCheckedChange={(checked) => setForm29(checked === true)} />
+                      <Label htmlFor="form29">Form 29 - Withdrawal of Application</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form30" checked={form30} onCheckedChange={(checked) => setForm30(checked === true)} />
+                      <Label htmlFor="form30">Form 30 - No Form Prescribed</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form31" checked={form31} onCheckedChange={(checked) => setForm31(checked === true)} />
+                      <Label htmlFor="form31">Form 31 - Grace Period</Label>
+                    </div>
+                  </div>
+                )}
+
+                {(selectedPatent.fer_filer_assgn === user?.full_name && selectedPatent.fer_filing_status === 0) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form04" checked={form04} onCheckedChange={(checked) => setForm04(checked === true)} />
+                      <Label htmlFor="form04">Form 04 - Request for Extension of Time</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form13" checked={form13} onCheckedChange={(checked) => setForm13(checked === true)} />
+                      <Label htmlFor="form13">Form 13 - Request for Amendment</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="form20" checked={form20} onCheckedChange={(checked) => setForm20(checked === true)} />
+                      <Label htmlFor="form20">Form 20 - Revision of Terms</Label>
+                    </div>
+                  </div>
+                )}
+
+                <div className="col-span-full mt-4">
+                  <Label htmlFor="otherForms">Other Forms / Notes</Label>
+                  <Textarea 
+                    id="otherForms" 
+                    placeholder="Enter any additional forms or notes" 
+                    value={otherForms} 
+                    onChange={(e) => setOtherForms(e.target.value)} 
+                    className="mt-1"
+                    rows={3}
+                  />
+                </div>
+              </>
+            )}
           </div>
           
           <DialogFooter className="flex flex-col sm:flex-row gap-2">

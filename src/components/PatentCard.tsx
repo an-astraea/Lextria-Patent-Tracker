@@ -12,11 +12,18 @@ import {
   CalendarClock, 
   User, 
   Building,
-  History
+  History,
+  FileCheck
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import TimelineDialog from './TimelineDialog';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface PatentCardProps {
   patent: Patent;
@@ -78,6 +85,22 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  // Count how many forms are filled out
+  const countCompletedForms = () => {
+    const formFields = [
+      'form_01', 'form_02', 'form_03', 'form_04', 'form_05', 'form_06', 'form_07', 
+      'form_07a', 'form_08', 'form_08a', 'form_09', 'form_10', 'form_11', 
+      'form_12', 'form_13', 'form_14', 'form_15', 'form_16', 'form_17', 
+      'form_18', 'form_18a', 'form_19', 'form_20', 'form_21', 'form_22', 
+      'form_23', 'form_24', 'form_25', 'form_26', 'form_27', 'form_28', 
+      'form_29', 'form_30', 'form_31', 'form_9', 'form_9a'
+    ];
+    
+    return formFields.filter(field => patent[field as keyof Patent] === true).length;
+  };
+
+  const formsCount = countCompletedForms();
+
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md border border-border">
       <div className="relative p-6">
@@ -128,6 +151,22 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
           )}
           {patent.fer_filing_status === 1 && (
             <Badge variant="secondary" className="text-xs">FER File Complete</Badge>
+          )}
+          
+          {formsCount > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="text-xs flex items-center gap-1">
+                    <FileCheck className="h-3 w-3" />
+                    {formsCount} Forms
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {formsCount} patent forms submitted
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </div>
