@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,9 +10,6 @@ import { ArrowLeft, Edit, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 import PatentNotes from '@/components/patent/PatentNotes';
-import SelectedFormsList from '@/components/patent/SelectedFormsList';
-import FormRequirementsList from '@/components/patent/FormRequirementsList';
-import { getSelectedForms } from '@/lib/data';
 
 const PatentDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -63,19 +59,6 @@ const PatentDetails = () => {
         patent.cs_drafter_assgn === user.full_name ||
         patent.fer_drafter_assgn === user.full_name
       ))
-    );
-  }, [user, patent]);
-
-  // Helper to determine if the user can edit forms as a filer
-  const canEditForms = React.useMemo(() => {
-    if (!user || !patent) return false;
-    
-    return (
-      user.role === 'filer' && (
-        patent.ps_filer_assgn === user.full_name ||
-        patent.cs_filer_assgn === user.full_name ||
-        patent.fer_filer_assgn === user.full_name
-      )
     );
   }, [user, patent]);
 
@@ -149,7 +132,7 @@ const PatentDetails = () => {
               </div>
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Filing Date</div>
-                <div>{patent.date_of_filing ? new Date(patent.date_of_filing).toLocaleDateString() : 'Not filed yet'}</div>
+                <div>{new Date(patent.date_of_filing).toLocaleDateString()}</div>
               </div>
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Created At</div>
@@ -199,11 +182,6 @@ const PatentDetails = () => {
           </CardContent>
         </Card>
       </div>
-      
-      {/* Display all selected forms */}
-      {getSelectedForms(patent).length > 0 && (
-        <SelectedFormsList patent={patent} title="Submitted Forms" />
-      )}
       
       <PatentNotes 
         patent={patent} 
@@ -259,17 +237,6 @@ const PatentDetails = () => {
                   <div>{patent.ps_filer_deadline ? new Date(patent.ps_filer_deadline).toLocaleDateString() : 'Not set'}</div>
                 </div>
               </div>
-              
-              {patent.ps_filing_status || (user?.role === 'filer' && patent.ps_filer_assgn === user.full_name) ? (
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground mb-2">Forms</div>
-                  <FormRequirementsList 
-                    patent={patent} 
-                    stage="ps" 
-                    readonly={!canEditForms}
-                  />
-                </div>
-              ) : null}
             </CardContent>
           </Card>
         </TabsContent>
@@ -316,14 +283,35 @@ const PatentDetails = () => {
                 </div>
               </div>
               
-              {patent.cs_filing_status || (user?.role === 'filer' && patent.cs_filer_assgn === user.full_name) ? (
+              {patent.cs_filing_status ? (
                 <div>
                   <div className="text-sm font-medium text-muted-foreground mb-2">Forms</div>
-                  <FormRequirementsList 
-                    patent={patent} 
-                    stage="cs" 
-                    readonly={!canEditForms}
-                  />
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="flex items-center space-x-2">
+                      <div className={`h-4 w-4 rounded-full ${patent.form_26 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span>Form 26</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className={`h-4 w-4 rounded-full ${patent.form_18 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span>Form 18</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className={`h-4 w-4 rounded-full ${patent.form_18a ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span>Form 18A</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className={`h-4 w-4 rounded-full ${patent.form_9 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span>Form 9</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className={`h-4 w-4 rounded-full ${patent.form_9a ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span>Form 9A</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className={`h-4 w-4 rounded-full ${patent.form_13 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span>Form 13</span>
+                    </div>
+                  </div>
                 </div>
               ) : null}
             </CardContent>
@@ -389,17 +377,6 @@ const PatentDetails = () => {
                   )}
                 </div>
               )}
-              
-              {patent.fer_status && (patent.fer_filing_status || (user?.role === 'filer' && patent.fer_filer_assgn === user.full_name)) ? (
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground mb-2">Forms</div>
-                  <FormRequirementsList 
-                    patent={patent} 
-                    stage="fer" 
-                    readonly={!canEditForms}
-                  />
-                </div>
-              ) : null}
               
               {patent.fer_history && patent.fer_history.length > 0 && (
                 <div className="mt-6">

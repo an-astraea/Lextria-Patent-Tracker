@@ -1,68 +1,72 @@
 
 import React from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { formatFormName, isFormSelected } from '@/lib/data';
 import { Patent } from '@/lib/types';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Check, X } from 'lucide-react';
 
 interface FormRequirementsListProps {
   patent: Patent;
-  onChange?: (formKey: string, checked: boolean) => void;
-  stage: 'ps' | 'cs' | 'fer';
-  readonly?: boolean;
+  userRole?: string;
+  onUpdate?: (formName: string, value: boolean) => void;
 }
 
-const FormRequirementsList: React.FC<FormRequirementsListProps> = ({
-  patent,
-  onChange,
-  stage,
-  readonly = false
+const FormRequirementsList: React.FC<FormRequirementsListProps> = ({ 
+  patent, 
+  userRole,
+  onUpdate 
 }) => {
-  // Define common forms that should be available in all stages
-  const commonForms = [
-    'form_01', 'form_03', 'form_04', 'form_05', 'form_06', 'form_07', 'form_07a', 
-    'form_08', 'form_08a', 'form_9', 'form_9a', 'form_10', 'form_11', 'form_12', 'form_13', 
-    'form_14', 'form_15', 'form_16', 'form_17', 'form_18', 'form_18a', 'form_19', 
-    'form_20', 'form_21', 'form_22', 'form_23', 'form_24', 'form_25', 'form_26', 
-    'form_27', 'form_28', 'form_29', 'form_30', 'form_31'
+  const isEditable = userRole === 'filer' && patent.cs_filer_assgn === userRole;
+  
+  const formFields = [
+    { name: 'form_26', label: 'Form 26', value: patent.form_26 },
+    { name: 'form_18', label: 'Form 18', value: patent.form_18 },
+    { name: 'form_18a', label: 'Form 18A', value: patent.form_18a },
+    { name: 'form_9', label: 'Form 9', value: patent.form_9 },
+    { name: 'form_9a', label: 'Form 9A', value: patent.form_9a },
+    { name: 'form_13', label: 'Form 13', value: patent.form_13 }
   ];
   
-  // Define stage-specific forms
-  const stageSpecificForms = {
-    ps: ['form_02_ps'],
-    cs: ['form_02_cs'],
-    fer: []
-  };
-  
-  // Combine common forms with stage-specific forms
-  const relevantForms = [...commonForms, ...stageSpecificForms[stage]];
-
-  const handleCheckboxChange = (formKey: string, checked: boolean) => {
-    if (onChange) {
-      onChange(formKey, checked);
+  const handleToggle = (formName: string, currentValue: boolean | null) => {
+    if (onUpdate && isEditable) {
+      onUpdate(formName, currentValue === true ? false : true);
     }
   };
-
+  
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-      {relevantForms.map((formKey) => (
-        <div key={formKey} className="flex items-start space-x-2 mb-2">
-          <Checkbox
-            id={`${stage}-${formKey}`}
-            checked={isFormSelected(patent, formKey)}
-            onCheckedChange={(checked) => handleCheckboxChange(formKey, !!checked)}
-            disabled={readonly}
-            className="mt-1"
-          />
-          <Label 
-            htmlFor={`${stage}-${formKey}`} 
-            className="cursor-pointer text-sm leading-tight"
-          >
-            {formatFormName(formKey)}
-          </Label>
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">CS Filing Forms</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {formFields.map((form) => (
+            <div 
+              key={form.name}
+              className={`flex items-center justify-between p-2 rounded-md ${isEditable ? 'cursor-pointer hover:bg-muted/50' : ''} ${form.value === true ? 'bg-green-50' : 'bg-gray-50'}`}
+              onClick={() => handleToggle(form.name, form.value)}
+            >
+              <span className="font-medium">{form.label}</span>
+              {form.value === true ? (
+                <div className="flex items-center text-green-600">
+                  <Check className="h-4 w-4 mr-1" />
+                  <span className="text-sm">Completed</span>
+                </div>
+              ) : (
+                <div className="flex items-center text-gray-400">
+                  <X className="h-4 w-4 mr-1" />
+                  <span className="text-sm">Not Completed</span>
+                </div>
+              )}
+            </div>
+          ))}
+          {patent.cs_filing_status === 0 && isEditable && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Click on a form to toggle its status
+            </p>
+          )}
         </div>
-      ))}
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
