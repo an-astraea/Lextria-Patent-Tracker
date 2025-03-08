@@ -27,6 +27,7 @@ const ClientDashboard = () => {
         const allPatents = await fetchPatents();
         setPatents(allPatents);
         
+        // Extract unique client IDs
         const uniqueClients = Array.from(new Set(allPatents.map(patent => patent.client_id)));
         setClients(uniqueClients);
         
@@ -52,39 +53,48 @@ const ClientDashboard = () => {
   const handleExportToExcel = () => {
     if (filteredPatents.length === 0) return;
 
-    const exportData = filteredPatents.map(patent => {
-      // Create base data object with patent information
-      const baseData = {
-        'Tracking ID': patent.tracking_id,
-        'Patent Applicant': patent.patent_applicant,
-        'Client ID': patent.client_id,
-        'Application No': patent.application_no || 'N/A',
-        'Date of Filing': patent.date_of_filing || 'Not Filed Yet',
-        'Patent Title': patent.patent_title,
-        'Applicant Address': patent.applicant_addr,
-        'Inventor Phone': patent.inventor_ph_no,
-        'Inventor Email': patent.inventor_email,
-      };
-      
-      // Add only the forms that are marked as Yes/true
-      const formData = {};
-      
-      if (patent.form_26) formData['Form 26'] = 'Yes';
-      if (patent.form_18) formData['Form 18'] = 'Yes';
-      if (patent.form_18a) formData['Form 18A'] = 'Yes';
-      if (patent.form_9) formData['Form 9'] = 'Yes';
-      if (patent.form_9a) formData['Form 9A'] = 'Yes';
-      if (patent.form_13) formData['Form 13'] = 'Yes';
-      
-      // Return combined data
-      return { ...baseData, ...formData };
-    });
+    // Prepare data for export
+    const exportData = filteredPatents.map(patent => ({
+      'Tracking ID': patent.tracking_id,
+      'Patent Applicant': patent.patent_applicant,
+      'Client ID': patent.client_id,
+      'Application No': patent.application_no || 'N/A',
+      'Date of Filing': patent.date_of_filing || 'Not Filed Yet',
+      'Patent Title': patent.patent_title,
+      'Applicant Address': patent.applicant_addr,
+      'Inventor Phone': patent.inventor_ph_no,
+      'Inventor Email': patent.inventor_email,
+      'PS Drafting Status': patent.ps_drafting_status === 1 ? 'Completed' : 'Pending',
+      'PS Drafter': patent.ps_drafter_assgn || 'N/A',
+      'PS Drafter Deadline': patent.ps_drafter_deadline || 'N/A',
+      'PS Filing Status': patent.ps_filing_status === 1 ? 'Completed' : 'Pending',
+      'PS Filer': patent.ps_filer_assgn || 'N/A',
+      'PS Filer Deadline': patent.ps_filer_deadline || 'N/A',
+      'CS Drafting Status': patent.cs_drafting_status === 1 ? 'Completed' : 'Pending',
+      'CS Drafter': patent.cs_drafter_assgn || 'N/A',
+      'CS Drafter Deadline': patent.cs_drafter_deadline || 'N/A',
+      'CS Filing Status': patent.cs_filing_status === 1 ? 'Completed' : 'Pending',
+      'CS Filer': patent.cs_filer_assgn || 'N/A',
+      'CS Filer Deadline': patent.cs_filer_deadline || 'N/A',
+      'FER Status': patent.fer_status === 1 ? 'Active' : 'Inactive',
+      'FER Drafting Status': patent.fer_drafter_status === 1 ? 'Completed' : 'Pending',
+      'FER Drafter': patent.fer_drafter_assgn || 'N/A',
+      'FER Drafter Deadline': patent.fer_drafter_deadline || 'N/A',
+      'FER Filing Status': patent.fer_filing_status === 1 ? 'Completed' : 'Pending',
+      'FER Filer': patent.fer_filer_assgn || 'N/A',
+      'FER Filer Deadline': patent.fer_filer_deadline || 'N/A',
+      'Created At': new Date(patent.created_at).toLocaleDateString(),
+      'Updated At': new Date(patent.updated_at).toLocaleDateString(),
+    }));
 
+    // Create worksheet
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     
+    // Create workbook
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, `${selectedClient}_Patents`);
     
+    // Generate Excel file and download
     XLSX.writeFile(workbook, `${selectedClient}_Patents_Report.xlsx`);
   };
 
@@ -147,7 +157,7 @@ const ClientDashboard = () => {
     <div className="container px-4 py-6 mx-auto max-w-7xl">
       <PageHeader
         title="Client Dashboard"
-        subtitle="View patent statistics and details for specific clients"
+        description="View patent statistics and details for specific clients"
       />
 
       <div className="flex flex-col md:flex-row items-start gap-4 mb-6">
@@ -180,11 +190,7 @@ const ClientDashboard = () => {
       </div>
 
       {isLoading ? (
-        <LoadingState 
-          size="lg" 
-          text="Loading client data..."
-          className="py-12" 
-        />
+        <LoadingState message="Loading client data..." />
       ) : selectedClient ? (
         <>
           {filteredPatents.length > 0 ? (
@@ -298,8 +304,8 @@ const ClientDashboard = () => {
           ) : (
             <EmptyState
               title="No patents found"
-              message={`There are no patents assigned to client ${selectedClient}`}
-              icon={<FileText />}
+              description={`There are no patents assigned to client ${selectedClient}`}
+              icon={FileText}
             />
           )}
         </>
