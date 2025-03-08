@@ -247,7 +247,7 @@ const PatentDetails = () => {
                       <span>Form 01 - Application</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <div className={`h-4 w-4 rounded-full ${patent.form_02_ps ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <div className={`h-4 w-4 rounded-full ${patent.form_02 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                       <span>Form 02 - Provisional Spec</span>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -311,7 +311,7 @@ const PatentDetails = () => {
                       <div className="h-4 w-4 rounded-full bg-green-500"></div>
                       <span>Form 01</span>
                     </div>}
-                    {patent.form_02_cs && <div className="flex items-center space-x-2">
+                    {patent.form_02 && <div className="flex items-center space-x-2">
                       <div className="h-4 w-4 rounded-full bg-green-500"></div>
                       <span>Form 02 - Complete Spec</span>
                     </div>}
@@ -462,4 +462,3 @@ const PatentDetails = () => {
 };
 
 export default PatentDetails;
-
