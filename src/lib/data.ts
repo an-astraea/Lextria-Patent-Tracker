@@ -1,344 +1,44 @@
 
-import { DataItem, Patent } from './types';
+import { Patent } from './types';
 
 export interface DataItem {
   id: string;
   name: string;
-  description: string;
-  image: string;
-  price: number;
+  value: number;
 }
 
-export const generateMockPatents = (): Patent[] => {
-  const currentDate = new Date().toISOString().split('T')[0];
+// Sample data for dashboard
+export const data: DataItem[] = [
+  { id: '1', name: 'Pending Patents', value: 13 },
+  { id: '2', name: 'Completed Patents', value: 45 },
+  { id: '3', name: 'Drafting Pending', value: 7 },
+  { id: '4', name: 'Filing Pending', value: 5 },
+];
 
-  return [
-    {
-      id: '1',
-      tracking_id: 'PAT-001',
-      patent_applicant: 'Innovatech Solutions',
-      client_id: 'CLT-1001',
-      application_no: 'APP-2023-45678',
-      date_of_filing: currentDate,
-      patent_title: 'Improved Method for Renewable Energy Storage Systems',
-      applicant_addr: '123 Innovation Blvd, Tech City, TC 54321',
-      inventor_ph_no: '+1-555-123-4567',
-      inventor_email: 'inventor@innovatech.com',
-      ps_drafting_status: 1,
-      ps_drafter_assgn: 'John Doe',
-      ps_drafter_deadline: currentDate,
-      ps_review_draft_status: 1,
-      ps_filing_status: 1,
-      ps_filer_assgn: 'Jane Smith',
-      ps_filer_deadline: currentDate,
-      ps_review_file_status: 0,
-      ps_completion_status: 0,
-      cs_drafting_status: 1,
-      cs_drafter_assgn: 'John Doe',
-      cs_drafter_deadline: currentDate,
-      cs_review_draft_status: 0,
-      cs_filing_status: 0,
-      cs_filer_assgn: 'Jane Smith',
-      cs_filer_deadline: currentDate,
-      form_26: true,
-      form_18: true,
-      form_18a: false,
-      form_9: true,
-      form_9a: false,
-      form_13: false,
-      form_01: true,
-      form_02_ps: true,
-      form_02_cs: false,
-      form_03: false,
-      form_04: false,
-      form_05: false,
-      form_06: false,
-      form_07: false,
-      form_07a: false,
-      form_08: false,
-      form_08a: false,
-      form_09: false,
-      form_10: false,
-      form_11: false,
-      form_12: false,
-      form_14: false,
-      form_15: false,
-      form_16: false,
-      form_17: false,
-      form_19: false,
-      form_20: false,
-      form_21: false,
-      form_22: false,
-      form_23: false,
-      form_24: false,
-      form_25: false,
-      form_27: false,
-      form_28: false,
-      form_29: false,
-      form_30: false,
-      form_31: false,
-      other_forms: null,
-      cs_review_file_status: 0,
-      cs_completion_status: 0,
-      fer_status: 1,
-      fer_drafter_status: 0,
-      fer_drafter_assgn: 'John Doe',
-      fer_drafter_deadline: currentDate,
-      fer_review_draft_status: 0,
-      fer_filing_status: 0,
-      fer_filer_assgn: 'Jane Smith',
-      fer_filer_deadline: currentDate,
-      fer_review_file_status: 0,
-      fer_completion_status: 0,
-      created_at: '2024-03-01T09:00:00Z',
-      updated_at: '2024-03-10T14:30:00Z',
-      inventors: [
-        {
-          id: '1-1',
-          tracking_id: 'PAT-001',
-          inventor_name: 'Dr. Sarah Johnson',
-          inventor_addr: '456 Research Park, Innovation City, IC 98765'
-        },
-        {
-          id: '1-2',
-          tracking_id: 'PAT-001',
-          inventor_name: 'Prof. Michael Chen',
-          inventor_addr: '789 University Ave, College Town, CT 12345'
-        }
-      ],
-      fer_history: [
-        {
-          id: '1-1',
-          tracking_id: 'PAT-001',
-          fer_drafter_assgn: 'John Doe',
-          fer_drafter_deadline: currentDate,
-          fer_filer_assgn: 'Jane Smith',
-          fer_filer_deadline: currentDate
-        }
-      ]
-    },
-    {
-      id: '2',
-      tracking_id: 'PAT-002',
-      patent_applicant: 'MediCore Health Systems',
-      client_id: 'CLT-1002',
-      application_no: 'APP-2023-87654',
-      date_of_filing: currentDate,
-      patent_title: 'Non-Invasive Glucose Monitoring Device',
-      applicant_addr: '456 Medical Parkway, Health District, HD 67890',
-      inventor_ph_no: '+1-555-987-6543',
-      inventor_email: 'research@medicore.com',
-      ps_drafting_status: 1,
-      ps_drafter_assgn: 'Alice Johnson',
-      ps_drafter_deadline: currentDate,
-      ps_review_draft_status: 1,
-      ps_filing_status: 1,
-      ps_filer_assgn: 'Bob Williams',
-      ps_filer_deadline: currentDate,
-      ps_review_file_status: 1,
-      ps_completion_status: 1,
-      cs_drafting_status: 1,
-      cs_drafter_assgn: 'Alice Johnson',
-      cs_drafter_deadline: currentDate,
-      cs_review_draft_status: 1,
-      cs_filing_status: 1,
-      cs_filer_assgn: 'Bob Williams',
-      cs_filer_deadline: currentDate,
-      form_26: true,
-      form_18: true,
-      form_18a: true,
-      form_9: true,
-      form_9a: false,
-      form_13: true,
-      form_01: true,
-      form_02_ps: true,
-      form_02_cs: true,
-      form_03: true,
-      form_04: false,
-      form_05: true,
-      form_06: false,
-      form_07: false,
-      form_07a: false,
-      form_08: true,
-      form_08a: false,
-      form_09: false,
-      form_10: false,
-      form_11: false,
-      form_12: false,
-      form_14: false,
-      form_15: false,
-      form_16: false,
-      form_17: false,
-      form_19: false,
-      form_20: false,
-      form_21: false,
-      form_22: false,
-      form_23: false,
-      form_24: false,
-      form_25: false,
-      form_27: false,
-      form_28: false,
-      form_29: false,
-      form_30: false,
-      form_31: false,
-      other_forms: "Additional documentation for clinical studies",
-      cs_review_file_status: 1,
-      cs_completion_status: 1,
-      fer_status: 1,
-      fer_drafter_status: 1,
-      fer_drafter_assgn: 'Alice Johnson',
-      fer_drafter_deadline: currentDate,
-      fer_review_draft_status: 1,
-      fer_filing_status: 1,
-      fer_filer_assgn: 'Bob Williams',
-      fer_filer_deadline: currentDate,
-      fer_review_file_status: 1,
-      fer_completion_status: 1,
-      created_at: '2024-02-15T10:00:00Z',
-      updated_at: '2024-03-20T15:45:00Z',
-      inventors: [
-        {
-          id: '2-1',
-          tracking_id: 'PAT-002',
-          inventor_name: 'Dr. Emily Rodriguez',
-          inventor_addr: '789 Medical Research Blvd, Science Park, SP 34567'
-        }
-      ],
-      fer_history: [
-        {
-          id: '2-1',
-          tracking_id: 'PAT-002',
-          fer_drafter_assgn: 'Alice Johnson',
-          fer_drafter_deadline: currentDate,
-          fer_filer_assgn: 'Bob Williams',
-          fer_filer_deadline: currentDate
-        }
-      ]
-    },
-    {
-      id: '3',
-      tracking_id: 'PAT-003',
-      patent_applicant: 'GreenTech Innovations',
-      client_id: 'CLT-1003',
-      application_no: null,
-      date_of_filing: currentDate,
-      patent_title: 'Solar-Powered Water Purification System',
-      applicant_addr: '789 Sustainability Road, Green Valley, GV 13579',
-      inventor_ph_no: '+1-555-246-8024',
-      inventor_email: 'inventors@greentech.org',
-      ps_drafting_status: 1,
-      ps_drafter_assgn: 'Chris Anderson',
-      ps_drafter_deadline: currentDate,
-      ps_review_draft_status: 0,
-      ps_filing_status: 0,
-      ps_filer_assgn: 'Diana Martinez',
-      ps_filer_deadline: currentDate,
-      ps_review_file_status: 0,
-      ps_completion_status: 0,
-      cs_drafting_status: 0,
-      cs_drafter_assgn: 'Chris Anderson',
-      cs_drafter_deadline: currentDate,
-      cs_review_draft_status: 0,
-      cs_filing_status: 0,
-      cs_filer_assgn: 'Diana Martinez',
-      cs_filer_deadline: currentDate,
-      form_26: null,
-      form_18: null,
-      form_18a: null,
-      form_9: null,
-      form_9a: null,
-      form_13: null,
-      form_01: null,
-      form_02_ps: null,
-      form_02_cs: null,
-      form_03: null,
-      form_04: null,
-      form_05: null,
-      form_06: null,
-      form_07: null,
-      form_07a: null,
-      form_08: null,
-      form_08a: null,
-      form_09: null,
-      form_10: null,
-      form_11: null,
-      form_12: null,
-      form_14: null,
-      form_15: null,
-      form_16: null,
-      form_17: null,
-      form_19: null,
-      form_20: null,
-      form_21: null,
-      form_22: null,
-      form_23: null,
-      form_24: null,
-      form_25: null,
-      form_27: null,
-      form_28: null,
-      form_29: null,
-      form_30: null,
-      form_31: null,
-      other_forms: null,
-      cs_review_file_status: 0,
-      cs_completion_status: 0,
-      fer_status: 0,
-      fer_drafter_status: 0,
-      fer_drafter_assgn: '',
-      fer_drafter_deadline: '',
-      fer_review_draft_status: 0,
-      fer_filing_status: 0,
-      fer_filer_assgn: '',
-      fer_filer_deadline: '',
-      fer_review_file_status: 0,
-      fer_completion_status: 0,
-      created_at: '2024-03-05T11:00:00Z',
-      updated_at: '2024-03-15T12:00:00Z',
-      inventors: [
-        {
-          id: '3-1',
-          tracking_id: 'PAT-003',
-          inventor_name: 'Dr. Thomas Green',
-          inventor_addr: '123 Sustainability Blvd, Eco City, EC 24680'
-        },
-        {
-          id: '3-2',
-          tracking_id: 'PAT-003',
-          inventor_name: 'Dr. Lisa Park',
-          inventor_addr: '456 Conservation Ave, Eco City, EC 24681'
-        }
-      ]
-    }
-  ];
+// Create a function to determine if a form has been selected in a Patent
+export const isFormSelected = (patent: Patent, formKey: string): boolean => {
+  if (!patent) return false;
+  return Boolean(patent[formKey as keyof Patent]);
 };
 
-export const mockData: DataItem[] = [
-  {
-    id: "1",
-    name: "Item 1",
-    description: "This is the first item",
-    image: "https://via.placeholder.com/150",
-    price: 20,
-  },
-  {
-    id: "2",
-    name: "Item 2",
-    description: "This is the second item",
-    image: "https://via.placeholder.com/150",
-    price: 30,
-  },
-  {
-    id: "3",
-    name: "Item 3",
-    description: "This is the third item",
-    image: "https://via.placeholder.com/150",
-    price: 40,
-  },
-  {
-    id: "4",
-    name: "Item 4",
-    description: "This is the fourth item",
-    image: "https://via.placeholder.com/150",
-    price: 50,
-  },
-];
+// Get all selected forms for a patent as an array
+export const getSelectedForms = (patent: Patent): string[] => {
+  if (!patent) return [];
+  
+  const formKeys = Object.keys(patent).filter(key => 
+    key.startsWith('form_') && Boolean(patent[key as keyof Patent])
+  );
+  
+  return formKeys;
+};
+
+// Format form name for display
+export const formatFormName = (formKey: string): string => {
+  // Handle special cases
+  if (formKey === 'form_02_ps') return 'Form 02 - Provisional Specification';
+  if (formKey === 'form_02_cs') return 'Form 02 - Complete Specification';
+  
+  // Regular form formatting
+  const formNumber = formKey.replace('form_', '');
+  return `Form ${formNumber}`;
+};

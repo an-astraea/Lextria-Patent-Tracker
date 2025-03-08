@@ -11,6 +11,9 @@ import { ArrowLeft, Edit, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 import PatentNotes from '@/components/patent/PatentNotes';
+import SelectedFormsList from '@/components/patent/SelectedFormsList';
+import FormRequirementsList from '@/components/patent/FormRequirementsList';
+import { getSelectedForms } from '@/lib/data';
 
 const PatentDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -60,6 +63,19 @@ const PatentDetails = () => {
         patent.cs_drafter_assgn === user.full_name ||
         patent.fer_drafter_assgn === user.full_name
       ))
+    );
+  }, [user, patent]);
+
+  // Helper to determine if the user can edit forms as a filer
+  const canEditForms = React.useMemo(() => {
+    if (!user || !patent) return false;
+    
+    return (
+      user.role === 'filer' && (
+        patent.ps_filer_assgn === user.full_name ||
+        patent.cs_filer_assgn === user.full_name ||
+        patent.fer_filer_assgn === user.full_name
+      )
     );
   }, [user, patent]);
 
@@ -133,7 +149,7 @@ const PatentDetails = () => {
               </div>
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Filing Date</div>
-                <div>{new Date(patent.date_of_filing).toLocaleDateString()}</div>
+                <div>{patent.date_of_filing ? new Date(patent.date_of_filing).toLocaleDateString() : 'Not filed yet'}</div>
               </div>
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Created At</div>
@@ -183,6 +199,11 @@ const PatentDetails = () => {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Display all selected forms */}
+      {getSelectedForms(patent).length > 0 && (
+        <SelectedFormsList patent={patent} title="Submitted Forms" />
+      )}
       
       <PatentNotes 
         patent={patent} 
@@ -239,23 +260,14 @@ const PatentDetails = () => {
                 </div>
               </div>
               
-              {patent.ps_filing_status ? (
+              {patent.ps_filing_status || (user?.role === 'filer' && patent.ps_filer_assgn === user.full_name) ? (
                 <div>
                   <div className="text-sm font-medium text-muted-foreground mb-2">Forms</div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    <div className="flex items-center space-x-2">
-                      <div className={`h-4 w-4 rounded-full ${patent.form_01 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span>Form 01 - Application</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className={`h-4 w-4 rounded-full ${patent.form_02_ps ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span>Form 02 - Provisional Spec</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className={`h-4 w-4 rounded-full ${patent.form_26 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span>Form 26 - Power of Attorney</span>
-                    </div>
-                  </div>
+                  <FormRequirementsList 
+                    patent={patent} 
+                    stage="ps" 
+                    readonly={!canEditForms}
+                  />
                 </div>
               ) : null}
             </CardContent>
@@ -304,63 +316,14 @@ const PatentDetails = () => {
                 </div>
               </div>
               
-              {patent.cs_filing_status ? (
+              {patent.cs_filing_status || (user?.role === 'filer' && patent.cs_filer_assgn === user.full_name) ? (
                 <div>
                   <div className="text-sm font-medium text-muted-foreground mb-2">Forms</div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {patent.form_01 && <div className="flex items-center space-x-2">
-                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
-                      <span>Form 01</span>
-                    </div>}
-                    {patent.form_02_cs && <div className="flex items-center space-x-2">
-                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
-                      <span>Form 02 - Complete Spec</span>
-                    </div>}
-                    {patent.form_9 && <div className="flex items-center space-x-2">
-                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
-                      <span>Form 9</span>
-                    </div>}
-                    {patent.form_9a && <div className="flex items-center space-x-2">
-                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
-                      <span>Form 9A</span>
-                    </div>}
-                    {patent.form_18 && <div className="flex items-center space-x-2">
-                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
-                      <span>Form 18</span>
-                    </div>}
-                    {patent.form_18a && <div className="flex items-center space-x-2">
-                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
-                      <span>Form 18A</span>
-                    </div>}
-                    {patent.form_13 && <div className="flex items-center space-x-2">
-                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
-                      <span>Form 13</span>
-                    </div>}
-                    {patent.form_26 && <div className="flex items-center space-x-2">
-                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
-                      <span>Form 26</span>
-                    </div>}
-                    
-                    {Object.entries(patent).filter(([key, value]) => 
-                      key.startsWith('form_') && value === true
-                    ).length > 8 && (
-                      <div className="flex items-center space-x-2 col-span-full">
-                        <div className="h-4 w-4 rounded-full bg-green-500"></div>
-                        <span>
-                          {Object.entries(patent).filter(([key, value]) => 
-                            key.startsWith('form_') && value === true
-                          ).length} Forms Submitted
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {patent.other_forms && (
-                    <div className="mt-3">
-                      <div className="text-sm font-medium text-muted-foreground">Other Forms / Notes</div>
-                      <div className="mt-1 text-sm">{patent.other_forms}</div>
-                    </div>
-                  )}
+                  <FormRequirementsList 
+                    patent={patent} 
+                    stage="cs" 
+                    readonly={!canEditForms}
+                  />
                 </div>
               ) : null}
             </CardContent>
@@ -426,6 +389,17 @@ const PatentDetails = () => {
                   )}
                 </div>
               )}
+              
+              {patent.fer_status && (patent.fer_filing_status || (user?.role === 'filer' && patent.fer_filer_assgn === user.full_name)) ? (
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground mb-2">Forms</div>
+                  <FormRequirementsList 
+                    patent={patent} 
+                    stage="fer" 
+                    readonly={!canEditForms}
+                  />
+                </div>
+              ) : null}
               
               {patent.fer_history && patent.fer_history.length > 0 && (
                 <div className="mt-6">
