@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, FileText, Users, CheckSquare, Edit, FileSpreadsheet, File } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, CheckSquare, FileSpreadsheet } from 'lucide-react';
 import Sidebar from './Sidebar';
 
 const AdminSidebar: React.FC = () => {
@@ -24,16 +24,6 @@ const AdminSidebar: React.FC = () => {
       label: 'Approvals',
       icon: CheckSquare,
       href: '/approvals',
-    },
-    {
-      label: 'Drafts',
-      icon: Edit,
-      href: '/drafts',
-    },
-    {
-      label: 'Filings',
-      icon: File,
-      href: '/filings',
     },
     {
       label: 'Client Dashboard',
