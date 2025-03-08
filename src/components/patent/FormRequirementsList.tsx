@@ -8,12 +8,14 @@ interface FormRequirementsListProps {
   patent: Patent;
   userRole?: string;
   onUpdate?: (formName: string, value: boolean) => void;
+  formValues?: Record<string, boolean>;
 }
 
 const FormRequirementsList: React.FC<FormRequirementsListProps> = ({ 
   patent, 
   userRole,
-  onUpdate 
+  onUpdate,
+  formValues
 }) => {
   const isEditable = userRole === 'filer' || userRole === 'admin';
   
@@ -61,42 +63,42 @@ const FormRequirementsList: React.FC<FormRequirementsListProps> = ({
   };
   
   const formFields = [
-    { name: 'form_01', value: patent.form_01 },
-    { name: 'form_02_ps', value: patent.form_02_ps },
-    { name: 'form_02_cs', value: patent.form_02_cs },
-    { name: 'form_03', value: patent.form_03 },
-    { name: 'form_04', value: patent.form_04 },
-    { name: 'form_05', value: patent.form_05 },
-    { name: 'form_06', value: patent.form_06 },
-    { name: 'form_07', value: patent.form_07 },
-    { name: 'form_07a', value: patent.form_07a },
-    { name: 'form_08', value: patent.form_08 },
-    { name: 'form_08a', value: patent.form_08a },
-    { name: 'form_09', value: patent.form_09 },
-    { name: 'form_09a', value: patent.form_09a },
-    { name: 'form_10', value: patent.form_10 },
-    { name: 'form_11', value: patent.form_11 },
-    { name: 'form_12', value: patent.form_12 },
-    { name: 'form_13', value: patent.form_13 },
-    { name: 'form_14', value: patent.form_14 },
-    { name: 'form_15', value: patent.form_15 },
-    { name: 'form_16', value: patent.form_16 },
-    { name: 'form_17', value: patent.form_17 },
-    { name: 'form_18', value: patent.form_18 },
-    { name: 'form_18a', value: patent.form_18a },
-    { name: 'form_19', value: patent.form_19 },
-    { name: 'form_20', value: patent.form_20 },
-    { name: 'form_21', value: patent.form_21 },
-    { name: 'form_22', value: patent.form_22 },
-    { name: 'form_23', value: patent.form_23 },
-    { name: 'form_24', value: patent.form_24 },
-    { name: 'form_25', value: patent.form_25 },
-    { name: 'form_26', value: patent.form_26 },
-    { name: 'form_27', value: patent.form_27 },
-    { name: 'form_28', value: patent.form_28 },
-    { name: 'form_29', value: patent.form_29 },
-    { name: 'form_30', value: patent.form_30 },
-    { name: 'form_31', value: patent.form_31 }
+    { name: 'form_01', value: formValues ? formValues['form_01'] : patent.form_01 },
+    { name: 'form_02_ps', value: formValues ? formValues['form_02_ps'] : patent.form_02_ps },
+    { name: 'form_02_cs', value: formValues ? formValues['form_02_cs'] : patent.form_02_cs },
+    { name: 'form_03', value: formValues ? formValues['form_03'] : patent.form_03 },
+    { name: 'form_04', value: formValues ? formValues['form_04'] : patent.form_04 },
+    { name: 'form_05', value: formValues ? formValues['form_05'] : patent.form_05 },
+    { name: 'form_06', value: formValues ? formValues['form_06'] : patent.form_06 },
+    { name: 'form_07', value: formValues ? formValues['form_07'] : patent.form_07 },
+    { name: 'form_07a', value: formValues ? formValues['form_07a'] : patent.form_07a },
+    { name: 'form_08', value: formValues ? formValues['form_08'] : patent.form_08 },
+    { name: 'form_08a', value: formValues ? formValues['form_08a'] : patent.form_08a },
+    { name: 'form_09', value: formValues ? formValues['form_09'] : patent.form_09 },
+    { name: 'form_09a', value: formValues ? formValues['form_09a'] : patent.form_09a },
+    { name: 'form_10', value: formValues ? formValues['form_10'] : patent.form_10 },
+    { name: 'form_11', value: formValues ? formValues['form_11'] : patent.form_11 },
+    { name: 'form_12', value: formValues ? formValues['form_12'] : patent.form_12 },
+    { name: 'form_13', value: formValues ? formValues['form_13'] : patent.form_13 },
+    { name: 'form_14', value: formValues ? formValues['form_14'] : patent.form_14 },
+    { name: 'form_15', value: formValues ? formValues['form_15'] : patent.form_15 },
+    { name: 'form_16', value: formValues ? formValues['form_16'] : patent.form_16 },
+    { name: 'form_17', value: formValues ? formValues['form_17'] : patent.form_17 },
+    { name: 'form_18', value: formValues ? formValues['form_18'] : patent.form_18 },
+    { name: 'form_18a', value: formValues ? formValues['form_18a'] : patent.form_18a },
+    { name: 'form_19', value: formValues ? formValues['form_19'] : patent.form_19 },
+    { name: 'form_20', value: formValues ? formValues['form_20'] : patent.form_20 },
+    { name: 'form_21', value: formValues ? formValues['form_21'] : patent.form_21 },
+    { name: 'form_22', value: formValues ? formValues['form_22'] : patent.form_22 },
+    { name: 'form_23', value: formValues ? formValues['form_23'] : patent.form_23 },
+    { name: 'form_24', value: formValues ? formValues['form_24'] : patent.form_24 },
+    { name: 'form_25', value: formValues ? formValues['form_25'] : patent.form_25 },
+    { name: 'form_26', value: formValues ? formValues['form_26'] : patent.form_26 },
+    { name: 'form_27', value: formValues ? formValues['form_27'] : patent.form_27 },
+    { name: 'form_28', value: formValues ? formValues['form_28'] : patent.form_28 },
+    { name: 'form_29', value: formValues ? formValues['form_29'] : patent.form_29 },
+    { name: 'form_30', value: formValues ? formValues['form_30'] : patent.form_30 },
+    { name: 'form_31', value: formValues ? formValues['form_31'] : patent.form_31 }
   ];
   
   const handleToggle = (formName: string, currentValue: boolean | null | undefined) => {
