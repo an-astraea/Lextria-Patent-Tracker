@@ -18,20 +18,24 @@ const FormRequirementsList: React.FC<FormRequirementsListProps> = ({
   stage,
   readonly = false
 }) => {
-  // Define form keys for each stage
-  const formKeys = {
-    ps: ['form_01', 'form_02_ps', 'form_26'],
-    cs: [
-      'form_01', 'form_02_cs', 'form_09', 'form_13', 'form_18', 'form_18a', 'form_26',
-      'form_03', 'form_04', 'form_05', 'form_06', 'form_07', 'form_07a', 'form_08', 'form_08a',
-      'form_10', 'form_11', 'form_12', 'form_14', 'form_15', 'form_16', 'form_17', 'form_19',
-      'form_20', 'form_21', 'form_22', 'form_23', 'form_24', 'form_25', 'form_27', 'form_28',
-      'form_29', 'form_30', 'form_31'
-    ],
-    fer: ['form_13']
+  // Define common forms that should be available in all stages
+  const commonForms = [
+    'form_01', 'form_03', 'form_04', 'form_05', 'form_06', 'form_07', 'form_07a', 
+    'form_08', 'form_08a', 'form_09', 'form_10', 'form_11', 'form_12', 'form_13', 
+    'form_14', 'form_15', 'form_16', 'form_17', 'form_18', 'form_18a', 'form_19', 
+    'form_20', 'form_21', 'form_22', 'form_23', 'form_24', 'form_25', 'form_26', 
+    'form_27', 'form_28', 'form_29', 'form_30', 'form_31'
+  ];
+  
+  // Define stage-specific forms
+  const stageSpecificForms = {
+    ps: ['form_02_ps'],
+    cs: ['form_02_cs'],
+    fer: []
   };
-
-  const relevantForms = formKeys[stage];
+  
+  // Combine common forms with stage-specific forms
+  const relevantForms = [...commonForms, ...stageSpecificForms[stage]];
 
   const handleCheckboxChange = (formKey: string, checked: boolean) => {
     if (onChange) {
