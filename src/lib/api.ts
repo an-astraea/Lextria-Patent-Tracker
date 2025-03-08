@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Employee, FERHistory, Inventor, Patent, PatentFormData } from "./types";
+import { Employee, FEREntry, FERHistory, Inventor, Patent, PatentFormData } from "./types";
 import { toast } from "sonner";
 
 // Patent Functions
@@ -1150,7 +1150,10 @@ export const fetchFilerFERAssignments = async (filerName: string): Promise<FEREn
   try {
     const { data, error } = await supabase
       .from("fer_entries")
-      .select("*, patents!inner(*)")
+      .select(`
+        *,
+        patent:patent_id(*)
+      `)
       .eq("fer_filer_assgn", filerName)
       .eq("fer_filing_status", 0)
       .eq("fer_drafter_status", 1); // Only show FERs that have been drafted
@@ -1259,7 +1262,10 @@ export const fetchPendingFERReviews = async (): Promise<FEREntry[]> => {
   try {
     const { data, error } = await supabase
       .from("fer_entries")
-      .select("*, patents!inner(*)")
+      .select(`
+        *,
+        patent:patent_id(*)
+      `)
       .or("fer_review_draft_status.eq.1,fer_review_file_status.eq.1");
 
     if (error) {

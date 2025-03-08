@@ -1,20 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Eye, FileCheck, Loader2 } from 'lucide-react';
-import { 
-  fetchFilerAssignments, 
-  fetchFilerCompletedAssignments, 
-  completeFilerTask, 
-  updatePatentForms,
-  fetchFilerFERAssignments,
-  completeFERFilerTask
-} from '@/lib/api';
+import { Loader2, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { fetchFilerAssignments, fetchFilerCompletedAssignments, fetchFilerFERAssignments, completeFilerTask, completeFERFilerTask } from '@/lib/api';
 import { FEREntry, Patent } from '@/lib/types';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useNavigate } from 'react-router-dom';
+import { format, isAfter, parseISO } from 'date-fns';
 import {
   Table,
   TableBody,
@@ -24,483 +17,510 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { format } from 'date-fns';
-import FormRequirementsList from '@/components/patent/FormRequirementsList';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import FormRequirementsList from '@/components/patent/FormRequirementsList';
 
 const Filings = () => {
   const navigate = useNavigate();
-  const [assignments, setAssignments] = useState<Patent[]>([]);
-  const [completedAssignments, setCompletedAssignments] = useState<Patent[]>([]);
-  const [ferAssignments, setFERAssignments] = useState<FEREntry[]>([]);
-  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
-  const [isCompleting, setIsCompleting] = useState(false);
+  const [patents, setPatents] = useState<Patent[]>([]);
+  const [completedPatents, setCompletedPatents] = useState<Patent[]>([]);
+  const [ferEntries, setFEREntries] = useState<FEREntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedPatent, setSelectedPatent] = useState<Patent | null>(null);
   const [selectedFER, setSelectedFER] = useState<FEREntry | null>(null);
-  const [viewingForms, setViewingForms] = useState(false);
-  const [activeTab, setActiveTab] = useState("patents");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isFERDialogOpen, setIsFERDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      
+      const fetchData = async () => {
+        try {
+          const [patentsData, completedData, ferData] = await Promise.all([
+            fetchFilerAssignments(parsedUser.full_name),
+            fetchFilerCompletedAssignments(parsedUser.full_name),
+            fetchFilerFERAssignments(parsedUser.full_name)
+          ]);
+          
+          setPatents(patentsData);
+          setCompletedPatents(completedData);
+          setFEREntries(ferData);
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          toast.error('Failed to load assignments');
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchData();
     } else {
-      navigate('/login');
+      navigate('/');
     }
   }, [navigate]);
 
-  const fetchAssignments = async () => {
-    if (user?.full_name) {
-      setLoading(true);
-      try {
-        const assigned = await fetchFilerAssignments(user.full_name);
-        setAssignments(assigned);
-        
-        const completed = await fetchFilerCompletedAssignments(user.full_name);
-        setCompletedAssignments(completed);
-        
-        const ferAssigned = await fetchFilerFERAssignments(user.full_name);
-        setFERAssignments(ferAssigned);
-      } catch (error) {
-        console.error("Error fetching assignments:", error);
-        toast.error("Failed to load assignments");
-      } finally {
-        setLoading(false);
+  const handlePatentClick = (patent: Patent) => {
+    setSelectedPatent(patent);
+    setIsDialogOpen(true);
+    
+    // Initialize form data based on patent's current form values
+    const initialFormData: Record<string, boolean> = {};
+    for (let i = 1; i <= 31; i++) {
+      const formKey = i < 10 ? `form_0${i}` : `form_${i}`;
+      if (formKey in patent) {
+        initialFormData[formKey] = !!patent[formKey as keyof Patent];
       }
     }
-  };
-
-  useEffect(() => {
-    fetchAssignments();
-  }, [user]);
-
-  const handleUpdateForm = async (formName: string, value: boolean) => {
-    if (selectedPatent) {
-      try {
-        const formUpdates: Record<string, boolean> = {
-          [formName]: value
-        };
-        
-        await updatePatentForms(selectedPatent.id, formUpdates);
-        
-        setSelectedPatent(prev => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            [formName]: value
-          };
-        });
-        
-        toast.success(`Form ${formName} updated successfully`);
-      } catch (error) {
-        console.error("Error updating form:", error);
-        toast.error("Failed to update form");
-      }
+    
+    // Special handling for form_02_ps and form_02_cs
+    if ('form_02_ps' in patent) {
+      initialFormData['form_02_ps'] = !!patent.form_02_ps;
     }
+    if ('form_02_cs' in patent) {
+      initialFormData['form_02_cs'] = !!patent.form_02_cs;
+    }
+    
+    // Special handling for form_07a, form_08a, form_09a, form_18a
+    ['form_07a', 'form_08a', 'form_09a', 'form_18a'].forEach(formKey => {
+      if (formKey in patent) {
+        initialFormData[formKey] = !!patent[formKey as keyof Patent];
+      }
+    });
+    
+    setFormData(initialFormData);
+  };
+  
+  const handleFERClick = (fer: FEREntry) => {
+    setSelectedFER(fer);
+    setIsFERDialogOpen(true);
   };
 
-  const handleCompleteWithForms = async () => {
+  const handleFormChange = (formName: string, value: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [formName]: value
+    }));
+  };
+
+  const handleSubmit = async () => {
     if (!selectedPatent) return;
     
-    setIsCompleting(true);
+    setIsSubmitting(true);
     
     try {
-      const formFields: Record<string, boolean> = {};
+      let filingType = '';
       
-      for (let i = 1; i <= 31; i++) {
-        const formNum = i < 10 ? `0${i}` : `${i}`;
-        const formKey = `form_${formNum}` as keyof Patent;
-        
-        if (selectedPatent[formKey] !== undefined) {
-          formFields[formKey] = !!selectedPatent[formKey];
-        }
+      // Determine which filing type is being completed
+      if (selectedPatent.ps_filer_assgn === user.full_name && selectedPatent.ps_filing_status === 0) {
+        filingType = 'PS';
+      } else if (selectedPatent.cs_filer_assgn === user.full_name && selectedPatent.cs_filing_status === 0) {
+        filingType = 'CS';
+      } else if (selectedPatent.fer_filer_assgn === user.full_name && selectedPatent.fer_filing_status === 0) {
+        filingType = 'FER';
       }
       
-      if (selectedPatent.form_02_ps !== undefined) {
-        formFields.form_02_ps = !!selectedPatent.form_02_ps;
-      }
-      if (selectedPatent.form_02_cs !== undefined) {
-        formFields.form_02_cs = !!selectedPatent.form_02_cs;
-      }
-      
-      ['a'].forEach(suffix => {
-        for (let i = 1; i <= 31; i++) {
-          const formNum = i < 10 ? `0${i}` : `${i}`;
-          const formKey = `form_${formNum}${suffix}` as keyof Patent;
-          
-          if (selectedPatent[formKey] !== undefined) {
-            formFields[formKey] = !!selectedPatent[formKey];
-          }
-        }
-      });
-      
-      const success = await completeFilerTask(selectedPatent, user?.full_name || '', formFields);
+      // Only submit form data for CS filings
+      const success = await completeFilerTask(
+        selectedPatent, 
+        user.full_name,
+        filingType === 'CS' ? formData : undefined
+      );
       
       if (success) {
-        toast.success("Filing task completed and submitted for review!");
-        setViewingForms(false);
-        fetchAssignments();
+        toast.success(`${filingType} filing completed successfully`);
+        
+        // Update local state
+        setPatents(prev => prev.filter(p => p.id !== selectedPatent.id));
+        setCompletedPatents(prev => [selectedPatent, ...prev]);
+        
+        // Close dialog
+        setIsDialogOpen(false);
       }
     } catch (error) {
-      console.error("Error completing filing task:", error);
-      toast.error("Failed to complete filing task");
+      console.error('Error completing filing:', error);
+      toast.error('Failed to complete filing');
     } finally {
-      setIsCompleting(false);
+      setIsSubmitting(false);
     }
   };
   
-  const handleCompleteFER = async () => {
+  const handleFERSubmit = async () => {
     if (!selectedFER) return;
     
-    setIsCompleting(true);
+    setIsSubmitting(true);
     
     try {
-      const success = await completeFERFilerTask(selectedFER, user?.full_name || '');
+      const success = await completeFERFilerTask(selectedFER, user.full_name);
       
       if (success) {
-        toast.success("FER filing task completed and submitted for review!");
-        setViewingForms(false);
-        fetchAssignments();
+        toast.success('FER filing completed successfully');
+        
+        // Update local state
+        setFEREntries(prev => prev.filter(fer => fer.id !== selectedFER.id));
+        
+        // Close dialog
+        setIsFERDialogOpen(false);
       }
     } catch (error) {
-      console.error("Error completing FER filing task:", error);
-      toast.error("Failed to complete FER filing task");
+      console.error('Error completing FER filing:', error);
+      toast.error('Failed to complete FER filing');
     } finally {
-      setIsCompleting(false);
+      setIsSubmitting(false);
     }
   };
-  
-  const handleOpenFormsDialog = (patent: Patent) => {
-    setSelectedPatent(patent);
-    setSelectedFER(null);
-    setViewingForms(true);
-  };
-  
-  const handleOpenFERDialog = (ferEntry: FEREntry) => {
-    setSelectedFER(ferEntry);
-    setSelectedPatent(null);
-    setViewingForms(true);
-  };
 
-  const getPatentStage = (patent: Patent, userName: string) => {
-    if (patent.ps_filer_assgn === userName && patent.ps_filing_status === 0) return 'PS Filing';
-    if (patent.cs_filer_assgn === userName && patent.cs_filing_status === 0) return 'CS Filing';
-    if (patent.fer_filer_assgn === userName && patent.fer_filing_status === 0) return 'FER Filing';
-    if (patent.ps_filer_assgn === userName && patent.ps_filing_status === 1) return 'PS Filing';
-    if (patent.cs_filer_assgn === userName && patent.cs_filing_status === 1) return 'CS Filing';
-    if (patent.fer_filer_assgn === userName && patent.fer_filing_status === 1) return 'FER Filing';
-    return 'N/A';
+  const isDeadlinePassed = (deadline: string | undefined | null) => {
+    if (!deadline) return false;
+    return isAfter(new Date(), parseISO(deadline));
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-        Loading assignments...
+        Loading filing assignments...
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-6">Filing Assignments</h1>
+    <div className="container mx-auto py-6 space-y-8">
+      <h1 className="text-3xl font-bold">My Filing Assignments</h1>
       
-      <Tabs defaultValue="patents" value={activeTab} onValueChange={setActiveTab} className="mb-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="patents">Patent Filings</TabsTrigger>
-          <TabsTrigger value="fers">FER Filings</TabsTrigger>
+      <Tabs defaultValue="pending">
+        <TabsList className="mb-4">
+          <TabsTrigger value="pending">Pending Filings ({patents.length})</TabsTrigger>
+          <TabsTrigger value="fer">FER Filings ({ferEntries.length})</TabsTrigger>
+          <TabsTrigger value="completed">Completed Filings ({completedPatents.length})</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="patents" className="mt-6">
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Pending Patent Assignments</CardTitle>
-              <CardDescription>List of patents awaiting your filing</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {assignments.length > 0 ? (
-                <ScrollArea className="h-[300px] w-full rounded-md border">
-                  <Table>
-                    <TableCaption>A list of patents awaiting filing</TableCaption>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tracking ID</TableHead>
-                        <TableHead>Patent Title</TableHead>
-                        <TableHead>Applicant</TableHead>
-                        <TableHead>Stage</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {assignments.map((patent) => (
-                        <TableRow key={patent.id}>
-                          <TableCell>{patent.tracking_id}</TableCell>
-                          <TableCell>{patent.patent_title}</TableCell>
-                          <TableCell>{patent.patent_applicant}</TableCell>
-                          <TableCell>{getPatentStage(patent, user?.full_name)}</TableCell>
-                          <TableCell className="text-right">
-                            <Button 
-                              variant="outline" 
-                              onClick={() => handleOpenFormsDialog(patent)}
-                            >
-                              <Eye className="h-4 w-4 mr-2" /> Forms
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              ) : (
-                <p className="text-gray-500">No pending filing assignments</p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Completed Patent Assignments</CardTitle>
-              <CardDescription>List of patents you have completed filing for</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {completedAssignments.length > 0 ? (
-                <ScrollArea className="h-[300px] w-full rounded-md border">
-                  <Table>
-                    <TableCaption>A list of patents you have completed filing for</TableCaption>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tracking ID</TableHead>
-                        <TableHead>Patent Title</TableHead>
-                        <TableHead>Applicant</TableHead>
-                        <TableHead>Stage</TableHead>
-                        <TableHead>Completion Date</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {completedAssignments.map((patent) => (
-                        <TableRow key={patent.id}>
-                          <TableCell>{patent.tracking_id}</TableCell>
-                          <TableCell>{patent.patent_title}</TableCell>
-                          <TableCell>{patent.patent_applicant}</TableCell>
-                          <TableCell>{getPatentStage(patent, user?.full_name)}</TableCell>
-                          <TableCell>{format(new Date(patent.updated_at), 'yyyy-MM-dd')}</TableCell>
-                          <TableCell className="text-right">
-                            <Button 
-                              variant="secondary"
-                              onClick={() => handleOpenFormsDialog(patent)}
-                            >
-                              <Eye className="h-4 w-4 mr-2" /> Forms
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              ) : (
-                <p className="text-gray-500">No completed filing assignments</p>
-              )}
-            </CardContent>
-          </Card>
+        <TabsContent value="pending">
+          {patents.length > 0 ? (
+            <div className="grid gap-6">
+              {patents.map(patent => {
+                // Determine which filing type is pending for this patent
+                let filingType = '';
+                let deadline = '';
+                
+                if (patent.ps_filer_assgn === user.full_name && patent.ps_filing_status === 0) {
+                  filingType = 'PS';
+                  deadline = patent.ps_filer_deadline;
+                } else if (patent.cs_filer_assgn === user.full_name && patent.cs_filing_status === 0) {
+                  filingType = 'CS';
+                  deadline = patent.cs_filer_deadline;
+                } else if (patent.fer_filer_assgn === user.full_name && patent.fer_filing_status === 0) {
+                  filingType = 'FER';
+                  deadline = patent.fer_filer_deadline;
+                }
+                
+                const isLate = isDeadlinePassed(deadline);
+                
+                return (
+                  <Card key={patent.id} className={isLate ? "border-red-500" : ""}>
+                    <CardHeader className="flex flex-row items-start justify-between">
+                      <div>
+                        <CardTitle className="flex items-center">
+                          <FileText className="h-5 w-5 mr-2" />
+                          {patent.patent_title}
+                          {isLate && (
+                            <Badge variant="destructive" className="ml-2">
+                              <AlertCircle className="h-3 w-3 mr-1" /> Overdue
+                            </Badge>
+                          )}
+                        </CardTitle>
+                        <CardDescription>
+                          Tracking ID: {patent.tracking_id} | Client: {patent.patent_applicant}
+                        </CardDescription>
+                      </div>
+                      <Badge>{filingType} Filing</Badge>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <div className="text-sm font-medium text-gray-500">Deadline</div>
+                          <div className="font-semibold">
+                            {deadline ? format(new Date(deadline), 'PPP') : 'Not set'}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-500">Application No</div>
+                          <div className="font-semibold">{patent.application_no || 'N/A'}</div>
+                        </div>
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button variant="outline" onClick={() => navigate(`/patents/${patent.id}`)}>
+                          View Details
+                        </Button>
+                        <Button onClick={() => handlePatentClick(patent)}>
+                          Complete Filing
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-8">
+                <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
+                <p className="text-xl font-medium">No pending filing assignments</p>
+                <p className="text-gray-500">You're all caught up!</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
         
-        <TabsContent value="fers" className="mt-6">
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Pending FER Assignments</CardTitle>
-              <CardDescription>List of FERs awaiting your filing</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {ferAssignments.length > 0 ? (
-                <ScrollArea className="h-[300px] w-full rounded-md border">
-                  <Table>
-                    <TableCaption>A list of FERs awaiting filing</TableCaption>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Patent</TableHead>
-                        <TableHead>FER #</TableHead>
-                        <TableHead>Deadline</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {ferAssignments.map((fer) => (
-                        <TableRow key={fer.id}>
-                          <TableCell>
-                            {fer.patent ? fer.patent.patent_title : 'Unknown Patent'}
-                          </TableCell>
-                          <TableCell>{fer.fer_number}</TableCell>
-                          <TableCell>
-                            {fer.fer_filer_deadline 
-                              ? format(new Date(fer.fer_filer_deadline), 'yyyy-MM-dd')
-                              : 'Not set'}
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant={fer.fer_drafter_status === 1 ? "success" : "secondary"}
-                              className="mr-2"
-                            >
-                              Draft: {fer.fer_drafter_status === 1 ? "Ready" : "Pending"}
+        <TabsContent value="fer">
+          {ferEntries.length > 0 ? (
+            <div className="grid gap-6">
+              {ferEntries.map(fer => {
+                const isLate = isDeadlinePassed(fer.fer_filer_deadline);
+                
+                return (
+                  <Card key={fer.id} className={isLate ? "border-red-500" : ""}>
+                    <CardHeader className="flex flex-row items-start justify-between">
+                      <div>
+                        <CardTitle className="flex items-center">
+                          <FileText className="h-5 w-5 mr-2" />
+                          {fer.patent?.patent_title}
+                          {isLate && (
+                            <Badge variant="destructive" className="ml-2">
+                              <AlertCircle className="h-3 w-3 mr-1" /> Overdue
                             </Badge>
-                            <Badge variant="secondary">
-                              Filing: Pending
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button 
-                              variant="outline" 
-                              onClick={() => handleOpenFERDialog(fer)}
-                              disabled={fer.fer_drafter_status !== 1}
-                            >
-                              <FileCheck className="h-4 w-4 mr-2" /> Complete
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              ) : (
-                <p className="text-gray-500">No pending FER filing assignments</p>
-              )}
-            </CardContent>
-          </Card>
+                          )}
+                        </CardTitle>
+                        <CardDescription>
+                          FER #{fer.fer_number} | Tracking ID: {fer.patent?.tracking_id}
+                        </CardDescription>
+                      </div>
+                      <Badge>FER Filing</Badge>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <div className="text-sm font-medium text-gray-500">Deadline</div>
+                          <div className="font-semibold">
+                            {fer.fer_filer_deadline ? format(new Date(fer.fer_filer_deadline), 'PPP') : 'Not set'}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-500">FER Date</div>
+                          <div className="font-semibold">
+                            {fer.fer_date ? format(new Date(fer.fer_date), 'PPP') : 'Not set'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button variant="outline" onClick={() => navigate(`/patents/${fer.patent_id}`)}>
+                          View Patent
+                        </Button>
+                        <Button onClick={() => handleFERClick(fer)}>
+                          Complete FER Filing
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-8">
+                <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
+                <p className="text-xl font-medium">No pending FER filing assignments</p>
+                <p className="text-gray-500">You're all caught up!</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="completed">
+          {completedPatents.length > 0 ? (
+            <Table>
+              <TableCaption>List of your completed filing assignments</TableCaption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tracking ID</TableHead>
+                  <TableHead>Patent Title</TableHead>
+                  <TableHead>Filing Type</TableHead>
+                  <TableHead>Completed Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {completedPatents.map(patent => {
+                  // Determine which filing type was completed
+                  let filingType = '';
+                  
+                  if (patent.ps_filer_assgn === user.full_name && patent.ps_filing_status === 1) {
+                    filingType = 'PS';
+                  } else if (patent.cs_filer_assgn === user.full_name && patent.cs_filing_status === 1) {
+                    filingType = 'CS';
+                  } else if (patent.fer_filer_assgn === user.full_name && patent.fer_filing_status === 1) {
+                    filingType = 'FER';
+                  }
+                  
+                  return (
+                    <TableRow key={patent.id}>
+                      <TableCell>{patent.tracking_id}</TableCell>
+                      <TableCell>{patent.patent_title}</TableCell>
+                      <TableCell>{filingType} Filing</TableCell>
+                      <TableCell>{format(new Date(patent.updated_at), 'PPP')}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" onClick={() => navigate(`/patents/${patent.id}`)}>
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-8">
+                <p className="text-xl font-medium">No completed filing assignments yet</p>
+                <p className="text-gray-500">Your completed filings will appear here</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
-
-      {selectedPatent && (
-        <Dialog open={viewingForms} onOpenChange={setViewingForms}>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>Patent Forms - {selectedPatent.patent_title}</DialogTitle>
-              <DialogDescription>
-                {selectedPatent.ps_filing_status === 0 || selectedPatent.cs_filing_status === 0 || selectedPatent.fer_filing_status === 0 ? 
-                  "Complete the required forms and submit for review" : 
-                  "View the forms you have completed"}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="py-4">
-              <FormRequirementsList 
-                patent={selectedPatent} 
-                userRole="filer"
-                onUpdate={handleUpdateForm}
-              />
-            </div>
-            
-            <DialogFooter className="flex justify-end space-x-2">
-              <DialogClose asChild>
-                <Button variant="secondary">Close</Button>
-              </DialogClose>
-              
-              {(selectedPatent.ps_filing_status === 0 || selectedPatent.cs_filing_status === 0 || selectedPatent.fer_filing_status === 0) && (
-                <Button
-                  onClick={handleCompleteWithForms}
-                  disabled={isCompleting}
-                >
-                  {isCompleting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    "Complete & Submit for Review"
-                  )}
-                </Button>
-              )}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
       
-      {selectedFER && (
-        <Dialog open={viewingForms} onOpenChange={setViewingForms}>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>Complete FER Filing - FER #{selectedFER.fer_number}</DialogTitle>
-              <DialogDescription>
-                Mark this FER as completed and submit it for review
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="py-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">FER Number</p>
-                  <p className="font-semibold">{selectedFER.fer_number}</p>
+      {/* Patent Filing Completion Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Complete Filing</DialogTitle>
+            <DialogDescription>
+              Confirm that you have completed the filing for this patent
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedPatent && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm font-medium text-gray-500">Patent Title</div>
+                  <div className="font-semibold">{selectedPatent.patent_title}</div>
                 </div>
-                
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">FER Date</p>
-                  <p className="font-semibold">
-                    {selectedFER.fer_date 
-                      ? format(new Date(selectedFER.fer_date), 'yyyy-MM-dd') 
-                      : 'Not set'}
-                  </p>
+                <div>
+                  <div className="text-sm font-medium text-gray-500">Tracking ID</div>
+                  <div className="font-semibold">{selectedPatent.tracking_id}</div>
                 </div>
-                
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Drafter</p>
-                  <p className="font-semibold">{selectedFER.fer_drafter_assgn || 'Not assigned'}</p>
+                <div>
+                  <div className="text-sm font-medium text-gray-500">Client</div>
+                  <div className="font-semibold">{selectedPatent.patent_applicant}</div>
                 </div>
-                
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Draft Status</p>
-                  <Badge variant={selectedFER.fer_drafter_status === 1 ? "success" : "secondary"}>
-                    {selectedFER.fer_drafter_status === 1 ? "Completed" : "Pending"}
-                  </Badge>
-                </div>
-                
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Filer</p>
-                  <p className="font-semibold">{selectedFER.fer_filer_assgn || 'Not assigned'}</p>
-                </div>
-                
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Filer Deadline</p>
-                  <p className="font-semibold">
-                    {selectedFER.fer_filer_deadline 
-                      ? format(new Date(selectedFER.fer_filer_deadline), 'yyyy-MM-dd') 
-                      : 'Not set'}
-                  </p>
+                <div>
+                  <div className="text-sm font-medium text-gray-500">Application No</div>
+                  <div className="font-semibold">{selectedPatent.application_no || 'N/A'}</div>
                 </div>
               </div>
               
-              <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                <p className="text-center mb-2 font-medium">Filing Confirmation</p>
-                <p className="text-sm text-gray-600 text-center">
-                  By clicking "Complete & Submit for Review", you confirm that you have completed 
-                  all necessary filing work for this FER.
-                </p>
+              {/* Only show form requirements for CS filings */}
+              {selectedPatent.cs_filer_assgn === user.full_name && selectedPatent.cs_filing_status === 0 && (
+                <div className="mt-4">
+                  <h3 className="text-lg font-medium mb-2">Form Requirements</h3>
+                  <FormRequirementsList 
+                    patent={selectedPatent} 
+                    userRole="filer"
+                    onUpdate={handleFormChange}
+                    formValues={formData}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'Complete Filing'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* FER Filing Completion Dialog */}
+      <Dialog open={isFERDialogOpen} onOpenChange={setIsFERDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Complete FER Filing</DialogTitle>
+            <DialogDescription>
+              Confirm that you have completed the FER filing
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedFER && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <div className="text-sm font-medium text-gray-500">Patent Title</div>
+                  <div className="font-semibold">{selectedFER.patent?.patent_title}</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-500">FER Number</div>
+                  <div className="font-semibold">FER #{selectedFER.fer_number}</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-500">FER Date</div>
+                  <div className="font-semibold">
+                    {selectedFER.fer_date ? format(new Date(selectedFER.fer_date), 'PPP') : 'Not set'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-500">Deadline</div>
+                  <div className="font-semibold">
+                    {selectedFER.fer_filer_deadline ? format(new Date(selectedFER.fer_filer_deadline), 'PPP') : 'Not set'}
+                  </div>
+                </div>
               </div>
             </div>
-            
-            <DialogFooter className="flex justify-end space-x-2">
-              <DialogClose asChild>
-                <Button variant="secondary">Close</Button>
-              </DialogClose>
-              
-              <Button
-                onClick={handleCompleteFER}
-                disabled={isCompleting || selectedFER.fer_drafter_status !== 1}
-              >
-                {isCompleting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Complete & Submit for Review"
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsFERDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleFERSubmit} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'Complete FER Filing'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
