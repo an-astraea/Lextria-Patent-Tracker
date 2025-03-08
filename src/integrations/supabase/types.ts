@@ -45,6 +45,68 @@ export type Database = {
         }
         Relationships: []
       }
+      fer_entries: {
+        Row: {
+          created_at: string | null
+          fer_completion_status: number | null
+          fer_date: string | null
+          fer_drafter_assgn: string | null
+          fer_drafter_deadline: string | null
+          fer_drafter_status: number | null
+          fer_filer_assgn: string | null
+          fer_filer_deadline: string | null
+          fer_filing_status: number | null
+          fer_number: number
+          fer_review_draft_status: number | null
+          fer_review_file_status: number | null
+          id: string
+          patent_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          fer_completion_status?: number | null
+          fer_date?: string | null
+          fer_drafter_assgn?: string | null
+          fer_drafter_deadline?: string | null
+          fer_drafter_status?: number | null
+          fer_filer_assgn?: string | null
+          fer_filer_deadline?: string | null
+          fer_filing_status?: number | null
+          fer_number: number
+          fer_review_draft_status?: number | null
+          fer_review_file_status?: number | null
+          id?: string
+          patent_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          fer_completion_status?: number | null
+          fer_date?: string | null
+          fer_drafter_assgn?: string | null
+          fer_drafter_deadline?: string | null
+          fer_drafter_status?: number | null
+          fer_filer_assgn?: string | null
+          fer_filer_deadline?: string | null
+          fer_filing_status?: number | null
+          fer_number?: number
+          fer_review_draft_status?: number | null
+          fer_review_file_status?: number | null
+          id?: string
+          patent_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fer_entries_patent_id_fkey"
+            columns: ["patent_id"]
+            isOneToOne: false
+            referencedRelation: "patents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fer_history: {
         Row: {
           created_at: string | null

@@ -41,6 +41,21 @@ export const fetchPatentById = async (id: string): Promise<Patent | null> => {
       throw error;
     }
 
+    if (data) {
+      // Fetch FER entries for this patent
+      const { data: ferEntries, error: ferError } = await supabase
+        .from("fer_entries")
+        .select("*")
+        .eq("patent_id", data.id)
+        .order("fer_number", { ascending: true });
+
+      if (ferError) {
+        console.error("Error fetching FER entries:", ferError);
+      } else {
+        data.fer_entries = ferEntries;
+      }
+    }
+
     return data || null;
   } catch (error) {
     console.error("Error fetching patent:", error);
@@ -1001,6 +1016,257 @@ export const fetchPatentTimeline = async (patentId: string): Promise<any[]> => {
   } catch (error) {
     console.error("Error fetching patent timeline:", error);
     toast.error("Failed to load patent timeline");
+    return [];
+  }
+};
+
+// Add functions for managing FER entries
+export const fetchFEREntries = async (patentId: string): Promise<FEREntry[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("fer_entries")
+      .select("*")
+      .eq("patent_id", patentId)
+      .order("fer_number", { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching FER entries:", error);
+    toast.error("Failed to load FER entries");
+    return [];
+  }
+};
+
+export const createFEREntry = async (
+  patentId: string, 
+  ferNumber: number,
+  drafterName?: string,
+  drafterDeadline?: string,
+  filerName?: string,
+  filerDeadline?: string
+): Promise<FEREntry | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("fer_entries")
+      .insert({
+        patent_id: patentId,
+        fer_number: ferNumber,
+        fer_drafter_assgn: drafterName || null,
+        fer_drafter_deadline: drafterDeadline || null,
+        fer_filer_assgn: filerName || null,
+        fer_filer_deadline: filerDeadline || null,
+        fer_drafter_status: 0,
+        fer_filing_status: 0,
+        fer_review_draft_status: 0,
+        fer_review_file_status: 0,
+        fer_completion_status: 0
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error creating FER entry:", error);
+    toast.error("Failed to create FER entry");
+    return null;
+  }
+};
+
+export const updateFEREntry = async (
+  ferId: string,
+  ferData: Partial<FEREntry>
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("fer_entries")
+      .update(ferData)
+      .eq("id", ferId);
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error updating FER entry:", error);
+    toast.error("Failed to update FER entry");
+    return false;
+  }
+};
+
+export const deleteFEREntry = async (ferId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("fer_entries")
+      .delete()
+      .eq("id", ferId);
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting FER entry:", error);
+    toast.error("Failed to delete FER entry");
+    return false;
+  }
+};
+
+// Add function to fetch FER entries assigned to a specific drafter
+export const fetchDrafterFERAssignments = async (drafterName: string): Promise<FEREntry[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("fer_entries")
+      .select("*, patents!inner(*)")
+      .eq("fer_drafter_assgn", drafterName)
+      .eq("fer_drafter_status", 0);
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching drafter FER assignments:", error);
+    toast.error("Failed to load FER drafting assignments");
+    return [];
+  }
+};
+
+// Add function to fetch FER entries assigned to a specific filer
+export const fetchFilerFERAssignments = async (filerName: string): Promise<FEREntry[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("fer_entries")
+      .select("*, patents!inner(*)")
+      .eq("fer_filer_assgn", filerName)
+      .eq("fer_filing_status", 0)
+      .eq("fer_drafter_status", 1); // Only show FERs that have been drafted
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching filer FER assignments:", error);
+    toast.error("Failed to load FER filing assignments");
+    return [];
+  }
+};
+
+// Add function to complete FER drafter task
+export const completeFERDrafterTask = async (
+  ferEntry: FEREntry,
+  drafterName: string
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("fer_entries")
+      .update({
+        fer_drafter_status: 1,
+        fer_review_draft_status: 1 // Set for review
+      })
+      .eq("id", ferEntry.id)
+      .eq("fer_drafter_assgn", drafterName);
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error completing FER drafting task:", error);
+    toast.error("Failed to complete FER drafting");
+    return false;
+  }
+};
+
+// Add function to complete FER filer task
+export const completeFERFilerTask = async (
+  ferEntry: FEREntry,
+  filerName: string
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("fer_entries")
+      .update({
+        fer_filing_status: 1,
+        fer_review_file_status: 1, // Set for review
+        fer_completion_status: ferEntry.fer_drafter_status === 1 ? 1 : 0 // Set completion if drafting is done
+      })
+      .eq("id", ferEntry.id)
+      .eq("fer_filer_assgn", filerName);
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error completing FER filing task:", error);
+    toast.error("Failed to complete FER filing");
+    return false;
+  }
+};
+
+// Function to approve a FER review
+export const approveFERReview = async (
+  ferEntry: FEREntry,
+  reviewType: 'draft' | 'file'
+): Promise<boolean> => {
+  try {
+    const updateData: Record<string, any> = {};
+    
+    if (reviewType === 'draft') {
+      updateData.fer_review_draft_status = 0; // Approve the review
+    } else if (reviewType === 'file') {
+      updateData.fer_review_file_status = 0; // Approve the review
+      updateData.fer_completion_status = 1; // Set as completed
+    }
+
+    const { error } = await supabase
+      .from("fer_entries")
+      .update(updateData)
+      .eq("id", ferEntry.id);
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error approving FER review:", error);
+    toast.error("Failed to approve FER review");
+    return false;
+  }
+};
+
+// Add function to fetch FER reviews pending approval
+export const fetchPendingFERReviews = async (): Promise<FEREntry[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("fer_entries")
+      .select("*, patents!inner(*)")
+      .or("fer_review_draft_status.eq.1,fer_review_file_status.eq.1");
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching pending FER reviews:", error);
+    toast.error("Failed to load pending FER reviews");
     return [];
   }
 };

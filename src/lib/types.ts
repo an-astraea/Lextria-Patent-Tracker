@@ -15,6 +15,24 @@ export interface FERHistory {
   fer_filer_deadline: string;
 }
 
+export interface FEREntry {
+  id: string;
+  patent_id: string;
+  fer_number: number;
+  fer_date?: string;
+  fer_drafter_assgn?: string;
+  fer_drafter_deadline?: string;
+  fer_drafter_status: number;
+  fer_filer_assgn?: string;
+  fer_filer_deadline?: string;
+  fer_filing_status: number;
+  fer_review_draft_status: number;
+  fer_review_file_status: number;
+  fer_completion_status: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Patent {
   id: string;
   tracking_id: string;
@@ -96,6 +114,7 @@ export interface Patent {
   updated_at: string;
   inventors?: Inventor[];
   fer_history?: FERHistory[];
+  fer_entries?: FEREntry[];
   notes?: string;
 }
 

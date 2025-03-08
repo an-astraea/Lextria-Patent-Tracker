@@ -225,6 +225,19 @@ const AddEditPatent = () => {
               inventor_addr: inventor.inventor_addr
             });
           }
+          
+          // If FER status is enabled, create the first FER entry
+          if (newPatent.fer_status === 1 && newPatent.id) {
+            await createFEREntry(
+              newPatent.id, 
+              1, // First FER number
+              newPatent.fer_drafter_assgn || undefined,
+              newPatent.fer_drafter_deadline || undefined,
+              newPatent.fer_filer_assgn || undefined,
+              newPatent.fer_filer_deadline || undefined
+            );
+          }
+          
           toast.success('Patent created successfully');
           navigate('/patents');
         }
@@ -678,5 +691,8 @@ const AddEditPatent = () => {
     </div>
   );
 };
+
+// Add missing import
+import { createFEREntry } from '@/lib/api';
 
 export default AddEditPatent;
