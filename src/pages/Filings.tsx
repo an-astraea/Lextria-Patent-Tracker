@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Loader2, FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import FormRequirementsList from '@/components/patent/FormRequirementsList';
 
 const Filings: React.FC = () => {
   const { user } = useAuth();
@@ -51,12 +52,6 @@ const Filings: React.FC = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (user) {
-      fetchAssignments();
-    }
-  }, [user]);
 
   const getPatentStage = (patent: Patent): string => {
     if (patent.ps_filer_assgn === user?.full_name && patent.ps_filing_status === 0) {
@@ -273,20 +268,21 @@ const Filings: React.FC = () => {
         {isCS && (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Required Forms</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {formFields.map(form => (
-                <div key={form} className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={form} 
-                    checked={selectedForms.includes(form)}
-                    onCheckedChange={() => handleFormToggle(form)}
-                  />
-                  <Label htmlFor={form} className="cursor-pointer">
-                    {form.replace('_', ' ').toUpperCase()}
-                  </Label>
-                </div>
-              ))}
-            </div>
+            <FormRequirementsList 
+              patent={selectedPatent}
+              userRole="filer"
+              onUpdate={(formName, value) => {
+                if (value) {
+                  setSelectedForms(prev => 
+                    prev.includes(formName) ? prev : [...prev, formName]
+                  );
+                } else {
+                  setSelectedForms(prev => 
+                    prev.filter(f => f !== formName)
+                  );
+                }
+              }}
+            />
           </div>
         )}
         
@@ -319,6 +315,12 @@ const Filings: React.FC = () => {
       </div>
     );
   };
+
+  useEffect(() => {
+    if (user) {
+      fetchAssignments();
+    }
+  }, [user]);
 
   if (!user) {
     return (
@@ -393,7 +395,93 @@ const Filings: React.FC = () => {
                 <Separator />
               </CardHeader>
               <CardContent className="h-[calc(100%-80px)] overflow-auto">
-                {renderPatentDetails()}
+                {selectedPatent ? (
+                  <div className="h-full flex flex-col">
+                    <div className="mb-4">
+                      <h2 className="text-2xl font-bold">{selectedPatent.patent_title}</h2>
+                      <p className="text-muted-foreground">ID: {selectedPatent.tracking_id}</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div>
+                        <Label className="text-muted-foreground">Applicant</Label>
+                        <p className="font-medium">{selectedPatent.patent_applicant}</p>
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground">Client ID</Label>
+                        <p className="font-medium">{selectedPatent.client_id}</p>
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground">Stage</Label>
+                        <p className="font-medium">{getPatentStage(selectedPatent)}</p>
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground">Deadline</Label>
+                        <p className={`font-medium ${isDeadlinePassed(getDeadline(selectedPatent)) ? 'text-red-500' : isDeadlineSoon(getDeadline(selectedPatent)) ? 'text-amber-500' : ''}`}>
+                          {getDeadline(selectedPatent) ? formatDate(getDeadline(selectedPatent)) : 'Not set'}
+                          {isDeadlinePassed(getDeadline(selectedPatent)) && ' (Overdue)'}
+                          {isDeadlineSoon(getDeadline(selectedPatent)) && !isDeadlinePassed(getDeadline(selectedPatent)) && ' (Soon)'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {selectedPatent.cs_filer_assgn === user?.full_name && 
+                     selectedPatent.cs_filing_status === 0 && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold mb-2">Required Forms</h3>
+                        <FormRequirementsList 
+                          patent={selectedPatent}
+                          userRole="filer"
+                          onUpdate={(formName, value) => {
+                            if (value) {
+                              setSelectedForms(prev => 
+                                prev.includes(formName) ? prev : [...prev, formName]
+                              );
+                            } else {
+                              setSelectedForms(prev => 
+                                prev.filter(f => f !== formName)
+                              );
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
+                    
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-2">Inventors</h3>
+                      {selectedPatent.inventors && selectedPatent.inventors.length > 0 ? (
+                        <div className="space-y-2">
+                          {selectedPatent.inventors.map((inventor, index) => (
+                            <div key={inventor.id} className="p-2 bg-muted rounded-md">
+                              <p className="font-medium">{inventor.inventor_name}</p>
+                              <p className="text-sm text-muted-foreground">{inventor.inventor_addr}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">No inventors listed</p>
+                      )}
+                    </div>
+                    
+                    <div className="mt-auto">
+                      <Button 
+                        className="w-full"
+                        onClick={() => handleCompleteFilingTask(selectedPatent, 'pending')}
+                        disabled={selectedPatent.ps_filing_status === 1 || 
+                                 selectedPatent.cs_filing_status === 1 || 
+                                 selectedPatent.fer_filing_status === 1}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Mark as Completed
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                    <FileText className="h-16 w-16 mb-4" />
+                    <p>Select a patent to view details</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

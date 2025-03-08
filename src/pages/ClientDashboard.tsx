@@ -49,7 +49,6 @@ const ClientDashboard: React.FC = () => {
   }, [searchQuery, patents]);
 
   const getStatusBadge = (patent: Patent) => {
-    // PS Status
     if (patent.ps_completion_status === 1) {
       return <Badge variant="success">PS Completed</Badge>;
     }
@@ -63,7 +62,6 @@ const ClientDashboard: React.FC = () => {
       return <Badge variant="warning">PS Drafting In Progress</Badge>;
     }
 
-    // CS Status
     if (patent.cs_completion_status === 1) {
       return <Badge variant="success">CS Completed</Badge>;
     }
@@ -77,7 +75,6 @@ const ClientDashboard: React.FC = () => {
       return <Badge variant="warning">CS Drafting In Progress</Badge>;
     }
 
-    // FER Status
     if (patent.fer_status === 1) {
       if (patent.fer_completion_status === 1) {
         return <Badge variant="success">FER Completed</Badge>;
@@ -99,7 +96,6 @@ const ClientDashboard: React.FC = () => {
   const getDeadlineBadge = (patent: Patent) => {
     const today = new Date();
     
-    // Get the next upcoming deadline
     const deadlines = [
       { date: patent.ps_drafter_deadline, label: 'PS Draft' },
       { date: patent.ps_filer_deadline, label: 'PS File' },
@@ -111,7 +107,6 @@ const ClientDashboard: React.FC = () => {
     
     if (deadlines.length === 0) return null;
     
-    // Sort by closest date
     deadlines.sort((a, b) => {
       const dateA = new Date(a.date || '');
       const dateB = new Date(b.date || '');

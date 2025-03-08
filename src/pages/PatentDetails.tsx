@@ -1,28 +1,28 @@
+
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { fetchPatentById } from '@/lib/api';
+import { useParams, useNavigate } from 'react-router-dom';
+import { fetchPatentById, updatePatentNotes } from '@/lib/api';
 import { Patent } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
-import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
-import { updatePatentNotes } from '@/lib/api';
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import PatentTimeline from '@/components/patent/PatentTimeline';
 
 const PatentDetails: React.FC = () => {
-  const router = useRouter();
-  const { id } = router.query;
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [patent, setPatent] = useState<Patent | null>(null);
   const [notes, setNotes] = useState<string>('');
   const [isEditingNotes, setIsEditingNotes] = useState<boolean>(false);
 
   useEffect(() => {
     const loadPatent = async () => {
-      if (id && typeof id === 'string') {
+      if (id) {
         const patentData = await fetchPatentById(id);
         setPatent(patentData);
         setNotes(patentData?.notes || '');
@@ -64,7 +64,7 @@ const PatentDetails: React.FC = () => {
   return (
     <div className="container mx-auto mt-8">
       <div className="mb-4">
-        <Button variant="outline" onClick={() => router.back()}>
+        <Button variant="outline" onClick={() => navigate(-1)}>
           Back to List
         </Button>
       </div>
@@ -473,9 +473,9 @@ const PatentDetails: React.FC = () => {
             )}
           </div>
           
-           <Separator />
-           
-           <PatentTimeline patentId={patent.id} />
+          <Separator />
+          
+          {patent.id && <PatentTimeline patentId={patent.id} />}
         </CardContent>
       </Card>
     </div>
