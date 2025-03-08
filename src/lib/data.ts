@@ -29,12 +29,42 @@ const patents: Patent[] = [
     cs_filing_status: 1,
     cs_filer_assgn: 'Bob Johnson',
     cs_filer_deadline: '2023-04-15T00:00:00.000Z',
-    form_26: true,
+    form_01: true,
+    form_02_ps: true,
+    form_02_cs: true,
+    form_03: true,
+    form_04: false,
+    form_05: true,
+    form_06: false,
+    form_07: false,
+    form_07a: false,
+    form_08: true,
+    form_08a: false,
+    form_09: true,
+    form_10: false,
+    form_11: false,
+    form_12: false,
+    form_13: true,
+    form_14: false,
+    form_15: false,
+    form_16: false,
+    form_17: false,
     form_18: true,
     form_18a: false,
-    form_9: true,
-    form_9a: false,
-    form_13: true,
+    form_19: false,
+    form_20: false,
+    form_21: false,
+    form_22: false,
+    form_23: false,
+    form_24: false,
+    form_25: false,
+    form_26: true,
+    form_27: false,
+    form_28: false,
+    form_29: false,
+    form_30: false,
+    form_31: false,
+    other_forms: null,
     cs_review_file_status: 1,
     cs_completion_status: 1,
     fer_status: 1,
@@ -95,11 +125,21 @@ const patents: Patent[] = [
     cs_filing_status: 0,
     cs_filer_assgn: 'Bob Johnson',
     cs_filer_deadline: '2023-05-15T00:00:00.000Z',
-    form_26: false,
-    form_18: false,
-    form_18a: false,
-    form_9: false,
-    form_9a: false,
+    form_01: false,
+    form_02_ps: false,
+    form_02_cs: false,
+    form_03: false,
+    form_04: false,
+    form_05: false,
+    form_06: false,
+    form_07: false,
+    form_07a: false,
+    form_08: false,
+    form_08a: false,
+    form_09: false,
+    form_10: false,
+    form_11: false,
+    form_12: false,
     form_13: false,
     cs_review_file_status: 0,
     cs_completion_status: 0,
@@ -152,11 +192,21 @@ const patents: Patent[] = [
     cs_filing_status: 0,
     cs_filer_assgn: 'Bob Johnson',
     cs_filer_deadline: '2023-06-15T00:00:00.000Z',
-    form_26: false,
-    form_18: false,
-    form_18a: false,
-    form_9: false,
-    form_9a: false,
+    form_01: false,
+    form_02_ps: false,
+    form_02_cs: false,
+    form_03: false,
+    form_04: false,
+    form_05: false,
+    form_06: false,
+    form_07: false,
+    form_07a: false,
+    form_08: false,
+    form_08a: false,
+    form_09: false,
+    form_10: false,
+    form_11: false,
+    form_12: false,
     form_13: false,
     cs_review_file_status: 0,
     cs_completion_status: 0,
@@ -383,6 +433,39 @@ export const createInventor = (inventorData: { tracking_id: string; inventor_nam
           ...inventorData
         };
         patent.inventors = [...(patent.inventors || []), newInventor];
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    }, 500);
+  });
+};
+
+export const completeFilerTask = (patent: Patent, filerName: string, formData?: Record<string, boolean>): Promise<boolean> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // Find the patent in our mock data
+      const index = patchedPatents.findIndex(p => p.id === patent.id);
+      if (index !== -1) {
+        // Update the filing status based on who is assigned
+        if (patent.ps_filer_assgn === filerName) {
+          patchedPatents[index].ps_filing_status = 1;
+          patchedPatents[index].ps_review_file_status = 1;
+        } else if (patent.cs_filer_assgn === filerName) {
+          patchedPatents[index].cs_filing_status = 1;
+          patchedPatents[index].cs_review_file_status = 1;
+          
+          // Update form data if provided (for CS filing)
+          if (formData) {
+            Object.keys(formData).forEach(formKey => {
+              (patchedPatents[index] as any)[formKey] = formData[formKey];
+            });
+          }
+        } else if (patent.fer_filer_assgn === filerName) {
+          patchedPatents[index].fer_filing_status = 1;
+          patchedPatents[index].fer_review_file_status = 1;
+        }
+        
         resolve(true);
       } else {
         resolve(false);

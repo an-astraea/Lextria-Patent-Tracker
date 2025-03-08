@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +22,7 @@ import RefreshButton from '@/components/approvals/RefreshButton';
 import LoadingSpinner from '@/components/approvals/LoadingSpinner';
 import EmptyApprovals from '@/components/approvals/EmptyApprovals';
 import { useIsMobile } from '@/hooks/use-mobile';
+import FormRequirementsList from '@/components/patent/FormRequirementsList';
 
 const ITEMS_PER_PAGE = 6; // Number of items to show per page
 
@@ -37,13 +37,7 @@ const Filings = () => {
   const [activePage, setActivePage] = useState(1);
   const [completedPage, setCompletedPage] = useState(1);
   const isMobile = useIsMobile();
-  
-  const [form26, setForm26] = useState(false);
-  const [form18, setForm18] = useState(false);
-  const [form18a, setForm18a] = useState(false);
-  const [form9, setForm9] = useState(false);
-  const [form9a, setForm9a] = useState(false);
-  const [form13, setForm13] = useState(false);
+  const [formStatuses, setFormStatuses] = useState<Record<string, boolean>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const userString = localStorage.getItem('user');
@@ -92,7 +86,6 @@ const Filings = () => {
       setCompletedPatents(completedData);
       setInitialLoadComplete(true);
       
-      // Reset to first page when refreshing data
       if (isRefresh) {
         setActivePage(1);
         setCompletedPage(1);
@@ -111,26 +104,29 @@ const Filings = () => {
   };
 
   const resetFormState = () => {
-    setForm26(false);
-    setForm18(false);
-    setForm18a(false);
-    setForm9(false);
-    setForm9a(false);
-    setForm13(false);
+    setFormStatuses({});
   };
 
   const handleShowFormsDialog = (patent: Patent) => {
     setSelectedPatent(patent);
     
-    // Initialize form states with values from the patent
-    setForm26(patent.form_26 === true);
-    setForm18(patent.form_18 === true);
-    setForm18a(patent.form_18a === true);
-    setForm9(patent.form_9 === true);
-    setForm9a(patent.form_9a === true);
-    setForm13(patent.form_13 === true);
+    const initialFormStatuses: Record<string, boolean> = {};
     
+    Object.entries(patent).forEach(([key, value]) => {
+      if (key.startsWith('form_') && typeof value === 'boolean') {
+        initialFormStatuses[key] = value === true;
+      }
+    });
+    
+    setFormStatuses(initialFormStatuses);
     setDialogOpen(true);
+  };
+
+  const handleUpdateForm = (formName: string, value: boolean) => {
+    setFormStatuses(prev => ({
+      ...prev,
+      [formName]: value
+    }));
   };
 
   const handleComplete = async (patent: Patent) => {
@@ -139,14 +135,7 @@ const Filings = () => {
     try {
       let formData;
       if (patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0) {
-        formData = {
-          form_26: form26,
-          form_18: form18,
-          form_18a: form18a,
-          form_9: form9,
-          form_9a: form9a,
-          form_13: form13
-        };
+        formData = formStatuses;
       }
       
       const success = await completeFilerTask(patent, user.full_name, formData);
@@ -155,7 +144,6 @@ const Filings = () => {
         setDialogOpen(false);
         resetFormState();
         
-        // Update our local state without needing to reload
         const updatedPatent = { ...patent };
         
         if (patent.ps_filer_assgn === user.full_name) {
@@ -165,17 +153,16 @@ const Filings = () => {
           updatedPatent.cs_filing_status = 1;
           updatedPatent.cs_review_file_status = 1;
           if (formData) {
-            Object.assign(updatedPatent, formData);
+            Object.entries(formData).forEach(([key, value]) => {
+              (updatedPatent as any)[key] = value;
+            });
           }
         } else if (patent.fer_filer_assgn === user.full_name) {
           updatedPatent.fer_filing_status = 1;
           updatedPatent.fer_review_file_status = 1;
         }
         
-        // Remove from active patents
         setActivePatents(prevPatents => prevPatents.filter(p => p.id !== patent.id));
-        
-        // Add to completed patents
         setCompletedPatents(prevPatents => [updatedPatent, ...prevPatents]);
       }
     } catch (error) {
@@ -237,7 +224,6 @@ const Filings = () => {
     return patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0;
   };
 
-  // Pagination logic
   const paginateData = (data: Patent[], pageNumber: number) => {
     const startIndex = (pageNumber - 1) * ITEMS_PER_PAGE;
     return data.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -411,7 +397,7 @@ const Filings = () => {
       </Tabs>
       
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md mx-auto">
+        <DialogContent className="max-w-2xl mx-auto">
           <DialogHeader>
             <DialogTitle>Complete Specification Forms</DialogTitle>
             <DialogDescription>
@@ -419,36 +405,20 @@ const Filings = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox id="form26" checked={form26} onCheckedChange={(checked) => setForm26(checked === true)} />
-              <Label htmlFor="form26">Form 26 - Power of Attorney</Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox id="form18" checked={form18} onCheckedChange={(checked) => setForm18(checked === true)} />
-              <Label htmlFor="form18">Form 18 - Request for Examination</Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox id="form18a" checked={form18a} onCheckedChange={(checked) => setForm18a(checked === true)} />
-              <Label htmlFor="form18a">Form 18A - Fast Track Examination</Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox id="form9" checked={form9} onCheckedChange={(checked) => setForm9(checked === true)} />
-              <Label htmlFor="form9">Form 9 - Complete Specification</Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox id="form9a" checked={form9a} onCheckedChange={(checked) => setForm9a(checked === true)} />
-              <Label htmlFor="form9a">Form 9A - PCT National Phase</Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox id="form13" checked={form13} onCheckedChange={(checked) => setForm13(checked === true)} />
-              <Label htmlFor="form13">Form 13 - Request for Amendment</Label>
-            </div>
+          <div className="py-4 max-h-[60vh] overflow-y-auto">
+            {selectedPatent && (
+              <FormRequirementsList 
+                patent={{
+                  ...selectedPatent,
+                  ...Object.keys(formStatuses).reduce((acc, key) => {
+                    acc[key as keyof Patent] = formStatuses[key] as any;
+                    return acc;
+                  }, {} as Partial<Patent>)
+                }} 
+                userRole="filer"
+                onUpdate={handleUpdateForm}
+              />
+            )}
           </div>
           
           <DialogFooter className="flex flex-col sm:flex-row gap-2">

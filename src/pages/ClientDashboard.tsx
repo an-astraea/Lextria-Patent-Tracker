@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { fetchPatents } from '@/lib/api';
 import { Patent } from '@/lib/types';
@@ -53,7 +52,6 @@ const ClientDashboard = () => {
     if (filteredPatents.length === 0) return;
 
     const exportData = filteredPatents.map(patent => {
-      // Create base data object with patent information
       const baseData = {
         'Tracking ID': patent.tracking_id,
         'Patent Applicant': patent.patent_applicant,
@@ -66,7 +64,6 @@ const ClientDashboard = () => {
         'Inventor Email': patent.inventor_email,
       };
       
-      // Add only the forms that are marked as Yes/true
       const formData = {};
       
       if (patent.form_26) formData['Form 26'] = 'Yes';
@@ -76,7 +73,6 @@ const ClientDashboard = () => {
       if (patent.form_9a) formData['Form 9A'] = 'Yes';
       if (patent.form_13) formData['Form 13'] = 'Yes';
       
-      // Return combined data
       return { ...baseData, ...formData };
     });
 
@@ -138,6 +134,25 @@ const ClientDashboard = () => {
     const fer = filteredPatents.filter(p => p.fer_status === 1).length;
     
     return { psOnly, psAndCs, all, fer };
+  };
+
+  const getFormCompletionPercentage = (patent: Patent) => {
+    const formFields = [
+      patent.form_01, patent.form_02_ps, patent.form_02_cs, patent.form_03, 
+      patent.form_04, patent.form_05, patent.form_06, patent.form_07, 
+      patent.form_07a, patent.form_08, patent.form_08a, patent.form_09, 
+      patent.form_10, patent.form_11, patent.form_12, patent.form_13,
+      patent.form_14, patent.form_15, patent.form_16, patent.form_17,
+      patent.form_18, patent.form_18a, patent.form_19, patent.form_20,
+      patent.form_21, patent.form_22, patent.form_23, patent.form_24,
+      patent.form_25, patent.form_26, patent.form_27, patent.form_28,
+      patent.form_29, patent.form_30, patent.form_31
+    ];
+    
+    const totalForms = formFields.length;
+    const completedForms = formFields.filter(form => form === true).length;
+    
+    return totalForms > 0 ? Math.round((completedForms / totalForms) * 100) : 0;
   };
 
   const stats = getCompletionStats();
