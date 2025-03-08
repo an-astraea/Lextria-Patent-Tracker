@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchPatents, updatePatent } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsItem, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Patent } from '@/lib/types';
 import PatentCard from '@/components/PatentCard';
 import { toast } from 'sonner';
@@ -146,7 +146,7 @@ const Filings: React.FC = () => {
         updateData.fer_review_file_status = 1; // Set for admin review
       }
       
-      await updatePatent(selectedPatent.id, updateData);
+      await updatePatent(selectedPatent.id, updateData as any);
       
       toast.success('Filing submitted successfully.');
       refetch();
@@ -165,9 +165,7 @@ const Filings: React.FC = () => {
     try {
       setProcessingSubmit(true);
       
-      await updatePatent(selectedPatent.id, {
-        ...selectedForms
-      });
+      await updatePatent(selectedPatent.id, selectedForms as any);
       
       toast.success('Forms updated successfully.');
       refetch();
@@ -229,7 +227,7 @@ const Filings: React.FC = () => {
     <div className="space-y-6">
       <PageHeader
         title="Filings"
-        description="Manage patent filings and form submissions"
+        subtitle="Manage patent filings and form submissions"
       />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -255,15 +253,15 @@ const Filings: React.FC = () => {
                         <PatentCard
                           key={patent.id}
                           patent={patent}
-                          onClick={() => handleSelectPatent(patent)}
-                          selected={selectedPatent?.id === patent.id}
+                          onSelect={() => handleSelectPatent(patent)}
+                          isSelected={selectedPatent?.id === patent.id}
                         />
                       ))}
                     </div>
                   ) : (
                     <EmptyState 
                       title="No pending PS filings"
-                      description="You don't have any pending provisional specification filings."
+                      message="You don't have any pending provisional specification filings."
                     />
                   )}
                 </CardContent>
@@ -283,15 +281,15 @@ const Filings: React.FC = () => {
                         <PatentCard
                           key={patent.id}
                           patent={patent}
-                          onClick={() => handleSelectPatent(patent)}
-                          selected={selectedPatent?.id === patent.id}
+                          onSelect={() => handleSelectPatent(patent)}
+                          isSelected={selectedPatent?.id === patent.id}
                         />
                       ))}
                     </div>
                   ) : (
                     <EmptyState 
                       title="No pending CS filings"
-                      description="You don't have any pending complete specification filings."
+                      message="You don't have any pending complete specification filings."
                     />
                   )}
                 </CardContent>
@@ -311,8 +309,8 @@ const Filings: React.FC = () => {
                         <PatentCard
                           key={patent.id}
                           patent={patent}
-                          onClick={() => handleSelectPatent(patent)}
-                          selected={selectedPatent?.id === patent.id}
+                          onSelect={() => handleSelectPatent(patent)}
+                          isSelected={selectedPatent?.id === patent.id}
                         />
                       ))}
                     </div>
@@ -336,8 +334,8 @@ const Filings: React.FC = () => {
                         <PatentCard
                           key={patent.id}
                           patent={patent}
-                          onClick={() => handleSelectPatent(patent)}
-                          selected={selectedPatent?.id === patent.id}
+                          onSelect={() => handleSelectPatent(patent)}
+                          isSelected={selectedPatent?.id === patent.id}
                         />
                       ))}
                     </div>
@@ -359,8 +357,8 @@ const Filings: React.FC = () => {
                         <PatentCard
                           key={patent.id}
                           patent={patent}
-                          onClick={() => handleSelectPatent(patent)}
-                          selected={selectedPatent?.id === patent.id}
+                          onSelect={() => handleSelectPatent(patent)}
+                          isSelected={selectedPatent?.id === patent.id}
                         />
                       ))}
                     </div>
@@ -382,8 +380,8 @@ const Filings: React.FC = () => {
                         <PatentCard
                           key={patent.id}
                           patent={patent}
-                          onClick={() => handleSelectPatent(patent)}
-                          selected={selectedPatent?.id === patent.id}
+                          onSelect={() => handleSelectPatent(patent)}
+                          isSelected={selectedPatent?.id === patent.id}
                         />
                       ))}
                     </div>
@@ -394,7 +392,7 @@ const Filings: React.FC = () => {
               {patentGroups.psCompleted.length === 0 && patentGroups.csCompleted.length === 0 && patentGroups.ferCompleted.length === 0 && (
                 <EmptyState 
                   title="No completed filings"
-                  description="You haven't completed any filings yet."
+                  message="You haven't completed any filings yet."
                 />
               )}
             </TabsContent>
