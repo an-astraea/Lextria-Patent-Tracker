@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -10,12 +10,15 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) => {
   const isMobile = useIsMobile();
+  const hasSidebar = !!sidebarComponent;
 
   return (
     <div className="flex min-h-screen bg-background">
       {sidebarComponent}
       
-      <main className="flex-1 w-full">
+      <main className={cn("flex-1 w-full", {
+        "pl-0": !hasSidebar || isMobile
+      })}>
         <div className="min-h-screen p-6">
           {children}
         </div>

@@ -1,14 +1,16 @@
 
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import MainLayout from './MainLayout';
 import AdminSidebar from '../AdminSidebar';
 import Sidebar from '../Sidebar';
-import { Edit, FileText, User } from 'lucide-react';
+import { LayoutDashboard, FileText, Edit, User } from 'lucide-react';
 
 const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isIndexPage = location.pathname === '/';
 
   useEffect(() => {
     // Get user from localStorage
@@ -26,6 +28,11 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
     navigate('/');
   };
 
+  // Don't show sidebar on the index/login page
+  if (isIndexPage) {
+    return <MainLayout>{children}</MainLayout>;
+  }
+
   if (!user) {
     return <MainLayout>{children}</MainLayout>;
   }
@@ -40,48 +47,86 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
         {children}
       </MainLayout>
     );
+  } else if (user.role === 'drafter') {
+    // Navigation items for drafters
+    const drafterNavItems = [
+      {
+        label: 'Dashboard',
+        icon: LayoutDashboard,
+        href: '/dashboard',
+      },
+      {
+        label: 'Patents',
+        icon: FileText,
+        href: '/patents',
+      },
+      {
+        label: 'My Drafts',
+        icon: Edit,
+        href: '/drafts',
+      },
+      {
+        label: 'Profile',
+        icon: User,
+        href: '/profile',
+      },
+    ];
+    
+    return (
+      <MainLayout 
+        sidebarComponent={
+          <Sidebar 
+            navItems={drafterNavItems} 
+            user={user} 
+            onLogout={handleLogout}
+          />
+        }
+      >
+        {children}
+      </MainLayout>
+    );
+  } else if (user.role === 'filer') {
+    // Navigation items for filers
+    const filerNavItems = [
+      {
+        label: 'Dashboard',
+        icon: LayoutDashboard,
+        href: '/dashboard',
+      },
+      {
+        label: 'Patents',
+        icon: FileText,
+        href: '/patents',
+      },
+      {
+        label: 'My Filings',
+        icon: FileText,
+        href: '/filings',
+      },
+      {
+        label: 'Profile',
+        icon: User,
+        href: '/profile',
+      },
+    ];
+    
+    return (
+      <MainLayout 
+        sidebarComponent={
+          <Sidebar 
+            navItems={filerNavItems} 
+            user={user} 
+            onLogout={handleLogout}
+          />
+        }
+      >
+        {children}
+      </MainLayout>
+    );
   }
 
-  // Default sidebar for drafter/filer roles
-  const navItems = user.role === 'drafter' 
-    ? [
-        {
-          label: 'Drafts',
-          icon: Edit,
-          href: '/drafts',
-        },
-        {
-          label: 'Profile',
-          icon: User,
-          href: '/profile',
-        },
-      ]
-    : [
-        {
-          label: 'Filings',
-          icon: FileText,
-          href: '/filings',
-        },
-        {
-          label: 'Profile',
-          icon: User,
-          href: '/profile',
-        },
-      ];
-
-  return (
-    <MainLayout 
-      sidebarComponent={
-        <Sidebar 
-          navItems={navItems} 
-          user={user} 
-          onLogout={handleLogout}
-        />
-      }
-    >
-      {children}
-    </MainLayout>
-  );
+  // Fallback for unknown roles
+  return <MainLayout>{children}</MainLayout>;
 };
 
 export default MainLayoutWrapper;
