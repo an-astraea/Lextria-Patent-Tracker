@@ -13,10 +13,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
   const hasSidebar = !!sidebarComponent;
 
   return (
-    <div className="flex min-h-screen h-screen bg-background overflow-hidden">
+    <div className="flex min-h-screen h-screen bg-background">
       {sidebarComponent}
       
-      <main className={cn("flex-1 w-full overflow-auto", {
+      <main className={cn("flex-1 w-full overflow-y-auto", {
         "pl-0": !hasSidebar || isMobile
       })}>
         <div className="min-h-full p-6">

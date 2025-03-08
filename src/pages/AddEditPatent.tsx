@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -21,9 +20,11 @@ import {
   fetchEmployees, 
   createPatent, 
   updatePatent,
-  createInventor
+  createInventor,
+  createFEREntry
 } from '@/lib/api';
 import { Patent, PatentFormData, Employee } from '@/lib/types';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const AddEditPatent = () => {
   const { id } = useParams<{ id: string }>();
@@ -669,7 +670,7 @@ const AddEditPatent = () => {
           </CardContent>
         </Card>
         
-        <div className="flex justify-end space-x-4">
+        <div className="flex justify-end space-x-4 pb-6">
           <Button type="button" variant="outline" onClick={() => navigate('/patents')}>
             Cancel
           </Button>
@@ -693,6 +694,5 @@ const AddEditPatent = () => {
 };
 
 // Add missing import
-import { createFEREntry } from '@/lib/api';
 
 export default AddEditPatent;

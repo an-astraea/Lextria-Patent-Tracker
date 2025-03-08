@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import MainLayout from './MainLayout';
@@ -13,12 +12,10 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
   const isIndexPage = location.pathname === '/';
 
   useEffect(() => {
-    // Get user from localStorage
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     } else {
-      // If no user in localStorage, redirect to login
       navigate('/');
     }
   }, [navigate]);
@@ -28,7 +25,6 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
     navigate('/');
   };
 
-  // Don't show sidebar on the index/login page
   if (isIndexPage) {
     return <MainLayout>{children}</MainLayout>;
   }
@@ -37,7 +33,7 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
     return <MainLayout>{children}</MainLayout>;
   }
 
-  if (user.role === 'admin') {
+  if (user?.role === 'admin') {
     return (
       <MainLayout 
         sidebarComponent={
@@ -47,8 +43,7 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
         {children}
       </MainLayout>
     );
-  } else if (user.role === 'drafter') {
-    // Navigation items for drafters
+  } else if (user?.role === 'drafter') {
     const drafterNavItems = [
       {
         label: 'Dashboard',
@@ -80,8 +75,7 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
         {children}
       </MainLayout>
     );
-  } else if (user.role === 'filer') {
-    // Navigation items for filers
+  } else if (user?.role === 'filer') {
     const filerNavItems = [
       {
         label: 'Dashboard',
@@ -115,7 +109,6 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
     );
   }
 
-  // Fallback for unknown roles
   return <MainLayout>{children}</MainLayout>;
 };
 
