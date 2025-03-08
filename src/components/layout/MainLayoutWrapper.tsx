@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import MainLayout from './MainLayout';
 import AdminSidebar from '../AdminSidebar';
 import Sidebar from '../Sidebar';
-import { LayoutDashboard, FileText, Edit, User } from 'lucide-react';
+import { LayoutDashboard, FileText, Edit } from 'lucide-react';
 
 const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<any>(null);
@@ -64,12 +64,7 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
         label: 'My Drafts',
         icon: Edit,
         href: '/drafts',
-      },
-      {
-        label: 'Profile',
-        icon: User,
-        href: '/profile',
-      },
+      }
     ];
     
     return (
@@ -102,12 +97,7 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
         label: 'My Filings',
         icon: FileText,
         href: '/filings',
-      },
-      {
-        label: 'Profile',
-        icon: User,
-        href: '/profile',
-      },
+      }
     ];
     
     return (
