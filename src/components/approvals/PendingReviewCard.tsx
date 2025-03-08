@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Patent } from '@/lib/types';
-import { Check, Eye } from 'lucide-react';
+import { Check, Eye, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export type ReviewType = 'ps_draft' | 'ps_file' | 'cs_draft' | 'cs_file' | 'fer_draft' | 'fer_file';
@@ -18,6 +18,7 @@ interface ReviewItem {
 interface PendingReviewCardProps {
   patent: Patent;
   onApprove: (patent: Patent, reviewType: ReviewType) => Promise<void>;
+  onReject: (patent: Patent, reviewType: ReviewType) => Promise<void>;
 }
 
 // Format date for display
@@ -81,7 +82,7 @@ export const getPendingReviewTypes = (patent: Patent): ReviewItem[] => {
   return reviews;
 };
 
-const PendingReviewCard: React.FC<PendingReviewCardProps> = ({ patent, onApprove }) => {
+const PendingReviewCard: React.FC<PendingReviewCardProps> = ({ patent, onApprove, onReject }) => {
   const navigate = useNavigate();
   const reviews = getPendingReviewTypes(patent);
 
@@ -106,14 +107,25 @@ const PendingReviewCard: React.FC<PendingReviewCardProps> = ({ patent, onApprove
                     <Badge variant="outline" className="mr-2">{review.label}</Badge>
                     <span className="text-sm text-gray-500">by {review.person}</span>
                   </div>
-                  <Button 
-                    size="sm" 
-                    variant="ghost"
-                    onClick={() => onApprove(patent, review.type)}
-                  >
-                    <Check className="h-4 w-4 mr-1" />
-                    Approve
-                  </Button>
+                  <div className="flex space-x-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => onReject(patent, review.type)}
+                      className="text-red-500 hover:bg-red-50"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Reject
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => onApprove(patent, review.type)}
+                    >
+                      <Check className="h-4 w-4 mr-1" />
+                      Approve
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

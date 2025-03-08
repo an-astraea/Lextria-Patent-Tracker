@@ -859,6 +859,70 @@ export const approvePatentReview = async (
   }
 };
 
+// Function to reject a patent review and reset status for the assignee
+export const rejectPatentReview = async (
+  patent: Patent,
+  reviewType: 'ps_draft' | 'ps_file' | 'cs_draft' | 'cs_file' | 'fer_draft' | 'fer_file'
+): Promise<boolean> => {
+  try {
+    const updateData: Record<string, any> = {};
+    
+    switch (reviewType) {
+      case 'ps_draft':
+        // Reset drafting status back to in-progress (0) and clear review status
+        updateData.ps_drafting_status = 0;
+        updateData.ps_review_draft_status = 0;
+        break;
+      case 'ps_file':
+        // Reset filing status back to in-progress (0) and clear review status
+        updateData.ps_filing_status = 0;
+        updateData.ps_review_file_status = 0;
+        updateData.ps_completion_status = 0; // Reset completion status
+        break;
+      case 'cs_draft':
+        // Reset drafting status back to in-progress (0) and clear review status
+        updateData.cs_drafting_status = 0;
+        updateData.cs_review_draft_status = 0;
+        break;
+      case 'cs_file':
+        // Reset filing status back to in-progress (0) and clear review status
+        updateData.cs_filing_status = 0;
+        updateData.cs_review_file_status = 0;
+        updateData.cs_completion_status = 0; // Reset completion status
+        break;
+      case 'fer_draft':
+        // Reset drafting status back to in-progress (0) and clear review status
+        updateData.fer_drafter_status = 0;
+        updateData.fer_review_draft_status = 0;
+        break;
+      case 'fer_file':
+        // Reset filing status back to in-progress (0) and clear review status
+        updateData.fer_filing_status = 0;
+        updateData.fer_review_file_status = 0;
+        updateData.fer_completion_status = 0; // Reset completion status
+        break;
+      default:
+        toast.error("Invalid review type");
+        return false;
+    }
+
+    const { error } = await supabase
+      .from("patents")
+      .update(updateData)
+      .eq("id", patent.id);
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error rejecting review:", error);
+    toast.error("Failed to reject review");
+    return false;
+  }
+};
+
 // Function to fetch patents that need review by admins
 export const fetchPendingReviews = async (): Promise<Patent[]> => {
   try {

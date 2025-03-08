@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { fetchPendingReviews, approvePatentReview } from '@/lib/api';
+import { fetchPendingReviews, approvePatentReview, rejectPatentReview } from '@/lib/api';
 import { Patent } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
 import PendingReviewCard, { ReviewType, getPendingReviewTypes } from '@/components/approvals/PendingReviewCard';
@@ -99,6 +98,49 @@ const Approvals = () => {
     }
   };
 
+  const handleReject = async (patent: Patent, reviewType: ReviewType) => {
+    try {
+      const success = await rejectPatentReview(patent, reviewType);
+      if (success) {
+        toast.success('Review rejected and sent back to assignee');
+        
+        // Optimistic UI update - Remove the rejected review from the list
+        setPendingReviews(prevReviews => {
+          const updatedReviews = [...prevReviews];
+          // If this is the last review for this patent, remove the patent
+          const reviewsForPatent = getPendingReviewTypes(patent);
+          if (reviewsForPatent.length <= 1) {
+            return updatedReviews.filter(p => p.id !== patent.id);
+          }
+          
+          // Otherwise, keep the patent but update its review status
+          return updatedReviews.map(p => {
+            if (p.id === patent.id) {
+              const updatedPatent = { ...p };
+              switch(reviewType) {
+                case 'ps_draft': updatedPatent.ps_review_draft_status = 0; break;
+                case 'ps_file': updatedPatent.ps_review_file_status = 0; break;
+                case 'cs_draft': updatedPatent.cs_review_draft_status = 0; break;
+                case 'cs_file': updatedPatent.cs_review_file_status = 0; break;
+                case 'fer_draft': updatedPatent.fer_review_draft_status = 0; break;
+                case 'fer_file': updatedPatent.fer_review_file_status = 0; break;
+              }
+              return updatedPatent;
+            }
+            return p;
+          });
+        });
+        
+        // Dispatch custom event to notify other components about the rejection
+        const rejectionEvent = new CustomEvent('rejection-complete');
+        window.dispatchEvent(rejectionEvent);
+      }
+    } catch (error) {
+      console.error('Error rejecting review:', error);
+      toast.error('Failed to reject review');
+    }
+  };
+
   const handleRefresh = () => {
     loadReviews();
   };
@@ -126,7 +168,8 @@ const Approvals = () => {
               <PendingReviewCard 
                 key={patent.id} 
                 patent={patent} 
-                onApprove={handleApprove} 
+                onApprove={handleApprove}
+                onReject={handleReject}
               />
             ))}
           </div>
