@@ -1,9 +1,13 @@
 
 import React from 'react';
-import { LayoutDashboard, FileText, Users, CheckSquare, Edit, FileSpreadsheet, File } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, CheckSquare, FileSpreadsheet } from 'lucide-react';
 import Sidebar from './Sidebar';
 
-const AdminSidebar: React.FC = () => {
+interface AdminSidebarProps {
+  onLogout?: () => void;
+}
+
+const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
   const navItems = [
     {
       label: 'Dashboard',
@@ -26,23 +30,23 @@ const AdminSidebar: React.FC = () => {
       href: '/approvals',
     },
     {
-      label: 'Drafts',
-      icon: Edit,
-      href: '/drafts',
-    },
-    {
-      label: 'Filings',
-      icon: File,
-      href: '/filings',
-    },
-    {
       label: 'Client Dashboard',
       icon: FileSpreadsheet,
       href: '/clients',
     },
   ];
 
-  return <Sidebar navItems={navItems} />;
+  const userData = localStorage.getItem('user') 
+    ? JSON.parse(localStorage.getItem('user')!) 
+    : { full_name: 'Admin', role: 'admin' };
+
+  return (
+    <Sidebar 
+      navItems={navItems} 
+      user={userData}
+      onLogout={onLogout}
+    />
+  );
 };
 
 export default AdminSidebar;

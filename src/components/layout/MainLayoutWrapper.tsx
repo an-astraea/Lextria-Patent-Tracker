@@ -21,12 +21,25 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
     }
   }, [navigate]);
 
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/');
+  };
+
   if (!user) {
     return <MainLayout>{children}</MainLayout>;
   }
 
   if (user.role === 'admin') {
-    return <MainLayout sidebarComponent={<AdminSidebar />}>{children}</MainLayout>;
+    return (
+      <MainLayout 
+        sidebarComponent={
+          <AdminSidebar onLogout={handleLogout} />
+        }
+      >
+        {children}
+      </MainLayout>
+    );
   }
 
   // Default sidebar for drafter/filer roles
@@ -56,7 +69,19 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
         },
       ];
 
-  return <MainLayout sidebarComponent={<Sidebar navItems={navItems} />}>{children}</MainLayout>;
+  return (
+    <MainLayout 
+      sidebarComponent={
+        <Sidebar 
+          navItems={navItems} 
+          user={user} 
+          onLogout={handleLogout}
+        />
+      }
+    >
+      {children}
+    </MainLayout>
+  );
 };
 
 export default MainLayoutWrapper;
