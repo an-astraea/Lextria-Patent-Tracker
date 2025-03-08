@@ -300,12 +300,12 @@ const PatentDetails = () => {
                       <span>Form 18A</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <div className={`h-4 w-4 rounded-full ${patent.form_9 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span>Form 9</span>
+                      <div className={`h-4 w-4 rounded-full ${patent.form_09 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span>Form 09</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <div className={`h-4 w-4 rounded-full ${patent.form_9a ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span>Form 9A</span>
+                      <div className={`h-4 w-4 rounded-full ${patent.form_09a ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span>Form 09A</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <div className={`h-4 w-4 rounded-full ${patent.form_13 ? 'bg-green-500' : 'bg-gray-300'}`}></div>

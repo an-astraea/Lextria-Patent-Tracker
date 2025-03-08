@@ -11,8 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { fetchFilerAssignments, fetchFilerCompletedAssignments, completeFilerTask } from '@/lib/api';
 import { Patent } from '@/lib/types';
@@ -133,7 +131,7 @@ const Filings = () => {
     if (!user) return;
     
     try {
-      let formData;
+      let formData: Record<string, boolean> | undefined;
       if (patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0) {
         formData = formStatuses;
       }

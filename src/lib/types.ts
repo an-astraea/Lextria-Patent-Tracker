@@ -54,6 +54,7 @@ export interface Patent {
   form_08: boolean | null;
   form_08a: boolean | null;
   form_09: boolean | null;
+  form_09a: boolean | null;
   form_10: boolean | null;
   form_11: boolean | null;
   form_12: boolean | null;

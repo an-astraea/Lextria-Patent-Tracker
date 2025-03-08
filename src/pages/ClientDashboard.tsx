@@ -69,8 +69,8 @@ const ClientDashboard = () => {
       if (patent.form_26) formData['Form 26'] = 'Yes';
       if (patent.form_18) formData['Form 18'] = 'Yes';
       if (patent.form_18a) formData['Form 18A'] = 'Yes';
-      if (patent.form_9) formData['Form 9'] = 'Yes';
-      if (patent.form_9a) formData['Form 9A'] = 'Yes';
+      if (patent.form_09) formData['Form 09'] = 'Yes';
+      if (patent.form_09a) formData['Form 09A'] = 'Yes';
       if (patent.form_13) formData['Form 13'] = 'Yes';
       
       return { ...baseData, ...formData };
