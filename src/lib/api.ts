@@ -97,8 +97,8 @@ export const updatePatentForms = async (
     form_26?: boolean;
     form_18?: boolean;
     form_18a?: boolean;
-    form_9?: boolean;
-    form_9a?: boolean;
+    form_09?: boolean;
+    form_09a?: boolean;
     form_13?: boolean;
   }
 ): Promise<boolean> => {
@@ -427,8 +427,8 @@ export const completeFilerTask = async (
     form_26?: boolean;
     form_18?: boolean;
     form_18a?: boolean;
-    form_9?: boolean;
-    form_9a?: boolean;
+    form_09?: boolean;
+    form_09a?: boolean;
     form_13?: boolean;
   }
 ): Promise<boolean> => {

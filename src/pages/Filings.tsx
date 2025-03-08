@@ -131,7 +131,15 @@ const Filings = () => {
     if (!user) return;
     
     try {
-      let formData: Record<string, boolean> | undefined;
+      let formData: {
+        form_26?: boolean;
+        form_18?: boolean;
+        form_18a?: boolean;
+        form_09?: boolean;
+        form_09a?: boolean;
+        form_13?: boolean;
+      } = {};
+      
       if (patent.cs_filer_assgn === user?.full_name && patent.cs_filing_status === 0) {
         formData = formStatuses;
       }
