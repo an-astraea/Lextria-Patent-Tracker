@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Patent, TimelineEntry } from '@/lib/types';
+import { Patent, TimelineEvent } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { fetchPatentTimeline } from '@/lib/api';
 import { format } from 'date-fns';
@@ -16,17 +16,6 @@ import {
   User,
   Calendar
 } from 'lucide-react';
-
-interface TimelineEvent {
-  id: string;
-  patent_id: string;
-  event_type: string;
-  event_description: string;
-  created_at: string;
-  status: number;
-  employee_name?: string;
-  deadline_date?: string;
-}
 
 interface TimelineDialogProps {
   patent: Patent;
@@ -46,7 +35,7 @@ const TimelineDialog: React.FC<TimelineDialogProps> = ({ patent, children }) => 
           const timelineData = await fetchPatentTimeline(patent.id);
           if (timelineData && Array.isArray(timelineData)) {
             setEvents(timelineData);
-          } else if (timelineData && timelineData.timeline) {
+          } else if (timelineData && 'timeline' in timelineData) {
             setEvents(timelineData.timeline);
           } else {
             setEvents([]);

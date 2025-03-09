@@ -1,231 +1,194 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
-import { updatePatentStatus, updatePatentPayment } from '@/lib/api';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Patent, PaymentStatusSectionProps } from '@/lib/types';
-import StatusBadge from '../StatusBadge';
+import { updatePatentStatus, updatePatentPayment } from '@/lib/api';
+import { toast } from 'sonner';
+import { DollarSign, Receipt, CreditCard } from 'lucide-react';
 
-const PaymentStatusSection: React.FC<PaymentStatusSectionProps> = ({ 
-  patent, 
+const PaymentStatusSection: React.FC<PaymentStatusSectionProps> = ({
+  patent,
   onUpdate,
   isAdmin = false,
   userRole,
   refreshPatentData
 }) => {
-  const [status, setStatus] = useState<string>(String(patent.payment_status || '0'));
-  const [amount, setAmount] = useState<string>(String(patent.payment_amount || '0'));
-  const [received, setReceived] = useState<string>(String(patent.payment_received || '0'));
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const getStatusLabel = (status: string | number) => {
-    switch (status) {
-      case 0:
-      case '0':
-      case 'not_sent': return 'Invoice Not Sent';
-      case 1:
-      case '1':
-      case 'sent': return 'Invoice Sent';
-      case 2:
-      case '2':
-      case 'partially_paid': return 'Partially Paid';
-      case 3:
-      case '3':
-      case 'fully_paid': return 'Fully Paid';
-      default: return 'Unknown';
-    }
-  };
-  
-  const getStatusVariant = (status: string | number) => {
-    switch (status) {
-      case 0:
-      case '0':
-      case 'not_sent': return 'outline';
-      case 1:
-      case '1':
-      case 'sent': return 'secondary';
-      case 2:
-      case '2':
-      case 'partially_paid': return 'warning';
-      case 3:
-      case '3':
-      case 'fully_paid': return 'success';
-      default: return 'outline';
-    }
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!isAdmin && userRole !== 'admin') {
-      toast.error('Only admins can update payment status');
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
+  const [invoiceSent, setInvoiceSent] = useState(patent.invoice_sent || false);
+  const [paymentStatus, setPaymentStatus] = useState(patent.payment_status || 'not_sent');
+  const [paymentAmount, setPaymentAmount] = useState(patent.payment_amount?.toString() || '');
+  const [receivedAmount, setReceivedAmount] = useState(patent.payment_received?.toString() || '');
+  const [updating, setUpdating] = useState(false);
+
+  const isAdminUser = userRole === 'admin' || isAdmin;
+
+  const handleToggleInvoice = async () => {
+    setUpdating(true);
     try {
-      // Convert string values to appropriate types for the API
-      const statusStr = status;
-      const amountNum = parseFloat(amount);
-      const receivedNum = parseFloat(received);
-      
-      // First update the payment status
-      const statusResult = await updatePatentStatus(patent.id, 'payment_status', statusStr as any);
-      
-      if (!statusResult.success) {
-        toast.error('Failed to update payment status');
-        return;
-      }
-      
-      // Then update the payment details
-      const paymentResult = await updatePatentPayment(patent.id, {
-        payment_status: statusStr,
-        payment_amount: amountNum,
-        payment_received: receivedNum
-      });
-      
-      if (paymentResult.success) {
-        toast.success('Payment status updated');
-        if (refreshPatentData) {
-          refreshPatentData();
-        } else if (onUpdate) {
-          onUpdate();
-        }
-      } else {
-        toast.error('Failed to update payment details');
+      const result = await updatePatentStatus(patent.id, 'invoice_sent', !invoiceSent);
+      if (result.success) {
+        setInvoiceSent(!invoiceSent);
+        toast.success(`Invoice marked as ${!invoiceSent ? 'sent' : 'not sent'}`);
+        if (onUpdate) onUpdate();
+        if (refreshPatentData) refreshPatentData();
       }
     } catch (error) {
-      console.error('Error updating payment status:', error);
-      toast.error('An error occurred while updating payment status');
+      console.error('Error updating invoice status:', error);
+      toast.error('Failed to update invoice status');
     } finally {
-      setIsSubmitting(false);
+      setUpdating(false);
     }
   };
-  
-  const calculatePercentage = () => {
-    const amountNum = parseFloat(amount);
-    const receivedNum = parseFloat(received);
-    
-    if (isNaN(amountNum) || amountNum === 0) return 0;
-    return Math.round((receivedNum / amountNum) * 100);
+
+  const handleUpdatePayment = async () => {
+    setUpdating(true);
+    try {
+      const paymentData = {
+        payment_status: paymentStatus,
+        payment_amount: parseFloat(paymentAmount) || 0,
+        payment_received: parseFloat(receivedAmount) || 0
+      };
+      
+      const result = await updatePatentPayment(patent.id, paymentData);
+      if (result.success) {
+        toast.success('Payment details updated');
+        if (onUpdate) onUpdate();
+        if (refreshPatentData) refreshPatentData();
+      }
+    } catch (error) {
+      console.error('Error updating payment details:', error);
+      toast.error('Failed to update payment details');
+    } finally {
+      setUpdating(false);
+    }
   };
-  
+
+  const renderPaymentStatus = () => {
+    switch (paymentStatus) {
+      case 'not_sent':
+        return <Badge variant="outline" className="bg-gray-100">Payment Not Initiated</Badge>;
+      case 'pending':
+        return <Badge variant="outline" className="bg-amber-100 text-amber-800">Payment Pending</Badge>;
+      case 'partial':
+        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Partial Payment</Badge>;
+      case 'completed':
+        return <Badge variant="outline" className="bg-green-100 text-green-800">Payment Completed</Badge>;
+      default:
+        return <Badge variant="outline" className="bg-gray-100">Unknown</Badge>;
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Payment Status</span>
-          <StatusBadge 
-            status={getStatusLabel(patent.payment_status || 0)} 
-            variant={getStatusVariant(patent.payment_status || 0)}
-          />
+        <CardTitle className="flex items-center gap-2">
+          <CreditCard className="h-5 w-5" />
+          Payment Status
         </CardTitle>
-        <CardDescription>Track payment status and amounts</CardDescription>
       </CardHeader>
-      <CardContent>
-        {isAdmin ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
+      <CardContent className="space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <p className="text-sm font-medium">Invoice Status</p>
+            <Badge variant={invoiceSent ? "success" : "secondary"}>
+              {invoiceSent ? 'Invoice Sent' : 'Invoice Not Sent'}
+            </Badge>
+          </div>
+          {isAdminUser && (
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={invoiceSent}
+                onCheckedChange={handleToggleInvoice}
+                disabled={updating}
+              />
+              <Label htmlFor="invoice-sent">{invoiceSent ? 'Sent' : 'Not Sent'}</Label>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <p className="text-sm font-medium mb-1">Payment Status</p>
+          {renderPaymentStatus()}
+        </div>
+
+        {(patent.payment_amount || isAdminUser) && (
+          <div className="flex justify-between gap-4">
+            <div className="w-1/2">
+              <p className="text-sm font-medium mb-1">Amount</p>
+              <p className="font-semibold">
+                ₹{patent.payment_amount ? patent.payment_amount.toLocaleString() : '0'}
+              </p>
+            </div>
+            <div className="w-1/2">
+              <p className="text-sm font-medium mb-1">Received</p>
+              <p className="font-semibold">
+                ₹{patent.payment_received ? patent.payment_received.toLocaleString() : '0'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {isAdminUser && (
+          <div className="space-y-4 pt-4 border-t">
+            <h4 className="font-medium">Update Payment Details</h4>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Payment Status</label>
-              <Select 
-                value={status} 
-                onValueChange={setStatus}
-                disabled={isSubmitting}
+              <Label htmlFor="payment-status">Payment Status</Label>
+              <Select
+                value={paymentStatus}
+                onValueChange={setPaymentStatus}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="not_sent">Invoice Not Sent</SelectItem>
-                  <SelectItem value="sent">Invoice Sent</SelectItem>
-                  <SelectItem value="partially_paid">Partially Paid</SelectItem>
-                  <SelectItem value="fully_paid">Fully Paid</SelectItem>
+                  <SelectItem value="not_sent">Not Initiated</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="partial">Partial Payment</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Total Amount</label>
-                <Input 
-                  type="number" 
-                  value={amount} 
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  disabled={isSubmitting}
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Amount Received</label>
-                <Input 
-                  type="number" 
-                  value={received} 
-                  onChange={(e) => setReceived(e.target.value)}
-                  placeholder="0.00"
-                  disabled={isSubmitting}
-                  min="0"
-                  step="0.01"
-                />
-              </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="payment-amount">Total Amount (₹)</Label>
+              <Input
+                id="payment-amount"
+                type="number"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                placeholder="Enter amount"
+              />
             </div>
-            
-            <Button 
-              type="submit" 
+
+            <div className="space-y-2">
+              <Label htmlFor="received-amount">Received Amount (₹)</Label>
+              <Input
+                id="received-amount"
+                type="number"
+                value={receivedAmount}
+                onChange={(e) => setReceivedAmount(e.target.value)}
+                placeholder="Enter received amount"
+              />
+            </div>
+
+            <Button
               className="w-full"
-              disabled={isSubmitting}
+              onClick={handleUpdatePayment}
+              disabled={updating}
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
-                </>
-              ) : 'Update Payment Status'}
+              Update Payment Details
             </Button>
-          </form>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Total Amount</p>
-                <p className="text-xl font-bold">
-                  {patent.payment_amount ? new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'INR'
-                  }).format(patent.payment_amount) : 'Not set'}
-                </p>
-              </div>
-              
-              <div>
-                <p className="text-sm font-medium text-gray-500">Amount Received</p>
-                <p className="text-xl font-bold">
-                  {patent.payment_received ? new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'INR'
-                  }).format(patent.payment_received) : 'Not set'}
-                </p>
-              </div>
-            </div>
-            
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Progress</p>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div 
-                  className="bg-green-600 h-2.5 rounded-full" 
-                  style={{ width: `${calculatePercentage()}%` }}
-                ></div>
-              </div>
-              <p className="text-xs text-right mt-1 text-gray-500">
-                {calculatePercentage()}% complete
-              </p>
-            </div>
           </div>
         )}
       </CardContent>

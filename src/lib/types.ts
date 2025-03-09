@@ -1,3 +1,4 @@
+
 export interface Inventor {
   id: string;
   tracking_id: string;
@@ -141,7 +142,7 @@ export interface Employee {
   password: string;
   created_at: string;
   updated_at: string;
-  role: 'admin' | 'drafter' | 'filer';
+  role: 'admin' | 'drafter' | 'filer' | 'employee';
 }
 
 export interface PatentFormData {
@@ -176,7 +177,7 @@ export interface EmployeeFormData {
   email: string;
   ph_no: string;
   password: string;
-  role: 'admin' | 'drafter' | 'filer';
+  role: 'admin' | 'drafter' | 'filer' | 'employee';
 }
 
 export interface User {
@@ -184,10 +185,10 @@ export interface User {
   emp_id: string;
   full_name: string;
   email: string;
-  role: 'admin' | 'drafter' | 'filer';
+  role: 'admin' | 'drafter' | 'filer' | 'employee';
 }
 
-export interface PatientTimeline {
+export interface TimelineEvent {
   id: string;
   patent_id: string;
   event_type: string;
@@ -222,18 +223,7 @@ export enum WorkflowStatus {
   Completed = 3     // Task approved and completed
 }
 
-// Add the missing TimelineEntry and PatientFilters types
-export interface TimelineEntry {
-  id: string;
-  patent_id: string;
-  event_type: string;
-  event_description: string;
-  created_at: string;
-  status: number;
-  employee_name?: string;
-  deadline_date?: string;
-}
-
+// Add the necessary PatientFilters interface
 export interface PatentFilters {
   status?: string;
   drafter?: string;
@@ -282,30 +272,16 @@ export interface PageHeaderProps {
   icon?: string;
 }
 
-// Update PatentFormData to match with Inventor interface
-// Update PatentFormData to match with Inventor interface
-export interface PatentFormData {
-  tracking_id: string;
-  patent_applicant: string;
-  client_id: string;
-  application_no: string;
-  date_of_filing: string;
-  patent_title: string;
-  applicant_addr: string;
-  inventor_ph_no: string;
-  inventor_email: string;
-  ps_drafter_assgn: string;
-  ps_drafter_deadline: string;
-  ps_filer_assgn: string;
-  ps_filer_deadline: string;
-  cs_drafter_assgn: string;
-  cs_drafter_deadline: string;
-  cs_filer_assgn: string;
-  cs_filer_deadline: string;
-  fer_status: number;
-  fer_drafter_assgn: string;
-  fer_drafter_deadline: string;
-  fer_filer_assgn: string;
-  fer_filer_deadline: string;
-  inventors: { inventor_name: string; inventor_addr: string; }[];
+// Add createInventor function API response type
+export interface CreateInventorResponse {
+  success: boolean;
+  inventor?: Inventor;
+  error?: string;
+}
+
+// Add API response types for better error handling
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
 }

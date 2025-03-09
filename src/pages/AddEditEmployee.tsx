@@ -56,7 +56,7 @@ const AddEditEmployee = () => {
         try {
           setLoading(true);
           const employee = await fetchEmployeeById(id);
-          if (employee) {
+          if (employee && !('error' in employee)) {
             setFormData({
               emp_id: employee.emp_id,
               full_name: employee.full_name,
@@ -87,7 +87,7 @@ const AddEditEmployee = () => {
   };
   
   const handleRoleChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, role: value as 'admin' | 'drafter' | 'filer' }));
+    setFormData((prev) => ({ ...prev, role: value as 'admin' | 'drafter' | 'filer' | 'employee' }));
   };
   
   const validateForm = (): boolean => {
@@ -140,16 +140,20 @@ const AddEditEmployee = () => {
           delete employeeData.password;
         }
         
-        const success = await updateEmployee(id, employeeData);
-        if (success) {
+        const result = await updateEmployee(id, employeeData);
+        if (result.success) {
           toast.success('Employee updated successfully');
           navigate('/employees');
+        } else {
+          toast.error(result.error || 'Failed to update employee');
         }
       } else {
-        const newEmployee = await createEmployee(formData);
-        if (newEmployee) {
+        const result = await createEmployee(formData);
+        if (result.success) {
           toast.success('Employee added successfully');
           navigate('/employees');
+        } else {
+          toast.error(result.error || 'Failed to create employee');
         }
       }
     } catch (error) {
@@ -210,6 +214,7 @@ const AddEditEmployee = () => {
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="drafter">Drafter</SelectItem>
                     <SelectItem value="filer">Filer</SelectItem>
+                    <SelectItem value="employee">Employee</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Patent, Inventor, Employee, FEREntry, PatentFormData, PatentFilters, TimelineEntry } from "./types";
+import { Patent, Inventor, Employee, FEREntry, PatentFormData, PatentFilters, TimelineEvent } from "./types";
 import { formatDateForDatabase } from "./utils";
 
 // Helper function to handle API responses
@@ -201,6 +201,31 @@ export const createPatent = async (patentData: PatentFormData) => {
   }
 };
 
+export const createInventor = async (patentTrackingId: string, inventorData: { inventor_name: string; inventor_addr: string }) => {
+  try {
+    const data = {
+      tracking_id: patentTrackingId,
+      ...inventorData
+    };
+    
+    const { data: result, error } = await supabase
+      .from('inventors')
+      .insert([data])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error creating inventor:", error);
+      return { error: error.message, success: false };
+    }
+    
+    return { success: true, inventor: result };
+  } catch (error: any) {
+    console.error("Exception creating inventor:", error);
+    return { error: error.message, success: false };
+  }
+};
+
 export const updatePatent = async (id: string, patentData: Partial<Patent>) => {
   try {
     // Extract inventors to handle separately
@@ -394,24 +419,15 @@ export const fetchEmployeeById = async (id: string) => {
 
 export const createEmployee = async (employeeData: Partial<Employee>) => {
   try {
-    // First create the user in auth
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: employeeData.email || '',
-      password: employeeData.password || '',
-      email_confirm: true
-    });
-    
-    if (authError) {
-      console.error("Error creating auth user:", authError);
-      return { error: authError.message, success: false };
-    }
-    
-    // Then create the employee record
+    // Create the employee record
     const { data, error } = await supabase
       .from('employees')
       .insert([{
-        ...employeeData,
-        auth_id: authData.user?.id,
+        emp_id: employeeData.emp_id,
+        full_name: employeeData.full_name,
+        email: employeeData.email,
+        ph_no: employeeData.ph_no,
+        password: employeeData.password,
         role: employeeData.role || 'drafter' // Default to drafter if role not specified
       }])
       .select()
@@ -451,18 +467,6 @@ export const updateEmployee = async (id: string, employeeData: Partial<Employee>
 
 export const deleteEmployee = async (id: string) => {
   try {
-    // Get the employee to find their auth_id
-    const { data: employee, error: fetchError } = await supabase
-      .from('employees')
-      .select('auth_id')
-      .eq('id', id)
-      .single();
-    
-    if (fetchError) {
-      console.error("Error fetching employee:", fetchError);
-      return { error: fetchError.message, success: false };
-    }
-    
     // Delete the employee record
     const { error: deleteError } = await supabase
       .from('employees')
@@ -472,16 +476,6 @@ export const deleteEmployee = async (id: string) => {
     if (deleteError) {
       console.error("Error deleting employee:", deleteError);
       return { error: deleteError.message, success: false };
-    }
-    
-    // Delete the auth user if auth_id exists
-    if (employee?.auth_id) {
-      const { error: authError } = await supabase.auth.admin.deleteUser(employee.auth_id);
-      
-      if (authError) {
-        console.error("Error deleting auth user:", authError);
-        // Don't fail the operation if auth delete fails
-      }
     }
     
     return { success: true };
@@ -502,7 +496,7 @@ export const createFEREntry = async (
   ferDate?: string
 ) => {
   try {
-    const ferData: Partial<FEREntry> = {
+    const ferData = {
       patent_id: patentId,
       fer_number: ferNumber,
       fer_drafter_assgn: drafterAssign || null,
@@ -971,44 +965,9 @@ export const approveReview = async (patent: Patent, reviewType: string) => {
   }
 };
 
-export const approveFERReview = async (ferEntry: FEREntry, reviewType: string) => {
-  try {
-    let updateData: any = {};
-    
-    if (reviewType === 'draft') {
-      updateData = { 
-        fer_review_draft_status: 0
-      };
-    } else if (reviewType === 'file') {
-      updateData = { 
-        fer_review_file_status: 0,
-        fer_completion_status: 1
-      };
-    }
-    
-    const { error } = await supabase
-      .from('fer_entries')
-      .update(updateData)
-      .eq('id', ferEntry.id);
-    
-    if (error) {
-      console.error("Error approving FER review:", error);
-      return { error: error.message, success: false };
-    }
-    
-    // Update the patent's FER completion status
-    if (reviewType === 'file') {
-      await updateFERCompletionStatus(ferEntry.patent_id);
-    }
-    
-    return { success: true };
-  } catch (error: any) {
-    console.error("Exception approving FER review:", error);
-    return { error: error.message, success: false };
-  }
-};
-
-export const rejectReview = async (patent: Patent, reviewType: string) => {
+// Alias for the approveReview function
+export const approvePatentReview = approveReview;
+export const rejectPatentReview = async (patent: Patent, reviewType: string) => {
   try {
     let updateData: any = {};
     
@@ -1084,6 +1043,43 @@ export const rejectReview = async (patent: Patent, reviewType: string) => {
     return { success: true };
   } catch (error: any) {
     console.error("Exception rejecting review:", error);
+    return { error: error.message, success: false };
+  }
+};
+
+export const approveFERReview = async (ferEntry: FEREntry, reviewType: string) => {
+  try {
+    let updateData: any = {};
+    
+    if (reviewType === 'draft') {
+      updateData = { 
+        fer_review_draft_status: 0
+      };
+    } else if (reviewType === 'file') {
+      updateData = { 
+        fer_review_file_status: 0,
+        fer_completion_status: 1
+      };
+    }
+    
+    const { error } = await supabase
+      .from('fer_entries')
+      .update(updateData)
+      .eq('id', ferEntry.id);
+    
+    if (error) {
+      console.error("Error approving FER review:", error);
+      return { error: error.message, success: false };
+    }
+    
+    // Update the patent's FER completion status
+    if (reviewType === 'file') {
+      await updateFERCompletionStatus(ferEntry.patent_id);
+    }
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error("Exception approving FER review:", error);
     return { error: error.message, success: false };
   }
 };
@@ -1175,7 +1171,3 @@ export const fetchPatentsAndEmployees = async () => {
     return { patents: [], employees: [], error: error.message };
   }
 };
-
-// Let's also define a type alias for approvePatentReview and rejectPatentReview
-export const approvePatentReview = approveReview;
-export const rejectPatentReview = rejectReview;
