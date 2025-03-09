@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
-import { EmployeeFormData, Employee } from '@/lib/types';
+import { EmployeeFormData } from '@/lib/types';
 import { toast } from 'sonner';
 import { createEmployee, updateEmployee, fetchEmployeeById } from '@/lib/api';
 
@@ -125,18 +125,19 @@ const AddEditEmployee = () => {
     
     try {
       if (isEditing && id) {
-        // Only include password in update if it's provided
-        const employeeData: Partial<Omit<Employee, 'id' | 'created_at' | 'updated_at'>> = {
+        // Create a copy of the form data that matches EmployeeFormData
+        const employeeData: EmployeeFormData = {
           emp_id: formData.emp_id,
           full_name: formData.full_name,
           email: formData.email,
           ph_no: formData.ph_no,
-          role: formData.role
+          role: formData.role,
+          password: formData.password
         };
         
-        // Only add password if it's provided (not empty)
-        if (formData.password.trim()) {
-          employeeData.password = formData.password;
+        // Only include password if it's provided (not empty)
+        if (!formData.password.trim()) {
+          delete employeeData.password;
         }
         
         const success = await updateEmployee(id, employeeData);

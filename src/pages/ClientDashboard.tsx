@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { fetchPatents } from '@/lib/api';
 import { Patent } from '@/lib/types';
@@ -23,11 +24,13 @@ const ClientDashboard = () => {
     const loadPatents = async () => {
       setIsLoading(true);
       try {
-        const allPatents = await fetchPatents();
-        setPatents(allPatents);
+        const patentsData = await fetchPatents();
+        setPatents(patentsData);
         
-        const uniqueClients = Array.from(new Set(allPatents.map(patent => patent.client_id)));
-        setClients(uniqueClients);
+        const uniqueClients = Array.from(
+          new Set(patentsData.map((patent: Patent) => patent.client_id))
+        );
+        setClients(uniqueClients as string[]);
         
         setIsLoading(false);
       } catch (error) {
