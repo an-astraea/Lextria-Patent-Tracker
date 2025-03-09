@@ -1,448 +1,328 @@
-import { Employee, FERHistory, Inventor, Patent } from './types';
+import {
+  Patent,
+  Inventor,
+  Employee,
+  FERHistory,
+  FEREntry,
+} from './types';
 
-export const MOCK_PATENTS: Patent[] = [
+// Mock data for patents
+const inventors: Inventor[] = [
   {
-    id: "1",
-    tracking_id: "PTR-001",
-    patent_applicant: "TechInnovate Solutions",
-    client_id: "CLT-001",
-    application_no: "APP12345",
-    date_of_filing: "2023-01-15",
-    patent_title: "Advanced Machine Learning System for Predictive Analysis",
-    applicant_addr: "123 Tech Park, Silicon Valley, CA 94088",
-    inventor_ph_no: "+1-234-567-8901",
-    inventor_email: "inventor@techinnovate.com",
+    id: "i-1",
+    tracking_id: "PT001",
+    inventor_name: "John Doe",
+    inventor_addr: "123 Main St, Anytown USA",
+  },
+  {
+    id: "i-2",
+    tracking_id: "PT002",
+    inventor_name: "Alice Smith",
+    inventor_addr: "456 Oak Ave, Somecity USA",
+  },
+];
+
+// Mock data for employees
+const employees: Employee[] = [
+  {
+    id: "e-1",
+    emp_id: "EMP001",
+    full_name: "Admin User",
+    email: "admin@example.com",
+    ph_no: "555-000-0001",
+    password: "password",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    role: "admin",
+  },
+  {
+    id: "e-2",
+    emp_id: "EMP002",
+    full_name: "Drafter One",
+    email: "drafter@example.com",
+    ph_no: "555-000-0002",
+    password: "password",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    role: "drafter",
+  },
+  {
+    id: "e-3",
+    emp_id: "EMP003",
+    full_name: "Filer Two",
+    email: "filer@example.com",
+    ph_no: "555-000-0003",
+    password: "password",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    role: "filer",
+  },
+];
+
+// Mock FER History data
+// const fer_history: FERHistory[] = [
+//   {
+//     id: "fh-1",
+//     tracking_id: "PT001",
+//     fer_drafter_assgn: "Jane Smith",
+//     fer_drafter_deadline: "2023-12-01",
+//     fer_filer_assgn: "Bob Johnson",
+//     fer_filer_deadline: "2023-12-15",
+//   },
+//   {
+//     id: "fh-2",
+//     tracking_id: "PT002",
+//     fer_drafter_assgn: "Alice Brown",
+//     fer_drafter_deadline: "2023-11-15",
+//     fer_filer_assgn: "Charlie Davis",
+//     fer_filer_deadline: "2023-11-30",
+//   },
+// ];
+
+// Mock FER Entries data
+const fer_entries: FEREntry[] = [
+  {
+    id: "fe-1",
+    patent_id: "PT001",
+    fer_number: 1,
+    fer_date: "2023-01-15",
+    fer_drafter_assgn: "Drafter One",
+    fer_drafter_deadline: "2023-02-28",
+    fer_drafter_status: 1,
+    fer_filer_assgn: "Filer Two",
+    fer_filer_deadline: "2023-03-15",
+    fer_filing_status: 1,
+    fer_review_draft_status: 2,
+    fer_review_file_status: 0,
+    fer_completion_status: 3,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "fe-2",
+    patent_id: "PT002",
+    fer_number: 1,
+    fer_date: "2023-02-01",
+    fer_drafter_assgn: "Drafter One",
+    fer_drafter_deadline: "2023-03-15",
+    fer_drafter_status: 0,
+    fer_filer_assgn: "Filer Two",
+    fer_filer_deadline: "2023-03-31",
+    fer_filing_status: 0,
+    fer_review_draft_status: 0,
+    fer_review_file_status: 0,
+    fer_completion_status: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
+
+// Mock data for patents
+export const patents: Patent[] = [
+  {
+    id: "PT001",
+    tracking_id: "PT001",
+    patent_applicant: "Tech Innovations Inc.",
+    client_id: "CI001",
+    application_no: "AP-2023-1001",
+    date_of_filing: "2023-01-10",
+    patent_title: "Method for Efficient Data Compression",
+    applicant_addr: "144 Tech Park, Silicon Valley, CA",
+    inventor_ph_no: "555-111-2222",
+    inventor_email: "john.doe@example.com",
     ps_drafting_status: 1,
-    ps_drafter_assgn: "John Smith",
-    ps_drafter_deadline: "2022-12-01",
-    ps_review_draft_status: 0,
-    ps_filing_status: 1,
-    ps_filer_assgn: "Jane Doe",
-    ps_filer_deadline: "2022-12-15",
+    ps_drafter_assgn: "Drafter One",
+    ps_drafter_deadline: "2023-01-25",
+    ps_review_draft_status: 2,
+    ps_filing_status: 0,
+    ps_filer_assgn: "Filer Two",
+    ps_filer_deadline: "2023-02-10",
     ps_review_file_status: 0,
-    ps_completion_status: 1,
-    cs_drafting_status: 1,
-    cs_drafter_assgn: "John Smith",
-    cs_drafter_deadline: "2023-02-15",
+    ps_completion_status: 0,
+    cs_drafting_status: 0,
+    cs_drafter_assgn: "Drafter One",
+    cs_drafter_deadline: "2023-02-28",
     cs_review_draft_status: 0,
-    cs_filing_status: 1,
-    cs_filer_assgn: "Jane Doe",
-    cs_filer_deadline: "2023-03-01",
+    cs_filing_status: 0,
+    cs_filer_assgn: "Filer Two",
+    cs_filer_deadline: "2023-03-15",
     form_01: true,
-    form_02_ps: true,
+    form_02_ps: false,
     form_02_cs: true,
-    form_03: true,
-    form_04: false,
-    form_05: true,
-    form_06: false,
+    form_03: false,
+    form_04: true,
+    form_05: false,
+    form_06: true,
     form_07: false,
-    form_07a: false,
+    form_07a: true,
     form_08: false,
-    form_08a: false,
-    form_09: true,
-    form_09a: false,
+    form_08a: true,
+    form_09: false,
+    form_09a: true,
     form_10: false,
-    form_11: false,
+    form_11: true,
     form_12: false,
     form_13: true,
     form_14: false,
-    form_15: false,
-    form_16: false,
-    form_17: false,
-    form_18: true,
-    form_18a: false,
-    form_19: false,
-    form_20: false,
-    form_21: false,
-    form_22: false,
-    form_23: false,
-    form_24: false,
-    form_25: false,
-    form_26: true,
-    form_27: false,
-    form_28: false,
-    form_29: false,
-    form_30: false,
-    form_31: false,
-    other_forms: null,
-    cs_review_file_status: 0,
-    cs_completion_status: 1,
-    fer_status: 1,
-    fer_drafter_status: 1,
-    fer_drafter_assgn: "John Smith",
-    fer_drafter_deadline: "2023-06-15",
-    fer_review_draft_status: 0,
-    fer_filing_status: 1,
-    fer_filer_assgn: "Jane Doe",
-    fer_filer_deadline: "2023-07-01",
-    fer_review_file_status: 0,
-    fer_completion_status: 1,
-    created_at: "2022-11-15T08:00:00Z",
-    updated_at: "2023-07-15T10:30:00Z",
-    inventors: [
-      {
-        id: "1",
-        tracking_id: "PTR-001",
-        inventor_name: "Dr. Robert Chen",
-        inventor_addr: "456 Research Ave, Palo Alto, CA 94301"
-      },
-      {
-        id: "2",
-        tracking_id: "PTR-001",
-        inventor_name: "Dr. Sarah Johnson",
-        inventor_addr: "789 Innovation Blvd, Mountain View, CA 94043"
-      }
-    ],
-    fer_history: []
-  },
-  {
-    id: "2",
-    tracking_id: "PTR-002",
-    patent_applicant: "BioGenetics Ltd",
-    client_id: "CLT-002",
-    application_no: null,
-    date_of_filing: "2023-03-10",
-    patent_title: "Novel Gene Editing Technique for Crop Enhancement",
-    applicant_addr: "45 Life Sciences Park, Boston, MA 02115",
-    inventor_ph_no: "+1-617-555-1234",
-    inventor_email: "research@biogenetics.com",
-    ps_drafting_status: 1,
-    ps_drafter_assgn: "John Smith",
-    ps_drafter_deadline: "2023-02-01",
-    ps_review_draft_status: 0,
-    ps_filing_status: 1,
-    ps_filer_assgn: "Jane Doe",
-    ps_filer_deadline: "2023-02-20",
-    ps_review_file_status: 0,
-    ps_completion_status: 1,
-    cs_drafting_status: 1,
-    cs_drafter_assgn: "John Smith",
-    cs_drafter_deadline: "2023-05-15",
-    cs_review_draft_status: 1,
-    cs_filing_status: 0,
-    cs_filer_assgn: "Jane Doe",
-    cs_filer_deadline: "2023-06-01",
-    form_01: true,
-    form_02_ps: true,
-    form_02_cs: false,
-    form_03: true,
-    form_04: false,
-    form_05: true,
-    form_06: false,
-    form_07: false,
-    form_07a: false,
-    form_08: false,
-    form_08a: false,
-    form_09: true,
-    form_09a: false,
-    form_10: false,
-    form_11: false,
-    form_12: false,
-    form_13: false,
-    form_14: false,
-    form_15: false,
-    form_16: false,
-    form_17: false,
-    form_18: true,
-    form_18a: false,
-    form_19: false,
-    form_20: false,
-    form_21: false,
-    form_22: false,
-    form_23: false,
-    form_24: false,
-    form_25: false,
-    form_26: true,
-    form_27: false,
-    form_28: false,
-    form_29: false,
-    form_30: false,
-    form_31: false,
+    form_15: true,
+    form_16: null,
+    form_17: null,
+    form_18: null,
+    form_18a: null,
+    form_19: null,
+    form_20: null,
+    form_21: null,
+    form_22: null,
+    form_23: null,
+    form_24: null,
+    form_25: null,
+    form_26: null,
+    form_27: null,
+    form_28: null,
+    form_29: null,
+    form_30: null,
+    form_31: null,
     other_forms: null,
     cs_review_file_status: 0,
     cs_completion_status: 0,
-    fer_status: 0,
+    fer_status: 1,
     fer_drafter_status: 0,
-    fer_drafter_assgn: "",
-    fer_drafter_deadline: "",
+    fer_drafter_assgn: "Drafter One",
+    fer_drafter_deadline: "2023-03-31",
     fer_review_draft_status: 0,
     fer_filing_status: 0,
-    fer_filer_assgn: "",
-    fer_filer_deadline: "",
+    fer_filer_assgn: "Filer Two",
+    fer_filer_deadline: "2023-04-15",
     fer_review_file_status: 0,
     fer_completion_status: 0,
-    created_at: "2023-01-20T09:15:00Z",
-    updated_at: "2023-05-25T14:45:00Z",
-    inventors: [
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    inventors: [inventors[0]],
+    fer_history: [
       {
-        id: "3",
-        tracking_id: "PTR-002",
-        inventor_name: "Dr. Michael Lee",
-        inventor_addr: "15 Research Drive, Cambridge, MA 02142"
+        id: "fh-1",
+        tracking_id: "PT001",
+        fer_drafter_assgn: "Jane Smith",
+        fer_drafter_deadline: "2023-12-01",
+        fer_filer_assgn: "Bob Johnson",
+        fer_filer_deadline: "2023-12-15",
+        created_at: new Date().toISOString()
       }
     ],
-    fer_history: []
-  }
-];
-
-export const MOCK_EMPLOYEES: Employee[] = [
-  {
-    id: "emp-1",
-    emp_id: "E001",
-    full_name: "Alice Smith",
-    email: "alice.smith@example.com",
-    ph_no: "555-111-2222",
-    password: "password123",
-    created_at: "2023-01-01T00:00:00.000Z",
-    updated_at: "2023-01-01T00:00:00.000Z",
-    role: "drafter"
+    fer_entries: [fer_entries[0]],
+    notes: "Initial patent application notes.",
   },
   {
-    id: "emp-2",
-    emp_id: "E002",
-    full_name: "Bob Johnson",
-    email: "bob.johnson@example.com",
-    ph_no: "555-333-4444",
-    password: "password456",
-    created_at: "2023-01-01T00:00:00.000Z",
-    updated_at: "2023-01-01T00:00:00.000Z",
-    role: "filer"
-  },
-  {
-    id: "emp-3",
-    emp_id: "E003",
-    full_name: "Charlie Brown",
-    email: "charlie.brown@example.com",
-    ph_no: "555-555-6666",
-    password: "password789",
-    created_at: "2023-01-01T00:00:00.000Z",
-    updated_at: "2023-01-01T00:00:00.000Z",
-    role: "drafter"
-  },
-  {
-    id: "emp-4",
-    emp_id: "E004",
-    full_name: "David Miller",
-    email: "david.miller@example.com",
-    ph_no: "555-777-8888",
-    password: "passwordabc",
-    created_at: "2023-01-01T00:00:00.000Z",
-    updated_at: "2023-01-01T00:00:00.000Z",
-    role: "filer"
-  },
-  {
-    id: "emp-5",
-    emp_id: "E005",
-    full_name: "Eve White",
-    email: "eve.white@example.com",
-    ph_no: "555-999-0000",
-    password: "passworddef",
-    created_at: "2023-01-01T00:00:00.000Z",
-    updated_at: "2023-01-01T00:00:00.000Z",
-    role: "drafter"
-  },
-  {
-    id: "emp-6",
-    emp_id: "E006",
-    full_name: "Admin User",
-    email: "admin@example.com",
-    ph_no: "555-123-0000",
-    password: "adminpassword",
-    created_at: "2023-01-01T00:00:00.000Z",
-    updated_at: "2023-01-01T00:00:00.000Z",
-    role: "admin"
-  }
-];
-
-export const MOCK_FER_HISTORY: FERHistory[] = [
-  {
-    id: "fer-hist-1",
-    tracking_id: "PTR-001",
-    fer_drafter_assgn: "John Smith",
-    fer_drafter_deadline: "2023-06-15",
-    fer_filer_assgn: "Jane Doe",
-    fer_filer_deadline: "2023-07-01"
-  },
-  {
-    id: "fer-hist-2",
-    tracking_id: "PTR-002",
-    fer_drafter_assgn: "",
-    fer_drafter_deadline: "",
-    fer_filer_assgn: "",
-    fer_filer_deadline: ""
-  }
-];
-
-export const MOCK_INVENTORS: Inventor[] = [
-  {
-    id: "inv-1",
-    tracking_id: "PTR-001",
-    inventor_name: "Dr. Robert Chen",
-    inventor_addr: "456 Research Ave, Palo Alto, CA 94301"
-  },
-  {
-    id: "inv-2",
-    tracking_id: "PTR-001",
-    inventor_name: "Dr. Sarah Johnson",
-    inventor_addr: "789 Innovation Blvd, Mountain View, CA 94043"
-  },
-  {
-    id: "inv-3",
-    tracking_id: "PTR-002",
-    inventor_name: "Dr. Michael Lee",
-    inventor_addr: "15 Research Drive, Cambridge, MA 02142"
-  }
-];
-
-export const fetchPatents = (): Promise<Patent[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(MOCK_PATENTS);
-    }, 500);
-  });
-};
-
-export const fetchPatentById = (id: string): Promise<Patent | undefined> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const patent = MOCK_PATENTS.find(patent => patent.id === id);
-      resolve(patent);
-    }, 300);
-  });
-};
-
-export const fetchEmployees = (): Promise<Employee[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(MOCK_EMPLOYEES);
-    }, 300);
-  });
-};
-
-export const fetchDrafterAssignments = (drafterName: string): Promise<Patent[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const assignments = MOCK_PATENTS.filter(
-        patent => patent.ps_drafter_assgn === drafterName || patent.cs_drafter_assgn === drafterName || patent.fer_drafter_assgn === drafterName
-      );
-      resolve(assignments);
-    }, 300);
-  });
-};
-
-export const fetchFilerAssignments = (filerName: string): Promise<Patent[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const assignments = MOCK_PATENTS.filter(
-        patent => patent.ps_filer_assgn === filerName || patent.cs_filer_assgn === filerName || patent.fer_filer_assgn === filerName
-      );
-      resolve(assignments);
-    }, 300);
-  });
-};
-
-export const fetchPendingReviews = (): Promise<Patent[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const pendingReviews = MOCK_PATENTS.filter(patent =>
-        patent.ps_review_draft_status === 0 ||
-        patent.ps_review_file_status === 0 ||
-        patent.cs_review_draft_status === 0 ||
-        patent.cs_review_file_status === 0 ||
-        patent.fer_review_draft_status === 0 ||
-        patent.fer_review_file_status === 0
-      );
-      resolve(pendingReviews);
-    }, 300);
-  });
-};
-
-export const approvePatentReview = (patent: Patent, reviewType: string): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Simulate approval process
-      console.log(`Patent ${patent.id} review type ${reviewType} approved`);
-      resolve(true);
-    }, 500);
-  });
-};
-
-export const createPatent = (patentData: Omit<Patent, 'id' | 'created_at' | 'updated_at'>): Promise<Patent> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const newPatent: Patent = {
-        id: Math.random().toString(36).substring(2, 15),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        ...patentData
-      };
-      MOCK_PATENTS.push(newPatent);
-      resolve(newPatent);
-    }, 500);
-  });
-};
-
-export const updatePatent = (id: string, patentData: Omit<Patent, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const index = MOCK_PATENTS.findIndex(patent => patent.id === id);
-      if (index !== -1) {
-        MOCK_PATENTS[index] = { ...MOCK_PATENTS[index], ...patentData, updated_at: new Date().toISOString() };
-        resolve(true);
-      } else {
-        resolve(false);
+    id: "PT002",
+    tracking_id: "PT002",
+    patent_applicant: "Global Solutions Ltd.",
+    client_id: "CI002",
+    application_no: "AP-2023-1002",
+    date_of_filing: "2023-02-15",
+    patent_title: "Innovative System for Water Purification",
+    applicant_addr: "789 Innovation Rd, Cleanville, NV",
+    inventor_ph_no: "555-333-4444",
+    inventor_email: "alice.smith@example.com",
+    ps_drafting_status: 2,
+    ps_drafter_assgn: "Drafter One",
+    ps_drafter_deadline: "2023-03-01",
+    ps_review_draft_status: 1,
+    ps_filing_status: 1,
+    ps_filer_assgn: "Filer Two",
+    ps_filer_deadline: "2023-03-15",
+    ps_review_file_status: 2,
+    ps_completion_status: 0,
+    cs_drafting_status: 1,
+    cs_drafter_assgn: "Drafter One",
+    cs_drafter_deadline: "2023-03-31",
+    cs_review_draft_status: 0,
+    cs_filing_status: 0,
+    cs_filer_assgn: "Filer Two",
+    cs_filer_deadline: "2023-04-15",
+    form_01: true,
+    form_02_ps: false,
+    form_02_cs: true,
+    form_03: false,
+    form_04: true,
+    form_05: false,
+    form_06: true,
+    form_07: false,
+    form_07a: true,
+    form_08: false,
+    form_08a: true,
+    form_09: false,
+    form_09a: true,
+    form_10: false,
+    form_11: true,
+    form_12: false,
+    form_13: true,
+    form_14: false,
+    form_15: true,
+    form_16: null,
+    form_17: null,
+    form_18: null,
+    form_18a: null,
+    form_19: null,
+    form_20: null,
+    form_21: null,
+    form_22: null,
+    form_23: null,
+    form_24: null,
+    form_25: null,
+    form_26: null,
+    form_27: null,
+    form_28: null,
+    form_29: null,
+    form_30: null,
+    form_31: null,
+    other_forms: null,
+    cs_review_file_status: 0,
+    cs_completion_status: 0,
+    fer_status: 1,
+    fer_drafter_status: 0,
+    fer_drafter_assgn: "Drafter One",
+    fer_drafter_deadline: "2023-04-30",
+    fer_review_draft_status: 0,
+    fer_filing_status: 0,
+    fer_filer_assgn: "Filer Two",
+    fer_filer_deadline: "2023-05-15",
+    fer_review_file_status: 0,
+    fer_completion_status: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    inventors: [inventors[1]],
+    fer_history: [
+      {
+        id: "fh-2",
+        tracking_id: "PT002",
+        fer_drafter_assgn: "Jane Smith",
+        fer_drafter_deadline: "2023-12-01",
+        fer_filer_assgn: "Bob Johnson",
+        fer_filer_deadline: "2023-12-15",
+        created_at: new Date().toISOString()
       }
-    }, 500);
-  });
+    ],
+    fer_entries: [fer_entries[1]],
+    notes: "Second patent application notes.",
+  },
+];
+
+// Function to fetch patents
+export const fetchPatents = async (): Promise<Patent[]> => {
+  return patents;
 };
 
-export const createInventor = (inventorData: { tracking_id: string; inventor_name: string; inventor_addr: string }): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const patent = MOCK_PATENTS.find(patent => patent.tracking_id === inventorData.tracking_id);
-      if (patent) {
-        const newInventor = {
-          id: Math.random().toString(36).substring(2, 15),
-          ...inventorData
-        };
-        patent.inventors = [...(patent.inventors || []), newInventor];
-        resolve(true);
-      } else {
-        resolve(false);
-      }
-    }, 500);
-  });
+// Function to fetch a single patent by ID
+export const fetchPatentById = async (id: string): Promise<Patent | undefined> => {
+  return patents.find((patent) => patent.id === id);
 };
 
-export const completeFilerTask = (patent: Patent, filerName: string, formData?: Record<string, boolean>): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Find the patent in our mock data
-      const index = MOCK_PATENTS.findIndex(p => p.id === patent.id);
-      if (index !== -1) {
-        // Update the filing status based on who is assigned
-        if (patent.ps_filer_assgn === filerName) {
-          MOCK_PATENTS[index].ps_filing_status = 1;
-          MOCK_PATENTS[index].ps_review_file_status = 1;
-        } else if (patent.cs_filer_assgn === filerName) {
-          MOCK_PATENTS[index].cs_filing_status = 1;
-          MOCK_PATENTS[index].cs_review_file_status = 1;
-          
-          // Update form data if provided (for CS filing)
-          if (formData) {
-            Object.keys(formData).forEach(formKey => {
-              (MOCK_PATENTS[index] as any)[formKey] = formData[formKey];
-            });
-          }
-        } else if (patent.fer_filer_assgn === filerName) {
-          MOCK_PATENTS[index].fer_filing_status = 1;
-          MOCK_PATENTS[index].fer_review_file_status = 1;
-        }
-        
-        resolve(true);
-      } else {
-        resolve(false);
-      }
-    }, 500);
-  });
+// Function to fetch employees
+export const fetchEmployees = async (): Promise<Employee[]> => {
+  return employees;
+};
+
+// Function to fetch a single employee by ID
+export const fetchEmployeeById = async (id: string): Promise<Employee | undefined> => {
+  return employees.find((employee) => employee.id === id);
 };
