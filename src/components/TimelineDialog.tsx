@@ -21,19 +21,22 @@ import {
   Clock 
 } from 'lucide-react';
 import { Badge } from './ui/badge';
+import { Patent } from '@/lib/types';
 
 export interface TimelineDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   milestones: any[];
   children?: React.ReactNode; // Added children prop
+  patent?: Patent; // Added patent prop
 }
 
 const TimelineDialog: React.FC<TimelineDialogProps> = ({ 
   open, 
   onOpenChange, 
   milestones,
-  children 
+  children,
+  patent // Add the patent parameter
 }) => {
   const getEventIcon = (eventType: string) => {
     if (eventType.includes('draft') || eventType.includes('drafting')) {
