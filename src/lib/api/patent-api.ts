@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Patent, EmployeeFormData, PatentFormData } from "@/lib/types";
 
@@ -225,26 +224,19 @@ export const updatePatentNotes = async (patentId: string, notes: string) => {
 };
 
 // Update patent forms
-export const updatePatentForms = async (
-  patentId: string,
-  formData: Record<string, boolean>
-) => {
-  try {
-    const { error } = await supabase
-      .from("patents")
-      .update(formData)
-      .eq("id", patentId);
-
-    if (error) {
-      console.error("Error updating patent forms:", error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Error in updatePatentForms:", error);
+export const updatePatentForms = async (patentId: string, formData: Record<string, boolean>) => {
+  const { data, error } = await supabase
+    .from('patents')
+    .update(formData)
+    .eq('id', patentId)
+    .select();
+  
+  if (error) {
+    console.error('Error updating patent forms:', error);
     return false;
   }
+  
+  return true;
 };
 
 // Function to update patent payment information

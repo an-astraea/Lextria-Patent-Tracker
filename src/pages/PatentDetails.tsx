@@ -7,6 +7,8 @@ import {
   fetchPatentById, 
   fetchPatentTimeline,
   fetchEmployees,
+  updateFEREntry,
+  updatePatentForms
 } from '@/lib/api';
 import { FEREntry, Patent } from '@/lib/types';
 import { toast } from 'sonner';
@@ -27,7 +29,7 @@ const PatentDetails = () => {
   const [timeline, setTimeline] = useState([]);
   const [userRole, setUserRole] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
-  const [employeesList, setEmployeesList] = useState<any[]>([]); // Fixed: renamed to employeesList
+  const [employeesList, setEmployeesList] = useState<any[]>([]); 
   
   useEffect(() => {
     // Get user role from localStorage
@@ -97,7 +99,79 @@ const PatentDetails = () => {
     }
   };
 
+  // Add the missing handlers for FER actions
+  const handleApproveDraft = async (fer: FEREntry) => {
+    try {
+      await updateFEREntry(fer.id, {
+        fer_review_draft_status: 0
+      });
+      toast.success("Draft approved successfully");
+      await refreshPatentData();
+    } catch (error) {
+      console.error('Error approving draft:', error);
+      toast.error("Failed to approve draft");
+    }
+  };
+
+  const handleApproveFiling = async (fer: FEREntry) => {
+    try {
+      await updateFEREntry(fer.id, {
+        fer_review_file_status: 0
+      });
+      toast.success("Filing approved successfully");
+      await refreshPatentData();
+    } catch (error) {
+      console.error('Error approving filing:', error);
+      toast.error("Failed to approve filing");
+    }
+  };
+
+  const handleCompleteDraft = async (fer: FEREntry) => {
+    try {
+      await updateFEREntry(fer.id, {
+        fer_drafter_status: 1,
+        fer_review_draft_status: 1
+      });
+      toast.success("Draft marked as completed");
+      await refreshPatentData();
+    } catch (error) {
+      console.error('Error completing draft:', error);
+      toast.error("Failed to complete draft");
+    }
+  };
+
+  const handleCompleteFiling = async (fer: FEREntry) => {
+    try {
+      await updateFEREntry(fer.id, {
+        fer_filing_status: 1,
+        fer_review_file_status: 1
+      });
+      toast.success("Filing marked as completed");
+      await refreshPatentData();
+    } catch (error) {
+      console.error('Error completing filing:', error);
+      toast.error("Failed to complete filing");
+    }
+  };
+
   const canEditForms = userRole === 'admin' || userRole === 'filer';
+
+  // Add the handleUpdateForms function to update patent forms
+  const handleUpdateForms = async (formName: string, value: boolean) => {
+    if (!id) return;
+    
+    try {
+      const formData = {
+        [formName]: value
+      };
+      await updatePatentForms(id, formData);
+      toast.success("Form status updated");
+      await refreshPatentData();
+    } catch (error) {
+      console.error('Error updating form status:', error);
+      toast.error("Failed to update form status");
+    }
+  };
 
   if (loading) {
     return (
@@ -139,15 +213,19 @@ const PatentDetails = () => {
         patent={patent}
         userRole={userRole}
         userName={userName}
-        employees={employeesList} // Fixed: passing employeesList instead of employees
+        employees={employeesList}
         refreshPatentData={refreshPatentData}
+        onApproveDraft={handleApproveDraft}
+        onApproveFiling={handleApproveFiling}
+        onCompleteDraft={handleCompleteDraft}
+        onCompleteFiling={handleCompleteFiling}
       />
 
       {/* Form Requirements */}
       <FormRequirementsList 
         patent={patent} 
         userRole={userRole} 
-        onUpdate={canEditForms ? updatePatentForms : undefined} 
+        onUpdate={canEditForms ? handleUpdateForms : undefined} 
       />
 
       {/* Patent Notes */}

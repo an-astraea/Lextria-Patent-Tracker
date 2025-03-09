@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import StatusBadge from "@/components/StatusBadge";
@@ -45,8 +44,8 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
       const currentValue = patent[field as keyof Patent];
       const newValue = typeof currentValue === 'boolean' ? !currentValue : true;
       
-      const statusData: Record<string, any> = { [field]: newValue };
-      await updatePatentStatus(patent.id, statusData);
+      // We need to pass 3 arguments: patentId, field, and value
+      await updatePatentStatus(patent.id, field, newValue ? 1 : 0);
       
       toast.success(`Status updated successfully`);
       await refreshPatentData();
