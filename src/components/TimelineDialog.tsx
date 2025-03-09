@@ -26,12 +26,14 @@ export interface TimelineDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   milestones: any[];
+  children?: React.ReactNode; // Added children prop
 }
 
 const TimelineDialog: React.FC<TimelineDialogProps> = ({ 
   open, 
   onOpenChange, 
-  milestones 
+  milestones,
+  children 
 }) => {
   const getEventIcon = (eventType: string) => {
     if (eventType.includes('draft') || eventType.includes('drafting')) {
@@ -64,8 +66,11 @@ const TimelineDialog: React.FC<TimelineDialogProps> = ({
     return null;
   };
 
+  // Ensure milestones is an array
+  const milestonesArray = Array.isArray(milestones) ? milestones : [];
+
   // Sort newest first
-  const sortedMilestones = [...milestones].sort(
+  const sortedMilestones = [...milestonesArray].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 

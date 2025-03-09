@@ -35,8 +35,10 @@ const PatentNotes: React.FC<PatentNotesProps> = ({
   const [newNote, setNewNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // This is placeholder data - in a real app, notes would come from the patent object
-  const notes: Note[] = patent.notes || [];
+  // Ensure notes is always an array, with proper typescript typing
+  const notes: Note[] = Array.isArray(patent.notes) 
+    ? patent.notes 
+    : []; // If patent.notes is not an array, use empty array instead
 
   const handleAddNote = async () => {
     if (!newNote.trim()) {
