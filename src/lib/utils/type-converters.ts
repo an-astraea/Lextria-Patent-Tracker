@@ -26,25 +26,22 @@ export function standardizePatentFormFields(patent: any): Patent {
   // Standardize FER history if it exists
   if (standardizedPatent.fer_history && Array.isArray(standardizedPatent.fer_history)) {
     standardizedPatent.fer_history = standardizedPatent.fer_history.map((history: any) => {
-      // Ensure that all required fields are present
-      if (!history.patent_id && standardizedPatent.id) {
-        history.patent_id = standardizedPatent.id;
-      }
-      
-      if (!history.fer_number) {
-        history.fer_number = 1; // Default to 1 if not present
-      }
-      
-      if (!history.date) {
-        history.date = history.created_at ? new Date(history.created_at).toISOString().split('T')[0] : 
-                      new Date().toISOString().split('T')[0];
-      }
-      
-      if (!history.action) {
-        history.action = "FER History Entry";
-      }
-      
-      return history as FERHistory;
+      // Create a standardized FERHistory entry with all required fields
+      return {
+        id: history.id,
+        patent_id: history.patent_id || standardizedPatent.id || '',
+        tracking_id: history.tracking_id || standardizedPatent.tracking_id || '',
+        fer_number: history.fer_number || 1,
+        date: history.date || (history.created_at ? new Date(history.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+        action: history.action || "FER History Entry",
+        fer_drafter_assgn: history.fer_drafter_assgn || null,
+        fer_drafter_deadline: history.fer_drafter_deadline || null,
+        fer_filer_assgn: history.fer_filer_assgn || null,
+        fer_filer_deadline: history.fer_filer_deadline || null,
+        notes: history.notes || null,
+        created_at: history.created_at || null,
+        updated_at: history.updated_at || null
+      } as FERHistory;
     });
   }
   

@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Patent } from "@/lib/types";
 import { toast } from "sonner";
+import { normalizePatents } from "../utils/type-converters";
 
 export const fetchFilerAssignments = async (filerName: string): Promise<Patent[]> => {
   try {
@@ -20,8 +21,11 @@ export const fetchFilerAssignments = async (filerName: string): Promise<Patent[]
       throw error;
     }
 
+    // Normalize the data to ensure type compatibility
+    const normalizedData = normalizePatents(data || []);
+
     // Filter for proper queue order and dependencies with approval requirements
-    return (data || []).filter(patent => {
+    return normalizedData.filter(patent => {
       // If assigned to PS filing and it's not completed
       if (patent.ps_filer_assgn === filerName && patent.ps_filing_status === 0) {
         // PS drafting must be completed and approved
@@ -84,7 +88,7 @@ export const fetchFilerCompletedAssignments = async (filerName: string): Promise
       throw error;
     }
 
-    return data || [];
+    return normalizePatents(data || []);
   } catch (error) {
     console.error("Error fetching completed filing assignments:", error);
     toast.error("Failed to load completed assignments");

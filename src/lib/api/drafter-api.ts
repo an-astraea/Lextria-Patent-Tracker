@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Patent } from "@/lib/types";
 import { toast } from "sonner";
+import { normalizePatents } from "../utils/type-converters";
 
 export const fetchDrafterAssignments = async (drafterName: string): Promise<Patent[]> => {
   try {
@@ -20,8 +21,11 @@ export const fetchDrafterAssignments = async (drafterName: string): Promise<Pate
       throw error;
     }
 
+    // Normalize data to ensure type compatibility
+    const normalizedData = normalizePatents(data || []);
+
     // Now we need to filter for proper queue order with approval dependencies
-    return (data || []).filter(patent => {
+    return normalizedData.filter(patent => {
       // If assigned to PS drafting and it's not completed
       if (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 0) {
         return true;
@@ -77,7 +81,7 @@ export const fetchDrafterCompletedAssignments = async (drafterName: string): Pro
       throw error;
     }
 
-    return data || [];
+    return normalizePatents(data || []);
   } catch (error) {
     console.error("Error fetching completed drafting assignments:", error);
     toast.error("Failed to load completed assignments");

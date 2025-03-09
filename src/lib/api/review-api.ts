@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Employee, Patent } from "../types";
 import { toast } from "sonner";
+import { normalizePatents } from "../utils/type-converters";
 
 // Function to fetch patents that need review by admins
 export const fetchPendingReviews = async (): Promise<Patent[]> => {
@@ -19,7 +20,7 @@ export const fetchPendingReviews = async (): Promise<Patent[]> => {
       throw error;
     }
 
-    return data || [];
+    return normalizePatents(data || []);
   } catch (error) {
     console.error("Error fetching pending reviews:", error);
     toast.error("Failed to load pending reviews");
@@ -58,8 +59,11 @@ export const fetchPatentsAndEmployees = async (): Promise<{patents: Patent[], em
       role: employee.role as 'admin' | 'drafter' | 'filer'
     }));
 
+    // Normalize the patents data
+    const patents = normalizePatents(patentsResponse.data || []);
+
     return {
-      patents: patentsResponse.data || [],
+      patents: patents,
       employees: employees
     };
   } catch (error) {

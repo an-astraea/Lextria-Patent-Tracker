@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckSquare, FileDigit } from 'lucide-react';
@@ -10,9 +9,15 @@ interface FormRequirementsListProps {
   patent: Patent;
   userRole: string;
   onUpdate?: (formName: string, value: boolean) => void;
+  formValues?: Record<string, boolean>; // Add formValues prop
 }
 
-const FormRequirementsList: React.FC<FormRequirementsListProps> = ({ patent, userRole, onUpdate }) => {
+const FormRequirementsList: React.FC<FormRequirementsListProps> = ({ 
+  patent, 
+  userRole, 
+  onUpdate,
+  formValues // Use formValues if provided
+}) => {
   // Whether the forms can be edited
   const isEditable = !!onUpdate && (userRole === 'admin' || userRole === 'filer');
 
@@ -62,8 +67,14 @@ const FormRequirementsList: React.FC<FormRequirementsListProps> = ({ patent, use
     { label: 'Form 31', field: 'form_31' },
   ];
 
-  // Alternative fields for backward compatibility
+  // Get form value from either formValues prop or patent object
   const getFormValue = (field: string): boolean => {
+    // First check formValues if provided
+    if (formValues && field in formValues) {
+      return !!formValues[field];
+    }
+    
+    // Otherwise check the patent object
     const standardField = field;
     
     // Check if the standardized field exists in the patent
