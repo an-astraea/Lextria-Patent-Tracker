@@ -7,19 +7,15 @@ import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { updatePatentStatus, updatePatentPayment } from '@/lib/api';
-import { Patent } from '@/lib/types';
+import { Patent, PaymentStatusSectionProps } from '@/lib/types';
 import StatusBadge from '../StatusBadge';
-
-interface PaymentStatusSectionProps {
-  patent: Patent;
-  onUpdate: () => void;
-  isAdmin?: boolean;
-}
 
 const PaymentStatusSection: React.FC<PaymentStatusSectionProps> = ({ 
   patent, 
   onUpdate,
-  isAdmin = false 
+  isAdmin = false,
+  userRole,
+  refreshPatentData
 }) => {
   const [status, setStatus] = useState<string>(String(patent.payment_status || '0'));
   const [amount, setAmount] = useState<string>(String(patent.payment_amount || '0'));
@@ -65,7 +61,7 @@ const PaymentStatusSection: React.FC<PaymentStatusSectionProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!isAdmin) {
+    if (!isAdmin && userRole !== 'admin') {
       toast.error('Only admins can update payment status');
       return;
     }
@@ -73,13 +69,13 @@ const PaymentStatusSection: React.FC<PaymentStatusSectionProps> = ({
     setIsSubmitting(true);
     
     try {
-      // Convert string values to numbers for the API
+      // Convert string values to appropriate types for the API
       const statusStr = status;
       const amountNum = parseFloat(amount);
       const receivedNum = parseFloat(received);
       
       // First update the payment status
-      const statusResult = await updatePatentStatus(patent.id, 'payment_status', statusStr);
+      const statusResult = await updatePatentStatus(patent.id, 'payment_status', statusStr as any);
       
       if (!statusResult.success) {
         toast.error('Failed to update payment status');
@@ -95,7 +91,11 @@ const PaymentStatusSection: React.FC<PaymentStatusSectionProps> = ({
       
       if (paymentResult.success) {
         toast.success('Payment status updated');
-        onUpdate();
+        if (refreshPatentData) {
+          refreshPatentData();
+        } else if (onUpdate) {
+          onUpdate();
+        }
       } else {
         toast.error('Failed to update payment details');
       }

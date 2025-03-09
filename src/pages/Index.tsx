@@ -1,172 +1,92 @@
 
-import React from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { Loader2, FileText } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { loginUser } from '@/lib/api';
+import { toast } from 'sonner';
 
 const Index = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [loading, setLoading] = React.useState(false);
 
   // Check if user is already logged in
-  React.useEffect(() => {
-    const userString = localStorage.getItem('user');
-    if (userString) {
-      const user = JSON.parse(userString);
-      // Redirect based on role
-      if (user.role === 'drafter') {
-        navigate('/drafts');
-      } else if (user.role === 'filer') {
-        navigate('/filings');
-      } else {
-        navigate('/dashboard');
-      }
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    if (user) {
+      navigate('/dashboard');
     }
   }, [navigate]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      toast.error('Please enter both email and password');
-      return;
-    }
-    
+    setLoading(true);
+
     try {
-      setLoading(true);
+      const result = await loginUser(email, password);
       
-      // Use the loginUser function from the API to authenticate the user
-      const response = await loginUser(email, password);
-      
-      if (response.success && response.user) {
-        // Store user in localStorage
-        localStorage.setItem('user', JSON.stringify(response.user));
-        
+      if (result.success && result.user) {
+        localStorage.setItem('user', JSON.stringify(result.user));
         toast.success('Login successful');
-        
-        // Redirect based on role
-        if (response.user.role === 'drafter') {
-          navigate('/drafts');
-        } else if (response.user.role === 'filer') {
-          navigate('/filings');
-        } else {
-          navigate('/dashboard');
-        }
+        navigate('/dashboard');
       } else {
-        toast.error(response.message || 'Invalid credentials');
+        toast.error(result.error || 'Invalid email or password');
       }
-      
     } catch (error) {
       console.error('Login error:', error);
-      toast.error('Login failed. Please check your credentials.');
+      toast.error('An error occurred during login');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4 sm:p-6 md:p-8">
-      <div className="w-full max-w-md text-center mb-6 md:mb-8 animate-fade-in">
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mb-2">
-          <div className="relative w-20 h-20 mb-2 sm:mb-0">
-            <div className="absolute inset-0 bg-primary/20 rounded-full animate-pulse"></div>
-            <img 
-              src="/logo.png" 
-              alt="Lextria Research Logo" 
-              className="h-full w-full p-2 relative z-10 object-contain"
-              id="company-logo"
-            />
+    <div className="min-h-screen flex justify-center items-center bg-gray-100">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <div className="flex justify-center mb-4">
+            <img src="/logo.png" alt="Logo" className="h-16" />
           </div>
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-1">Lextria Research</h1>
-            <p className="text-gray-600 text-sm md:text-base">Patent Tracking & Management System</p>
-          </div>
-        </div>
-      </div>
-      
-      <Card className="w-full max-w-md border shadow-lg animate-fade-in bg-white/80 backdrop-blur-sm">
-        <div className="absolute -top-6 left-0 right-0 flex justify-center">
-          <div className="bg-primary text-white p-3 rounded-full shadow-md">
-            <FileText className="h-6 w-6" />
-          </div>
-        </div>
-        
-        <CardHeader className="space-y-1 pt-10">
-          <CardTitle className="text-xl sm:text-2xl font-bold text-center text-gray-800">Sign in to your account</CardTitle>
-          <CardDescription className="text-center text-gray-600 text-sm sm:text-base">
-            Enter your credentials to access the patent management portal
-          </CardDescription>
+          <CardTitle className="text-2xl text-center">Patent Tracking System</CardTitle>
+          <CardDescription className="text-center">Enter your credentials to login</CardDescription>
         </CardHeader>
-        
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-gray-700">Email</label>
+              <Label htmlFor="email">Email</Label>
               <Input 
                 id="email" 
                 type="email" 
-                placeholder="your.email@example.com" 
-                value={email} 
-                onChange={e => setEmail(e.target.value)} 
-                disabled={loading} 
-                required 
-                className="border-gray-300 focus:border-primary focus:ring-primary"
+                placeholder="m@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-gray-700">Password</label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+              </div>
               <Input 
                 id="password" 
-                type="password" 
-                placeholder="Your password" 
-                value={password} 
-                onChange={e => setPassword(e.target.value)} 
-                disabled={loading} 
-                required 
-                className="border-gray-300 focus:border-primary focus:ring-primary"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
               />
             </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full bg-primary hover:bg-primary/90 transition-all duration-200 mt-2" 
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : 'Sign In'}
+          </CardContent>
+          <CardFooter>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign In'}
             </Button>
-          </form>
-        </CardContent>
-        
-        <CardFooter className="border-t border-gray-100 pt-4 pb-6">
-          <p className="w-full text-center text-sm text-gray-500">
-            For support, please contact your administrator
-          </p>
-        </CardFooter>
+          </CardFooter>
+        </form>
       </Card>
-      
-      <div className="mt-6 md:mt-8 text-center text-xs sm:text-sm text-gray-500 animate-fade-in">
-        <p>© {new Date().getFullYear()} Lextria Research. All rights reserved.</p>
-      </div>
-
-      {/* Decorative elements that only appear on larger screens */}
-      {!isMobile && (
-        <>
-          <div className="fixed top-20 left-20 w-64 h-64 bg-primary/5 rounded-full filter blur-3xl animate-pulse"></div>
-          <div className="fixed bottom-10 right-20 w-80 h-80 bg-indigo-100/20 rounded-full filter blur-3xl"></div>
-        </>
-      )}
     </div>
   );
 };

@@ -221,3 +221,91 @@ export enum WorkflowStatus {
   UnderReview = 2,  // Task submitted for review
   Completed = 3     // Task approved and completed
 }
+
+// Add the missing TimelineEntry and PatientFilters types
+export interface TimelineEntry {
+  id: string;
+  patent_id: string;
+  event_type: string;
+  event_description: string;
+  created_at: string;
+  status: number;
+  employee_name?: string;
+  deadline_date?: string;
+}
+
+export interface PatentFilters {
+  status?: string;
+  drafter?: string;
+  filer?: string;
+  searchTerm?: string;
+}
+
+// Update the PatentCardProps interface
+export interface PatentCardProps {
+  patent: Patent;
+  key?: string;
+  isCompact?: boolean;
+  showClientInfo?: boolean;
+  showReviewBadge?: boolean;
+}
+
+// Update the PaymentStatusSectionProps interface
+export interface PaymentStatusSectionProps {
+  patent: Patent;
+  onUpdate: () => void;
+  isAdmin?: boolean;
+  userRole?: string;
+  refreshPatentData?: () => Promise<void>;
+}
+
+// Update EmptyStateProps
+export interface EmptyStateProps {
+  title: string;
+  description?: string;
+  message?: string;
+  buttonText?: string;
+  onButtonClick?: () => Promise<void> | void;
+  icon?: string;
+}
+
+// Update LoadingStateProps
+export interface LoadingStateProps {
+  message?: string;
+}
+
+// Update PageHeaderProps
+export interface PageHeaderProps {
+  title: string;
+  subtitle?: string;
+  description?: string;
+  icon?: string;
+}
+
+// Update PatentFormData to match with Inventor interface
+// Update PatentFormData to match with Inventor interface
+export interface PatentFormData {
+  tracking_id: string;
+  patent_applicant: string;
+  client_id: string;
+  application_no: string;
+  date_of_filing: string;
+  patent_title: string;
+  applicant_addr: string;
+  inventor_ph_no: string;
+  inventor_email: string;
+  ps_drafter_assgn: string;
+  ps_drafter_deadline: string;
+  ps_filer_assgn: string;
+  ps_filer_deadline: string;
+  cs_drafter_assgn: string;
+  cs_drafter_deadline: string;
+  cs_filer_assgn: string;
+  cs_filer_deadline: string;
+  fer_status: number;
+  fer_drafter_assgn: string;
+  fer_drafter_deadline: string;
+  fer_filer_assgn: string;
+  fer_filer_deadline: string;
+  inventors: { inventor_name: string; inventor_addr: string; }[];
+}

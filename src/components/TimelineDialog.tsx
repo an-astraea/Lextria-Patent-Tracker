@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Patent } from '@/lib/types';
+import { Patent, TimelineEntry } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { fetchPatentTimeline } from '@/lib/api';
 import { format } from 'date-fns';
@@ -44,9 +44,16 @@ const TimelineDialog: React.FC<TimelineDialogProps> = ({ patent, children }) => 
         setLoading(true);
         try {
           const timelineData = await fetchPatentTimeline(patent.id);
-          setEvents(timelineData);
+          if (timelineData && Array.isArray(timelineData)) {
+            setEvents(timelineData);
+          } else if (timelineData && timelineData.timeline) {
+            setEvents(timelineData.timeline);
+          } else {
+            setEvents([]);
+          }
         } catch (error) {
           console.error("Error loading timeline:", error);
+          setEvents([]);
         } finally {
           setLoading(false);
         }
