@@ -1,19 +1,21 @@
+
 import React from 'react';
-import { Patent, PatentCardProps } from '@/lib/types';
+import { Patent } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Building, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-interface PatentCardProps {
+export interface PatentCardProps {
   patent: Patent;
   key?: string;
   isCompact?: boolean;
   showClientInfo?: boolean;
   showReviewBadge?: boolean;
+  onDelete?: () => void;
 }
 
-const PatentCard: React.FC<PatentCardProps> = ({ patent, isCompact = false, showClientInfo = false, showReviewBadge = false }) => {
+const PatentCard: React.FC<PatentCardProps> = ({ patent, isCompact = false, showClientInfo = false, showReviewBadge = false, onDelete }) => {
   return (
     <Link to={`/patents/${patent.id}`}>
       <Card className="hover:shadow-md transition-shadow">

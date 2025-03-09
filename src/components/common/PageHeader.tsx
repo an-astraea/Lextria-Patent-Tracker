@@ -1,8 +1,8 @@
+
 import React from 'react';
-import { PageHeaderProps } from '@/lib/types';
 import { Building, FileText } from 'lucide-react';
 
-interface PageHeaderProps {
+export interface PageHeaderProps {
   title: string;
   subtitle?: string;
   description?: string;

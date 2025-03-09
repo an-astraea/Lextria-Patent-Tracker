@@ -230,6 +230,7 @@ export interface PatentCardProps {
   isCompact?: boolean;
   showClientInfo?: boolean;
   showReviewBadge?: boolean;
+  onDelete?: () => void;
 }
 
 export interface PaymentStatusSectionProps {
@@ -272,27 +273,27 @@ export interface ApiResponse<T> {
 }
 
 // Helper type for API responses with proper unions
-export type ApiPatentsResponse = Patent[] | { patents: Patent[]; error?: any; } | { error: any; patents?: any[] };
-export type ApiEmployeesResponse = Employee[] | { employees: Employee[]; error?: any; } | { error: any; employees?: any[] };
-export type ApiPatentResponse = Patent | { patent: Patent; error?: any; } | { error: any; patent?: any; } | { success: boolean; patent: Patent; error?: any; };
-export type ApiTimelineResponse = TimelineEvent[] | { timeline: TimelineEvent[]; error?: any; } | { error: any; timeline?: any[] };
-export type ApiFERResponse = FEREntry | { fer: FEREntry; error?: any; } | { error: any; fer?: any; success?: boolean; } | { success: boolean; fer?: FEREntry; error?: any; };
+export type ApiPatentsResponse = Patent[] | { patents?: Patent[]; error?: any; };
+export type ApiEmployeesResponse = Employee[] | { employees?: Employee[]; error?: any; };
+export type ApiPatentResponse = Patent | { patent?: Patent; error?: any; success?: boolean; };
+export type ApiTimelineResponse = TimelineEvent[] | { timeline?: TimelineEvent[]; error?: any; };
+export type ApiFERResponse = FEREntry | { fer?: FEREntry; error?: any; success?: boolean; };
 
-export type PatentResponse = Patent | { error: any; patent: any; } | { 
-  patent: Patent; 
+export type PatentResponse = Patent | { 
+  patent?: Patent; 
   error?: any; 
   success?: boolean;
 };
 
 export type FEREntryResponse = FEREntry | { 
-  error: any; 
-  success: boolean; 
+  error?: any; 
+  success?: boolean; 
   fer?: FEREntry;
 };
 
 export type EmployeeResponse = Employee | { 
-  error: any; 
-  employee: any; 
+  error?: any; 
+  employee?: any; 
   success?: boolean;
 };
 
@@ -364,7 +365,7 @@ export function handleTimelineResponse(response: ApiTimelineResponse): TimelineE
 export function handleFERResponse(response: ApiFERResponse): FEREntry | null {
   if (!response) return null;
   
-  if ('id' in response && 'fer_number' in response) {
+  if ('id' in response) {
     return response as FEREntry;
   } else if ('fer' in response && response.fer) {
     return response.fer as FEREntry;
