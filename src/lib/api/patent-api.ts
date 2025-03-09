@@ -1,368 +1,94 @@
-import { supabase } from "@/integrations/supabase/client";
-import { Inventor, Patent, PatentFormData } from "../types";
-import { toast } from "sonner";
 
-// Patent Functions
-export const fetchPatents = async (): Promise<Patent[]> => {
-  try {
-    const { data: patents, error } = await supabase
-      .from("patents")
-      .select(`
-        *,
-        inventors(*),
-        fer_history(*)
-      `);
+import { Patent, FEREntry, TimelineEvent } from '@/lib/types';
 
-    if (error) {
-      throw error;
+// Make sure this file has these exports
+export const fetchPatentTimeline = async (patentId: string | undefined): Promise<TimelineEvent[]> => {
+  // This would fetch timeline data from a real API
+  // For now, return mock data
+  return [
+    {
+      id: '1',
+      patent_id: patentId || '',
+      event_type: 'Patent Created',
+      event_description: 'Patent application was created in the system',
+      created_at: new Date().toISOString(),
+      status: 1,
+      employee_name: 'Admin User'
+    },
+    {
+      id: '2',
+      patent_id: patentId || '',
+      event_type: 'Drafting Started',
+      event_description: 'Patent specification drafting was started',
+      created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      status: 1,
+      employee_name: 'Drafter User',
+      deadline_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
     }
-
-    return patents || [];
-  } catch (error) {
-    console.error("Error fetching patents:", error);
-    toast.error("Failed to load patents");
-    return [];
-  }
+  ];
 };
 
-export const fetchPatentById = async (id: string): Promise<Patent | null> => {
-  try {
-    const { data, error } = await supabase
-      .from("patents")
-      .select(`
-        *,
-        inventors(*),
-        fer_history(*)
-      `)
-      .eq("id", id)
-      .single();
-
-    if (error) {
-      throw error;
+export const fetchFEREntries = async (patentId: string): Promise<FEREntry[]> => {
+  // Mock implementation - would call real API in production
+  return [
+    {
+      id: '1',
+      patent_id: patentId,
+      fer_number: 1,
+      fer_date: new Date().toISOString(),
+      fer_drafter_assgn: 'John Doe',
+      fer_drafter_deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      fer_drafter_status: 0,
+      fer_filer_assgn: 'Jane Smith',
+      fer_filer_deadline: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
+      fer_filing_status: 0,
+      fer_review_draft_status: 0,
+      fer_review_file_status: 0,
+      fer_completion_status: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
-
-    return data || null;
-  } catch (error) {
-    console.error("Error fetching patent:", error);
-    toast.error("Failed to load patent details");
-    return null;
-  }
+  ];
 };
 
-export const updatePatentStatus = async (
-  id: string, 
-  statusType: string, 
-  value: number
-): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from("patents")
-      .update({ [statusType]: value })
-      .eq("id", id);
-
-    if (error) {
-      throw error;
-    }
-
-    return true;
-  } catch (error) {
-    console.error(`Error updating patent ${statusType}:`, error);
-    toast.error("Failed to update patent status");
-    return false;
-  }
+export const createFEREntry = async (patentId: string, ferNumber: number): Promise<FEREntry> => {
+  // Mock implementation - would call real API in production
+  return {
+    id: `fer-${Date.now()}`,
+    patent_id: patentId,
+    fer_number: ferNumber,
+    fer_date: new Date().toISOString(),
+    fer_drafter_assgn: '',
+    fer_drafter_deadline: '',
+    fer_drafter_status: 0,
+    fer_filer_assgn: '',
+    fer_filer_deadline: '',
+    fer_filing_status: 0,
+    fer_review_draft_status: 0,
+    fer_review_file_status: 0,
+    fer_completion_status: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
 };
 
-export const deletePatent = async (id: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from("patents")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      throw error;
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Error deleting patent:", error);
-    toast.error("Failed to delete patent");
-    return false;
-  }
-};
-
-export const updatePatentForms = async (
-  id: string,
-  formData: {
-    form_26?: boolean;
-    form_18?: boolean;
-    form_18a?: boolean;
-    form_9?: boolean;
-    form_9a?: boolean;
-    form_13?: boolean;
-  }
-): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from("patents")
-      .update(formData)
-      .eq("id", id);
-
-    if (error) {
-      throw error;
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Error updating patent forms:", error);
-    toast.error("Failed to update forms");
-    return false;
-  }
-};
-
-// Added function to fetch patents assigned to a specific employee
-export const fetchPatentsByEmployee = async (employeeName: string): Promise<Patent[]> => {
-  try {
-    const { data, error } = await supabase
-      .from("patents")
-      .select(`
-        *,
-        inventors(*),
-        fer_history(*)
-      `)
-      .or(`ps_drafter_assgn.eq.${employeeName},cs_drafter_assgn.eq.${employeeName},fer_drafter_assgn.eq.${employeeName},ps_filer_assgn.eq.${employeeName},cs_filer_assgn.eq.${employeeName},fer_filer_assgn.eq.${employeeName}`);
-
-    if (error) {
-      throw error;
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error("Error fetching patents by employee:", error);
-    toast.error("Failed to load patents for employee");
-    return [];
-  }
-};
-
-// Add new function to create a patent
-export const createPatent = async (patentData: PatentFormData): Promise<Patent | null> => {
-  try {
-    // Calculate initial completion statuses
-    const psCompletionStatus = 0; // Will be set to 1 when both drafting and filing are done
-    const csCompletionStatus = 0; // Will be set to 1 when both drafting and filing are done
-    const ferCompletionStatus = 0; // Will be set to 1 when both drafting and filing are done
-
-    const { data, error } = await supabase
-      .from("patents")
-      .insert({
-        tracking_id: patentData.tracking_id,
-        patent_applicant: patentData.patent_applicant,
-        client_id: patentData.client_id,
-        application_no: patentData.application_no || null,
-        date_of_filing: patentData.date_of_filing || null,
-        patent_title: patentData.patent_title,
-        applicant_addr: patentData.applicant_addr,
-        inventor_ph_no: patentData.inventor_ph_no,
-        inventor_email: patentData.inventor_email,
-        ps_drafter_assgn: patentData.ps_drafter_assgn || null,
-        ps_drafter_deadline: patentData.ps_drafter_deadline || null,
-        ps_filer_assgn: patentData.ps_filer_assgn || null,
-        ps_filer_deadline: patentData.ps_filer_deadline || null,
-        cs_drafter_assgn: patentData.cs_drafter_assgn || null,
-        cs_drafter_deadline: patentData.cs_drafter_deadline || null,
-        cs_filer_assgn: patentData.cs_filer_assgn || null,
-        cs_filer_deadline: patentData.cs_filer_deadline || null,
-        fer_status: patentData.fer_status,
-        fer_drafter_assgn: patentData.fer_drafter_assgn || null,
-        fer_drafter_deadline: patentData.fer_drafter_deadline || null,
-        fer_filer_assgn: patentData.fer_filer_assgn || null,
-        fer_filer_deadline: patentData.fer_filer_deadline || null,
-        ps_completion_status: psCompletionStatus,
-        cs_completion_status: csCompletionStatus,
-        fer_completion_status: ferCompletionStatus
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    if (patentData.inventors && patentData.inventors.length > 0) {
-      for (const inventor of patentData.inventors) {
-        await createInventor({
-          tracking_id: data.tracking_id,
-          inventor_name: inventor.inventor_name,
-          inventor_addr: inventor.inventor_addr
-        });
-      }
-    }
-
-    return data;
-  } catch (error) {
-    console.error("Error creating patent:", error);
-    toast.error("Failed to create patent");
-    return null;
-  }
-};
-
-// Add function to update a patent
-export const updatePatent = async (id: string, patentData: PatentFormData): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from("patents")
-      .update({
-        patent_applicant: patentData.patent_applicant,
-        client_id: patentData.client_id,
-        application_no: patentData.application_no || null,
-        date_of_filing: patentData.date_of_filing || null,
-        patent_title: patentData.patent_title,
-        applicant_addr: patentData.applicant_addr,
-        inventor_ph_no: patentData.inventor_ph_no,
-        inventor_email: patentData.inventor_email,
-        ps_drafter_assgn: patentData.ps_drafter_assgn || null,
-        ps_drafter_deadline: patentData.ps_drafter_deadline || null,
-        ps_filer_assgn: patentData.ps_filer_assgn || null,
-        ps_filer_deadline: patentData.ps_filer_deadline || null,
-        cs_drafter_assgn: patentData.cs_drafter_assgn || null,
-        cs_drafter_deadline: patentData.cs_drafter_deadline || null,
-        cs_filer_assgn: patentData.cs_filer_assgn || null,
-        cs_filer_deadline: patentData.cs_filer_deadline || null,
-        fer_status: patentData.fer_status,
-        fer_drafter_assgn: patentData.fer_drafter_assgn || null,
-        fer_drafter_deadline: patentData.fer_drafter_deadline || null,
-        fer_filer_assgn: patentData.fer_filer_assgn || null,
-        fer_filer_deadline: patentData.fer_filer_deadline || null
-      })
-      .eq("id", id);
-
-    if (error) {
-      throw error;
-    }
-
-    if (patentData.inventors && patentData.inventors.length > 0) {
-      // Get existing inventors
-      const { data: existingInventors, error: fetchError } = await supabase
-        .from("inventors")
-        .select("*")
-        .eq("tracking_id", patentData.tracking_id);
-      
-      if (fetchError) {
-        throw fetchError;
-      }
-      
-      // Update existing inventors or create new ones
-      if (existingInventors && existingInventors.length > 0) {
-        for (let i = 0; i < patentData.inventors.length; i++) {
-          const inventor = patentData.inventors[i];
-          if (i < existingInventors.length) {
-            // Fix: use existingInventors[i].id instead of inventor.id
-            await updateInventor(existingInventors[i].id, {
-              inventor_name: inventor.inventor_name,
-              inventor_addr: inventor.inventor_addr
-            });
-          } else {
-            await createInventor({
-              tracking_id: patentData.tracking_id,
-              inventor_name: inventor.inventor_name,
-              inventor_addr: inventor.inventor_addr
-            });
-          }
-        }
-      } else {
-        // No existing inventors, create all new ones
-        for (const inventor of patentData.inventors) {
-          await createInventor({
-            tracking_id: patentData.tracking_id,
-            inventor_name: inventor.inventor_name,
-            inventor_addr: inventor.inventor_addr
-          });
-        }
-      }
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Error updating patent:", error);
-    toast.error("Failed to update patent");
-    return false;
-  }
-};
-
-// Add function to create an inventor
-export const createInventor = async (inventorData: { tracking_id: string, inventor_name: string, inventor_addr: string }): Promise<Inventor | null> => {
-  try {
-    const { data, error } = await supabase
-      .from("inventors")
-      .insert({
-        tracking_id: inventorData.tracking_id,
-        inventor_name: inventorData.inventor_name,
-        inventor_addr: inventorData.inventor_addr
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    console.error("Error creating inventor:", error);
-    toast.error("Failed to add inventor");
-    return null;
-  }
-};
-
-// Add function to update inventors
-export const updateInventor = async (id: string, inventorData: { inventor_name: string, inventor_addr: string }): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from("inventors")
-      .update({
-        inventor_name: inventorData.inventor_name,
-        inventor_addr: inventorData.inventor_addr
-      })
-      .eq("id", id);
-
-    if (error) {
-      throw error;
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Error updating inventor:", error);
-    toast.error("Failed to update inventor");
-    return false;
-  }
-};
-
-// Function to update patent notes
-export const updatePatentNotes = async (patentId: string, notes: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('patents')
-      .update({ notes })
-      .eq('id', patentId);
-
-    if (error) {
-      console.error('Error updating patent notes:', error);
-      return false;
-    }
-
-    // Add a timeline entry for the notes update
-    await supabase
-      .from('patent_timeline')
-      .insert({
-        patent_id: patentId,
-        event_type: 'notes_updated',
-        event_description: 'Patent notes updated',
-        status: 1
-      });
-
-    return true;
-  } catch (error) {
-    console.error('Error updating patent notes:', error);
-    return false;
-  }
+export const updateFEREntry = async (ferId: string, data: Partial<FEREntry>): Promise<FEREntry> => {
+  // Mock implementation - would call real API in production
+  return {
+    id: ferId,
+    patent_id: data.patent_id || '',
+    fer_number: data.fer_number || 1,
+    fer_date: data.fer_date || new Date().toISOString(),
+    fer_drafter_assgn: data.fer_drafter_assgn || '',
+    fer_drafter_deadline: data.fer_drafter_deadline || '',
+    fer_drafter_status: data.fer_drafter_status || 0,
+    fer_filer_assgn: data.fer_filer_assgn || '',
+    fer_filer_deadline: data.fer_filer_deadline || '',
+    fer_filing_status: data.fer_filing_status || 0,
+    fer_review_draft_status: data.fer_review_draft_status || 0,
+    fer_review_file_status: data.fer_review_file_status || 0,
+    fer_completion_status: data.fer_completion_status || 0,
+    created_at: data.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
 };

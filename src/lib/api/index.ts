@@ -1,9 +1,7 @@
 
-// Auth
-export { loginUser, logoutUser } from './auth-api';
-
-// Patent API
-export {
+// Re-export all API functions
+import { loginUser, registerUser } from './auth-api';
+import {
   fetchPatents,
   fetchPatentById,
   createPatent,
@@ -14,25 +12,24 @@ export {
   createFEREntry,
   updateFEREntry
 } from './patent-api';
-
-// Drafter API
-export {
+import {
+  fetchEmployees,
+  fetchEmployeeById,
+  createEmployee,
+  updateEmployee,
+  deleteEmployee,
   getDrafterTasks,
   completePSDrafting,
   completeCSDrawfting,
   completeFERDrafting
 } from './drafter-api';
-
-// Filer API
-export {
-  getFilerTasks,
+import {
+  fetchFilingTasks,
   completePSFiling,
   completeCSFiling,
   completeFERFiling
 } from './filer-api';
-
-// Review API
-export {
+import {
   getReviewTasks,
   approvePSDrafting,
   approveCSDrawfting,
@@ -42,11 +39,47 @@ export {
   approveFERFiling
 } from './review-api';
 
-// Employee API
 export {
+  // Auth
+  loginUser,
+  registerUser,
+
+  // Patents
+  fetchPatents,
+  fetchPatentById,
+  createPatent,
+  updatePatent,
+  deletePatent,
+  fetchPatentTimeline,
+  fetchFEREntries,
+  createFEREntry,
+  updateFEREntry,
+
+  // Employees
   fetchEmployees,
   fetchEmployeeById,
   createEmployee,
   updateEmployee,
-  deleteEmployee
-} from './employee-api';
+  deleteEmployee,
+
+  // Drafter
+  getDrafterTasks,
+  completePSDrafting,
+  completeCSDrawfting,
+  completeFERDrafting,
+
+  // Filer
+  fetchFilingTasks,
+  completePSFiling,
+  completeCSFiling,
+  completeFERFiling,
+
+  // Review
+  getReviewTasks,
+  approvePSDrafting,
+  approveCSDrawfting,
+  approveFERDrafting,
+  approvePSFiling,
+  approveCSFiling,
+  approveFERFiling
+};

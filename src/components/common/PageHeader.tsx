@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Building, FileText } from 'lucide-react';
+import { Building, FileText, Users, ClipboardList, CheckSquare } from 'lucide-react';
 
 export interface PageHeaderProps {
   title: string;
@@ -13,9 +13,15 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, description, i
   const getIconComponent = (iconName: string | undefined) => {
     switch (iconName) {
       case 'Building':
-        return <Building className="mr-2 h-4 w-4" />;
+        return <Building className="mr-2 h-5 w-5" />;
       case 'FileText':
-        return <FileText className="mr-2 h-4 w-4" />;
+        return <FileText className="mr-2 h-5 w-5" />;
+      case 'Users':
+        return <Users className="mr-2 h-5 w-5" />;
+      case 'ClipboardList':
+        return <ClipboardList className="mr-2 h-5 w-5" />;
+      case 'CheckSquare':
+        return <CheckSquare className="mr-2 h-5 w-5" />;
       default:
         return null;
     }

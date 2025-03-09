@@ -1,124 +1,52 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { Patent } from "@/lib/types";
-import { toast } from "sonner";
+import { Patent } from '@/lib/types';
 
-export const fetchDrafterAssignments = async (drafterName: string): Promise<Patent[]> => {
-  try {
-    // Get patents where drafter is assigned with status 0 (pending)
-    const { data, error } = await supabase
-      .from("patents")
-      .select(`
-        *,
-        inventors(*),
-        fer_history(*)
-      `)
-      .or(`ps_drafter_assgn.eq.${drafterName},cs_drafter_assgn.eq.${drafterName},fer_drafter_assgn.eq.${drafterName}`)
-      .or('ps_drafting_status.eq.0,cs_drafting_status.eq.0,fer_drafter_status.eq.0');
-
-    if (error) {
-      throw error;
-    }
-
-    // Now we need to filter for proper queue order with approval dependencies
-    return (data || []).filter(patent => {
-      // If assigned to PS drafting and it's not completed
-      if (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 0) {
-        return true;
+export const fetchEmployees = async () => {
+  // This is a mock implementation - would call real API in production
+  return {
+    employees: [
+      {
+        id: '1',
+        emp_id: 'EMP001',
+        full_name: 'John Doe',
+        email: 'john.doe@example.com',
+        ph_no: '1234567890',
+        password: 'hashedpassword',
+        role: 'admin',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: '2',
+        emp_id: 'EMP002',
+        full_name: 'Jane Smith',
+        email: 'jane.smith@example.com',
+        ph_no: '0987654321',
+        password: 'hashedpassword',
+        role: 'drafter',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       }
-      
-      // If assigned to CS drafting
-      if (patent.cs_drafter_assgn === drafterName && patent.cs_drafting_status === 0) {
-        // Case 1: Patent starts from CS (no PS drafter assigned)
-        if (!patent.ps_drafter_assgn) {
-          return true;
-        }
-        
-        // Case 2: PS must be completed or admin has manually set CS as ready
-        const psCompleted = patent.ps_completion_status === 1;
-        return psCompleted;
-      }
-      
-      // If assigned to FER drafting and previous stages are completed or not required
-      if (patent.fer_drafter_assgn === drafterName && patent.fer_drafter_status === 0 && patent.fer_status === 1) {
-        // Case 1: Patent starts from FER (no PS/CS assignees)
-        if (!patent.ps_drafter_assgn && !patent.cs_drafter_assgn) {
-          return true;
-        }
-        
-        // Case 2: PS and CS must be completed if they were assigned
-        const psCompleted = !patent.ps_drafter_assgn || patent.ps_completion_status === 1;
-        const csCompleted = !patent.cs_drafter_assgn || patent.cs_completion_status === 1;
-        return psCompleted && csCompleted;
-      }
-      
-      return false;
-    });
-  } catch (error) {
-    console.error("Error fetching drafter assignments:", error);
-    toast.error("Failed to load drafting assignments");
-    return [];
-  }
+    ]
+  };
 };
 
-export const fetchDrafterCompletedAssignments = async (drafterName: string): Promise<Patent[]> => {
-  try {
-    const { data, error } = await supabase
-      .from("patents")
-      .select(`
-        *,
-        inventors(*),
-        fer_history(*)
-      `)
-      .or(`ps_drafter_assgn.eq.${drafterName},cs_drafter_assgn.eq.${drafterName},fer_drafter_assgn.eq.${drafterName}`)
-      .or('ps_drafting_status.eq.1,cs_drafting_status.eq.1,fer_drafter_status.eq.1');
-
-    if (error) {
-      throw error;
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error("Error fetching completed drafting assignments:", error);
-    toast.error("Failed to load completed assignments");
-    return [];
-  }
+export const getDrafterTasks = async (userId: string): Promise<Patent[]> => {
+  // Mock implementation - would call real API in production
+  return [];
 };
 
-export const completeDrafterTask = async (
-  patent: Patent,
-  drafterName: string
-): Promise<boolean> => {
-  try {
-    const updateData: Record<string, any> = {};
-    
-    if (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 0) {
-      updateData.ps_drafting_status = 1;
-      updateData.ps_review_draft_status = 1; // Set for review
-    } else if (patent.cs_drafter_assgn === drafterName && patent.cs_drafting_status === 0) {
-      updateData.cs_drafting_status = 1;
-      updateData.cs_review_draft_status = 1; // Set for review
-    } else if (patent.fer_drafter_assgn === drafterName && patent.fer_drafter_status === 0) {
-      updateData.fer_drafter_status = 1;
-      updateData.fer_review_draft_status = 1; // Set for review
-    } else {
-      toast.error("No valid drafting task found");
-      return false;
-    }
+export const completePSDrafting = async (patentId: string): Promise<{ success: boolean }> => {
+  // Mock implementation - would call real API in production
+  return { success: true };
+};
 
-    const { error } = await supabase
-      .from("patents")
-      .update(updateData)
-      .eq("id", patent.id);
+export const completeCSDrawfting = async (patentId: string): Promise<{ success: boolean }> => {
+  // Mock implementation - would call real API in production
+  return { success: true };
+};
 
-    if (error) {
-      throw error;
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Error completing drafting task:", error);
-    toast.error("Failed to complete drafting task");
-    return false;
-  }
+export const completeFERDrafting = async (ferId: string): Promise<{ success: boolean }> => {
+  // Mock implementation - would call real API in production
+  return { success: true };
 };

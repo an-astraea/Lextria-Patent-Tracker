@@ -15,7 +15,13 @@ export interface PatentCardProps {
   onDelete?: () => void;
 }
 
-const PatentCard: React.FC<PatentCardProps> = ({ patent, isCompact = false, showClientInfo = false, showReviewBadge = false, onDelete }) => {
+const PatentCard: React.FC<PatentCardProps> = ({ 
+  patent, 
+  isCompact = false, 
+  showClientInfo = false, 
+  showReviewBadge = false, 
+  onDelete 
+}) => {
   return (
     <Link to={`/patents/${patent.id}`}>
       <Card className="hover:shadow-md transition-shadow">
