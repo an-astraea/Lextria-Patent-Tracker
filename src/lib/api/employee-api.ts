@@ -1,125 +1,124 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { Employee } from "../types";
-import { toast } from "sonner";
+import { supabase } from '../supabase';
+import { Employee, EmployeeFormData } from '../types';
+import { v4 as uuidv4 } from 'uuid';
 
+// Fetch all employees
 export const fetchEmployees = async (): Promise<Employee[]> => {
   try {
-    const { data, error } = await supabase
-      .from("employees")
-      .select("*");
+    const { data, error } = await supabase.from('employees').select('*');
 
     if (error) {
+      console.error('Error fetching employees:', error);
       throw error;
     }
 
-    // Cast the roles to the expected type
-    return (data || []).map(employee => ({
-      ...employee,
-      role: employee.role as 'admin' | 'drafter' | 'filer'
-    }));
+    return data || [];
   } catch (error) {
-    console.error("Error fetching employees:", error);
-    toast.error("Failed to load employees");
+    console.error('Error fetching employees:', error);
     return [];
   }
 };
 
-export const fetchEmployeeById = async (id: string): Promise<Employee | null> => {
+// Add a new employee
+export const addEmployee = async (employee: Employee): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
-      .from("employees")
-      .select("*")
-      .eq("id", id)
-      .single();
+    const { error } = await supabase.from('employees').insert(employee);
 
     if (error) {
-      throw error;
-    }
-
-    if (!data) {
-      return null;
-    }
-
-    // Cast the role to the expected type
-    return {
-      ...data,
-      role: data.role as 'admin' | 'drafter' | 'filer'
-    };
-  } catch (error) {
-    console.error("Error fetching employee:", error);
-    toast.error("Failed to load employee details");
-    return null;
-  }
-};
-
-// Added function to create a new employee
-export const createEmployee = async (employee: Omit<Employee, 'id' | 'created_at' | 'updated_at'>): Promise<Employee | null> => {
-  try {
-    const { data, error } = await supabase
-      .from("employees")
-      .insert({
-        emp_id: employee.emp_id,
-        full_name: employee.full_name,
-        email: employee.email,
-        ph_no: employee.ph_no,
-        password: employee.password,
-        role: employee.role
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    return {
-      ...data,
-      role: data.role as 'admin' | 'drafter' | 'filer'
-    };
-  } catch (error) {
-    console.error("Error creating employee:", error);
-    toast.error("Failed to create employee");
-    return null;
-  }
-};
-
-// Added function to update an employee
-export const updateEmployee = async (id: string, employee: Partial<Omit<Employee, 'id'>>): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from("employees")
-      .update(employee)
-      .eq("id", id);
-
-    if (error) {
+      console.error('Error adding employee:', error);
       throw error;
     }
 
     return true;
   } catch (error) {
-    console.error("Error updating employee:", error);
-    toast.error("Failed to update employee");
+    console.error('Error adding employee:', error);
     return false;
   }
 };
 
-// Added function to delete an employee
+// Update an employee
+export const updateEmployee = async (id: string, employee: Partial<Employee>): Promise<boolean> => {
+  try {
+    const { error } = await supabase.from('employees').update(employee).eq('id', id);
+
+    if (error) {
+      console.error('Error updating employee:', error);
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error updating employee:', error);
+    return false;
+  }
+};
+
+// Delete an employee
 export const deleteEmployee = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from("employees")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from('employees').delete().eq('id', id);
 
     if (error) {
+      console.error('Error deleting employee:', error);
       throw error;
     }
 
     return true;
   } catch (error) {
-    console.error("Error deleting employee:", error);
-    toast.error("Failed to delete employee");
+    console.error('Error deleting employee:', error);
     return false;
+  }
+};
+
+// Create a new employee
+export const createEmployee = async (formData: EmployeeFormData): Promise<Employee | null> => {
+  try {
+    const newEmployee = {
+      id: uuidv4(),
+      emp_id: formData.emp_id,
+      full_name: formData.full_name,
+      email: formData.email,
+      ph_no: formData.ph_no,
+      password: formData.password, // In a real app, you would hash this password
+      role: formData.role,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase.from('employees').insert([newEmployee]).select().single();
+
+    if (error) {
+      console.error('Error creating employee:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error creating employee:', error);
+    return null;
+  }
+};
+
+// Login user
+export const loginUser = async (email: string, password: string): Promise<Employee | null> => {
+  try {
+    // In a real app, you would use Supabase auth or compare hashed passwords
+    const { data, error } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('email', email)
+      .eq('password', password)
+      .single();
+
+    if (error) {
+      console.error('Error logging in:', error);
+      throw error;
+    }
+
+    return data || null;
+  } catch (error) {
+    console.error('Error logging in:', error);
+    return null;
   }
 };

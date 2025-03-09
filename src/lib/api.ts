@@ -23,7 +23,17 @@ import {
   approvePatentReview,
   approveFERReview,
   rejectPatentReview,
-  fetchPendingReviews
+  fetchPendingReviews,
+  updatePatentNotes,
+  updatePatentForms,
+  updatePatentStatus,
+  fetchPatentTimeline,
+  createPatent,
+  createInventor,
+  createEmployee,
+  createFEREntry,
+  updateFEREntry,
+  deleteFEREntry
 } from './api/index';
 
 export {
@@ -49,7 +59,17 @@ export {
   approvePatentReview,
   approveFERReview,
   rejectPatentReview,
-  fetchPendingReviews
+  fetchPendingReviews,
+  updatePatentNotes,
+  updatePatentForms,
+  updatePatentStatus,
+  fetchPatentTimeline,
+  createPatent,
+  createInventor,
+  createEmployee,
+  createFEREntry,
+  updateFEREntry,
+  deleteFEREntry
 };
 
 // Helper function to fetch patents and employees for various components

@@ -46,6 +46,43 @@ export interface Patent {
   fer_completion_status: number;
   created_at: string;
   updated_at: string;
+  // Additional properties for the Patent forms
+  form_01: boolean | null;
+  form_02_ps: boolean | null;
+  form_02_cs: boolean | null;
+  form_03: boolean | null;
+  form_04: boolean | null;
+  form_05: boolean | null;
+  form_06: boolean | null;
+  form_07: boolean | null;
+  form_07a: boolean | null;
+  form_08: boolean | null;
+  form_08a: boolean | null;
+  form_09: boolean | null;
+  form_09a: boolean | null;
+  form_10: boolean | null;
+  form_11: boolean | null;
+  form_12: boolean | null;
+  form_14: boolean | null;
+  form_15: boolean | null;
+  form_16: boolean | null;
+  form_17: boolean | null;
+  form_19: boolean | null;
+  form_20: boolean | null;
+  form_21: boolean | null;
+  form_22: boolean | null;
+  form_23: boolean | null;
+  form_24: boolean | null;
+  form_25: boolean | null;
+  form_27: boolean | null;
+  form_28: boolean | null;
+  form_29: boolean | null;
+  form_30: boolean | null;
+  form_31: boolean | null;
+  // Additional properties
+  notes: string | null;
+  inventors: Inventor[];
+  fer_entries: FEREntry[];
 }
 
 export interface Inventor {
@@ -63,6 +100,23 @@ export interface FERHistory {
   fer_filer_assgn: string | null;
   fer_filer_deadline: string | null;
   created_at: string;
+}
+
+export interface FEREntry {
+  id: string;
+  patent_id: string;
+  fer_number: number;
+  fer_date: string | null;
+  fer_drafter_assgn: string | null;
+  fer_drafter_deadline: string | null;
+  fer_drafter_status: number;
+  fer_review_draft_status: number;
+  fer_filing_status: number;
+  fer_filer_assgn: string | null;
+  fer_filer_deadline: string | null;
+  fer_review_file_status: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Employee {
@@ -100,6 +154,14 @@ export interface PatentFormData {
   fer_drafter_deadline?: string;
   fer_filer_assgn?: string;
   fer_filer_deadline?: string;
+  // Additional properties
+  inventors?: InventorFormData[];
+  notes?: string;
+}
+
+export interface InventorFormData {
+  inventor_name: string;
+  inventor_addr: string;
 }
 
 export interface EmployeeFormData {
@@ -109,4 +171,15 @@ export interface EmployeeFormData {
   ph_no: string;
   password: string;
   role: string;
+}
+
+export interface TimelineEvent {
+  id: string;
+  patent_id: string;
+  event_type: string;
+  event_description: string;
+  created_at: string;
+  status: number;
+  employee_name?: string;
+  deadline_date?: string;
 }
