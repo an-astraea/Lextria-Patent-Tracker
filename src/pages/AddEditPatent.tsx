@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -855,4 +856,305 @@ const AddEditPatent = () => {
               <input
                 type="checkbox"
                 id="fer_status"
-                checked={!!
+                checked={!!formData.fer_status}
+                onChange={(e) => setFormData(prev => ({ ...prev, fer_status: e.target.checked ? 1 : 0 }))}
+                className="rounded border-gray-300"
+              />
+              <Label htmlFor="fer_status">Enable FER</Label>
+            </div>
+            
+            {!!formData.fer_status && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="fer_drafter_assgn">FER Drafter</Label>
+                  <Select 
+                    value={formData.fer_drafter_assgn || undefined}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, fer_drafter_assgn: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select drafter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {drafters.length > 0 ? (
+                        drafters.map(drafter => (
+                          <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-drafters">No drafters available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="fer_drafter_deadline">FER Drafter Deadline</Label>
+                  <Input 
+                    id="fer_drafter_deadline" 
+                    name="fer_drafter_deadline" 
+                    type="date" 
+                    value={formData.fer_drafter_deadline || ''} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, fer_drafter_deadline: e.target.value }))}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="fer_filer_assgn">FER Filer</Label>
+                  <Select 
+                    value={formData.fer_filer_assgn || undefined}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, fer_filer_assgn: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select filer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filers.length > 0 ? (
+                        filers.map(filer => (
+                          <SelectItem key={filer} value={filer}>{filer}</SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-filers">No filers available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="fer_filer_deadline">FER Filer Deadline</Label>
+                  <Input 
+                    id="fer_filer_deadline" 
+                    name="fer_filer_deadline" 
+                    type="date" 
+                    value={formData.fer_filer_deadline || ''} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, fer_filer_deadline: e.target.value }))}
+                  />
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        {/* Only show FER entries section when in edit mode */}
+        {isEditMode && (
+          <Card>
+            <CardHeader>
+              <CardTitle>FER Entries</CardTitle>
+              <CardDescription>Manage First Examination Report entries for this patent</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {formData.fer_status === 1 ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium">Existing FER Entries</h3>
+                    <Button variant="outline" onClick={handleAddFER}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add FER Entry
+                    </Button>
+                  </div>
+                  
+                  {ferEntries.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>FER #</TableHead>
+                          <TableHead>Drafter</TableHead>
+                          <TableHead>Drafter Deadline</TableHead>
+                          <TableHead>Filer</TableHead>
+                          <TableHead>Filer Deadline</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {ferEntries.map(fer => (
+                          <TableRow key={fer.id}>
+                            <TableCell>{fer.fer_number}</TableCell>
+                            <TableCell>{fer.fer_drafter_assgn || 'Not assigned'}</TableCell>
+                            <TableCell>{fer.fer_drafter_deadline ? 
+                              format(new Date(fer.fer_drafter_deadline), 'PP') : 'No deadline'}</TableCell>
+                            <TableCell>{fer.fer_filer_assgn || 'Not assigned'}</TableCell>
+                            <TableCell>{fer.fer_filer_deadline ? 
+                              format(new Date(fer.fer_filer_deadline), 'PP') : 'No deadline'}</TableCell>
+                            <TableCell>
+                              <Badge variant={fer.fer_completion_status === 1 ? "success" : "default"}>
+                                {fer.fer_completion_status === 1 ? 'Completed' : 'In Progress'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button variant="ghost" size="sm" onClick={() => handleEditFER(fer)}>
+                                  Edit
+                                </Button>
+                                <Button variant="destructive" size="sm" onClick={() => handleDeleteFER(fer)}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-8 border rounded-md bg-gray-50">
+                      <p className="text-gray-500">No FER entries created yet.</p>
+                      <Button variant="outline" className="mt-4" onClick={handleAddFER}>
+                        Create First FER Entry
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 border rounded-md bg-gray-50">
+                  <p className="text-gray-500">FER is not enabled for this patent.</p>
+                  <p className="text-sm text-gray-400 mt-2">Enable FER in the FER section above to manage entries.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+        
+        {/* Submit Buttons */}
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" type="button" onClick={() => navigate(-1)}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {isEditMode ? 'Updating...' : 'Creating...'}
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                {isEditMode ? 'Update Patent' : 'Create Patent'}
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+      
+      {/* FER Dialog */}
+      <Dialog open={isFERDialogOpen} onOpenChange={setIsFERDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{isEditingFER ? 'Edit FER Entry' : 'Add New FER Entry'}</DialogTitle>
+            <DialogDescription>
+              {isEditingFER 
+                ? `Modify the details for FER #${selectedFER?.fer_number}`
+                : 'Create a new First Examination Report entry'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="ferDate">FER Date</Label>
+              <Input 
+                id="ferDate" 
+                type="date" 
+                value={ferDate} 
+                onChange={(e) => setFERDate(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="ferDrafter">FER Drafter</Label>
+              <Select 
+                value={ferDrafter}
+                onValueChange={setFERDrafter}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select drafter" />
+                </SelectTrigger>
+                <SelectContent>
+                  {drafters.length > 0 ? (
+                    drafters.map(drafter => (
+                      <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-drafters">No drafters available</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="ferDrafterDeadline">Drafter Deadline</Label>
+              <Input 
+                id="ferDrafterDeadline" 
+                type="date" 
+                value={ferDrafterDeadline} 
+                onChange={(e) => setFERDrafterDeadline(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="ferFiler">FER Filer</Label>
+              <Select 
+                value={ferFiler}
+                onValueChange={setFERFiler}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select filer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filers.length > 0 ? (
+                    filers.map(filer => (
+                      <SelectItem key={filer} value={filer}>{filer}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-filers">No filers available</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="ferFilerDeadline">Filer Deadline</Label>
+              <Input 
+                id="ferFilerDeadline" 
+                type="date" 
+                value={ferFilerDeadline} 
+                onChange={(e) => setFERFilerDeadline(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsFERDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSaveFER} disabled={isProcessingFER}>
+              {isProcessingFER ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* FER Delete Confirmation Dialog */}
+      <AlertDialog open={deleteFERDialogOpen} onOpenChange={setDeleteFERDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently delete FER #{ferToDelete?.fer_number}. 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteFER}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default AddEditPatent;
