@@ -69,10 +69,10 @@ const AddEditPatent = () => {
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
-  // Redirect if not admin
+  // Redirect if not admin or filer
   React.useEffect(() => {
-    if (user?.role !== 'admin') {
-      toast.error('Access denied. Admin privileges required.');
+    if (user?.role !== 'admin' && user?.role !== 'filer') {
+      toast.error('Access denied. Admin or filer privileges required.');
       navigate('/dashboard');
     }
   }, [user, navigate]);
@@ -119,6 +119,9 @@ const AddEditPatent = () => {
   const [ferFilerDeadline, setFERFilerDeadline] = useState('');
   const [ferDate, setFERDate] = useState('');
   const [isProcessingFER, setIsProcessingFER] = useState(false);
+  
+  const [ferToDelete, setFERToDelete] = useState<FEREntry | null>(null);
+  const [deleteFERDialogOpen, setDeleteFERDialogOpen] = useState(false);
   
   const [formValues, setFormValues] = useState<Record<string, boolean>>({});
   
@@ -185,7 +188,7 @@ const AddEditPatent = () => {
             
             const initialFormValues: Record<string, boolean> = {};
             Object.keys(patent).forEach(key => {
-              if (key.startsWith('form_') && typeof patent[key as keyof Patent] === 'boolean') {
+              if ((key.startsWith('form_') || key.startsWith('form_0')) && typeof patent[key as keyof Patent] === 'boolean') {
                 initialFormValues[key] = !!patent[key as keyof Patent];
               }
             });
@@ -993,7 +996,7 @@ const AddEditPatent = () => {
           </CardHeader>
           <CardContent>
             <FormRequirementsList 
-              patent={patent || {} as Patent} 
+              patent={{} as Patent} 
               userRole={user?.role || ''} 
               onUpdate={handleFormValueChange}
               formValues={formValues}

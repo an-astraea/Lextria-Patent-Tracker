@@ -1,12 +1,13 @@
 
-import { FERHistory, Patent } from "../types";
+import { Patent } from '@/lib/types';
 
-/**
- * Converts form field names from the database format to the standardized format used in our types.
- * For example, "form_01" becomes "form_1"
- */
-export function standardizePatentFormFields(patent: any): Patent {
-  const standardizedPatent = { ...patent };
+export const standardizePatent = (rawPatent: any): Patent => {
+  const standardizedPatent = { ...rawPatent };
+  
+  // Format dates if they exist
+  if (standardizedPatent.date_of_filing) {
+    standardizedPatent.date_of_filing = new Date(standardizedPatent.date_of_filing).toISOString();
+  }
   
   // Map form_01 to form_1, etc.
   if (standardizedPatent.form_01 !== undefined) standardizedPatent.form_1 = standardizedPatent.form_01;
@@ -24,34 +25,9 @@ export function standardizePatentFormFields(patent: any): Patent {
   if (standardizedPatent.form_09 !== undefined) standardizedPatent.form_9 = standardizedPatent.form_09;
   if (standardizedPatent.form_09a !== undefined) standardizedPatent.form_9a = standardizedPatent.form_09a;
   
-  // Standardize FER history if it exists
-  if (standardizedPatent.fer_history && Array.isArray(standardizedPatent.fer_history)) {
-    standardizedPatent.fer_history = standardizedPatent.fer_history.map((history: any) => {
-      // Create a standardized FERHistory entry with all required fields
-      return {
-        id: history.id,
-        patent_id: history.patent_id || standardizedPatent.id || '',
-        tracking_id: history.tracking_id || standardizedPatent.tracking_id || '',
-        fer_number: history.fer_number || 1,
-        date: history.date || (history.created_at ? new Date(history.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
-        action: history.action || "FER History Entry",
-        fer_drafter_assgn: history.fer_drafter_assgn || null,
-        fer_drafter_deadline: history.fer_drafter_deadline || null,
-        fer_filer_assgn: history.fer_filer_assgn || null,
-        fer_filer_deadline: history.fer_filer_deadline || null,
-        notes: history.notes || null,
-        created_at: history.created_at || null,
-        updated_at: history.updated_at || null
-      } as FERHistory;
-    });
-  }
-  
   return standardizedPatent as Patent;
-}
+};
 
-/**
- * Normalizes an array of patents to ensure they conform to our types
- */
-export function normalizePatents(patents: any[]): Patent[] {
-  return patents.map(patent => standardizePatentFormFields(patent));
-}
+export const normalizePatents = (patents: any[]): Patent[] => {
+  return patents.map(patent => standardizePatent(patent));
+};

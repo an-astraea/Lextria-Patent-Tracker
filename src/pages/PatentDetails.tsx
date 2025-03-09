@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import PatentBasicInfo from '@/components/patent/PatentBasicInfo';
 import InventorsInfoCard from '@/components/patent/InventorsInfoCard';
 import PatentStatusSection from '@/components/patent/PatentStatusSection';
 import FEREntriesSection from '@/components/patent/FEREntriesSection';
-import FormRequirementsList from '@/components/patent/FormRequirementsList';
+import FormRequirementsList from '@/components/FormRequirementsList';
 import PatentNotes from '@/components/patent/PatentNotes';
 import PatentTimeline from '@/components/patent/PatentTimeline';
 
