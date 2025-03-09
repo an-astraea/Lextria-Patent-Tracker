@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { fetchPatents } from '@/lib/api';
 import { Patent } from '@/lib/types';
@@ -25,12 +24,18 @@ const ClientDashboard = () => {
       setIsLoading(true);
       try {
         const patentsData = await fetchPatents();
-        setPatents(patentsData);
-        
-        const uniqueClients = Array.from(
-          new Set(patentsData.map((patent: Patent) => patent.client_id))
-        );
-        setClients(uniqueClients as string[]);
+        if (Array.isArray(patentsData)) {
+          setPatents(patentsData);
+          
+          const uniqueClients = Array.from(
+            new Set(patentsData.map((patent: Patent) => patent.client_id))
+          );
+          setClients(uniqueClients as string[]);
+        } else {
+          console.error("Unexpected response format from fetchPatents:", patentsData);
+          setPatents([]);
+          setClients([]);
+        }
         
         setIsLoading(false);
       } catch (error) {

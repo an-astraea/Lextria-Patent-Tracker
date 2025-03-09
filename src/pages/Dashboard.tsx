@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Patent } from '@/lib/types';
@@ -6,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight, FileText, FileCheck, Clock, AlertTriangle, Users, Briefcase, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PatentCard from '@/components/PatentCard';
-import { fetchPatents, fetchDrafterAssignments, fetchFilerAssignments, fetchPendingReviews, fetchEmployees } from '@/lib/api';
+import { fetchPatents, fetchEmployees } from '@/lib/api';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
@@ -26,25 +25,43 @@ const Dashboard = () => {
       try {
         setLoading(true);
         const patentsData = await fetchPatents();
-        setPatents(patentsData);
+        
+        if (Array.isArray(patentsData)) {
+          setPatents(patentsData);
+          
+          // For different roles, filter patents differently
+          if (user?.role === 'drafter') {
+            const drafterPatents = patentsData.filter(p => 
+              (p.ps_drafter_assgn === user.full_name && p.ps_drafting_status === 0) ||
+              (p.cs_drafter_assgn === user.full_name && p.cs_drafting_status === 0) ||
+              (p.fer_drafter_assgn === user.full_name && p.fer_drafter_status === 0)
+            );
+            setUserAssignedPatents(drafterPatents);
+          } else if (user?.role === 'filer') {
+            const filerPatents = patentsData.filter(p => 
+              (p.ps_filer_assgn === user.full_name && p.ps_filing_status === 0) ||
+              (p.cs_filer_assgn === user.full_name && p.cs_filing_status === 0) ||
+              (p.fer_filer_assgn === user.full_name && p.fer_filing_status === 0)
+            );
+            setUserAssignedPatents(filerPatents);
+          } else if (user?.role === 'admin') {
+            // Get all patents needing review for admin
+            const adminReviews = patentsData.filter(p => 
+              p.ps_review_draft_status === 1 || p.ps_review_file_status === 1 ||
+              p.cs_review_draft_status === 1 || p.cs_review_file_status === 1 || 
+              p.fer_review_draft_status === 1 || p.fer_review_file_status === 1
+            );
+            setPendingApprovals(adminReviews);
+          }
+        } else {
+          console.error("Unexpected response format from fetchPatents:", patentsData);
+          setPatents([]);
+        }
         
         // Fetch employee data for admin dashboard
         if (user?.role === 'admin') {
           const employeeData = await fetchEmployees();
           setEmployees(employeeData);
-        }
-        
-        // Fetch user-specific assignments
-        if (user?.role === 'drafter') {
-          const drafterAssignments = await fetchDrafterAssignments(user.full_name);
-          setUserAssignedPatents(drafterAssignments);
-        } else if (user?.role === 'filer') {
-          const filerAssignments = await fetchFilerAssignments(user.full_name);
-          setUserAssignedPatents(filerAssignments);
-        } else if (user?.role === 'admin') {
-          // Fetch pending approvals for admin
-          const approvals = await fetchPendingReviews();
-          setPendingApprovals(approvals);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -658,3 +675,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
