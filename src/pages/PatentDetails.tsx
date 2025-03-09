@@ -9,7 +9,6 @@ import { Loader2, ArrowLeft, FileText, AlertTriangle, Check } from 'lucide-react
 import { useToast } from '@/hooks/use-toast';
 import { fetchPatentById, fetchEmployees, completeDrafterTask, completeFilerTask, updatePatentForms } from '@/lib/api';
 import { Patent } from '@/lib/types';
-import { useAuth } from '@/hooks/useAuth';
 import PatentBasicInfo from '@/components/patent/PatentBasicInfo';
 import InventorsList from '@/components/patent/InventorsList';
 import PatentStatusSection from '@/components/patent/PatentStatusSection';
@@ -32,7 +31,19 @@ const PatentDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  
+  const [user, setUser] = useState<any>(null);
+  
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (error) {
+      console.error('Error getting user from localStorage:', error);
+    }
+  }, []);
   
   const [patent, setPatent] = useState<Patent | null>(null);
   const [employees, setEmployees] = useState<any[]>([]);

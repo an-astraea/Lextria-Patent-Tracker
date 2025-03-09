@@ -11,7 +11,12 @@ const PatentBasicInfo: React.FC<PatentBasicInfoProps> = ({ patent }) => {
   // Format date function
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString();
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
   };
 
   return (
