@@ -13,6 +13,7 @@ export interface FERHistory {
   fer_drafter_deadline: string;
   fer_filer_assgn: string;
   fer_filer_deadline: string;
+  created_at: string;
 }
 
 export interface FEREntry {
@@ -62,7 +63,7 @@ export interface Patent {
   cs_filing_status: number;
   cs_filer_assgn: string;
   cs_filer_deadline: string;
-  // Make all form fields optional to match database structure
+  // Form fields
   form_01?: boolean | null;
   form_02_ps?: boolean | null;
   form_02_cs?: boolean | null;
@@ -132,6 +133,11 @@ export interface Employee {
   role: 'admin' | 'drafter' | 'filer';
 }
 
+export interface InventorFormData {
+  inventor_name: string;
+  inventor_addr: string;
+}
+
 export interface PatentFormData {
   tracking_id: string;
   patent_applicant: string;
@@ -155,7 +161,7 @@ export interface PatentFormData {
   fer_drafter_deadline: string;
   fer_filer_assgn: string;
   fer_filer_deadline: string;
-  inventors: { inventor_name: string; inventor_addr: string }[];
+  inventors: InventorFormData[];
 }
 
 export interface EmployeeFormData {
@@ -175,7 +181,7 @@ export interface User {
   role: 'admin' | 'drafter' | 'filer';
 }
 
-export interface PatientTimeline {
+export interface PatentTimeline {
   id: string;
   patent_id: string;
   event_type: string;
@@ -208,4 +214,15 @@ export enum WorkflowStatus {
   InProgress = 1,   // Task in progress
   UnderReview = 2,  // Task submitted for review
   Completed = 3     // Task approved and completed
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  assignedTo: string;
+  deadline: string;
+  status: string;
+  type: "drafting" | "filing" | "fer_filing";
+  patent: Patent;
+  ferEntry?: FEREntry;
 }

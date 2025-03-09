@@ -102,10 +102,9 @@ const PatentStatusSection = ({ patent, userRole, refreshPatentData }: PatentStat
     );
   };
   
-  // Dynamically check if any FER entries exist and at least one is incomplete
-  const anyFERPending = patent.fer_entries && patent.fer_entries.some(
-    entry => entry.fer_drafter_status === 0 || entry.fer_filing_status === 0
-  );
+  // Safely check if any FER entries exist and at least one is incomplete
+  const anyFERPending = patent.fer_entries && patent.fer_entries.length > 0 && 
+    patent.fer_entries.some(entry => entry.fer_drafter_status === 0 || entry.fer_filing_status === 0);
 
   // If FER is enabled but no entries exist, the status should reflect pending
   const ferPendingStatus = (patent.fer_status === 1 && (!patent.fer_entries || patent.fer_entries.length === 0)) ||
