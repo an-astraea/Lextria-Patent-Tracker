@@ -2,10 +2,12 @@
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Check, Loader2, User } from 'lucide-react';
+import { Check, Loader2, User, Calendar } from 'lucide-react';
 import { Patent } from '@/lib/types';
 import { updatePatentStatus } from '@/lib/api';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface PatentStatusSectionProps {
   patent: Patent;
@@ -94,7 +96,8 @@ const PatentStatusSection = ({ patent, userRole, refreshPatentData }: PatentStat
         )}
         
         {deadline && (
-          <div className="text-xs text-gray-500">
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <Calendar className="h-3 w-3" />
             <span>Deadline: {new Date(deadline).toLocaleDateString()}</span>
           </div>
         )}
@@ -112,7 +115,8 @@ const PatentStatusSection = ({ patent, userRole, refreshPatentData }: PatentStat
                            anyFERPending;
   
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      <h3 className="text-lg font-semibold">Main Patent Status</h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatusBadge 
           label="PS Drafting Status" 
@@ -166,6 +170,176 @@ const PatentStatusSection = ({ patent, userRole, refreshPatentData }: PatentStat
           />
         )}
       </div>
+      
+      {/* New section: Team Members Working on This Patent */}
+      <Card className="mt-6">
+        <CardContent className="pt-6">
+          <h3 className="text-lg font-semibold mb-4">Team Members Working on This Patent</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {patent.ps_drafter_assgn && (
+              <div className="p-3 border rounded-md bg-slate-50">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <div className="font-medium">{patent.ps_drafter_assgn}</div>
+                    <div className="text-sm text-gray-500">PS Drafter</div>
+                    {patent.ps_drafter_deadline && (
+                      <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>Deadline: {format(new Date(patent.ps_drafter_deadline), 'PPP')}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {patent.ps_filer_assgn && (
+              <div className="p-3 border rounded-md bg-slate-50">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-green-600" />
+                  <div>
+                    <div className="font-medium">{patent.ps_filer_assgn}</div>
+                    <div className="text-sm text-gray-500">PS Filer</div>
+                    {patent.ps_filer_deadline && (
+                      <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>Deadline: {format(new Date(patent.ps_filer_deadline), 'PPP')}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {patent.cs_drafter_assgn && (
+              <div className="p-3 border rounded-md bg-slate-50">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-purple-600" />
+                  <div>
+                    <div className="font-medium">{patent.cs_drafter_assgn}</div>
+                    <div className="text-sm text-gray-500">CS Drafter</div>
+                    {patent.cs_drafter_deadline && (
+                      <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>Deadline: {format(new Date(patent.cs_drafter_deadline), 'PPP')}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {patent.cs_filer_assgn && (
+              <div className="p-3 border rounded-md bg-slate-50">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-orange-600" />
+                  <div>
+                    <div className="font-medium">{patent.cs_filer_assgn}</div>
+                    <div className="text-sm text-gray-500">CS Filer</div>
+                    {patent.cs_filer_deadline && (
+                      <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>Deadline: {format(new Date(patent.cs_filer_deadline), 'PPP')}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Show assigned FER team members if FER is enabled */}
+            {patent.fer_status === 1 && (
+              <>
+                {/* Show assigned FER team members from the patent record */}
+                {patent.fer_drafter_assgn && (
+                  <div className="p-3 border rounded-md bg-slate-50">
+                    <div className="flex items-center gap-2">
+                      <User className="h-5 w-5 text-indigo-600" />
+                      <div>
+                        <div className="font-medium">{patent.fer_drafter_assgn}</div>
+                        <div className="text-sm text-gray-500">FER Drafter (Main)</div>
+                        {patent.fer_drafter_deadline && (
+                          <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>Deadline: {format(new Date(patent.fer_drafter_deadline), 'PPP')}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {patent.fer_filer_assgn && (
+                  <div className="p-3 border rounded-md bg-slate-50">
+                    <div className="flex items-center gap-2">
+                      <User className="h-5 w-5 text-rose-600" />
+                      <div>
+                        <div className="font-medium">{patent.fer_filer_assgn}</div>
+                        <div className="text-sm text-gray-500">FER Filer (Main)</div>
+                        {patent.fer_filer_deadline && (
+                          <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>Deadline: {format(new Date(patent.fer_filer_deadline), 'PPP')}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Also show FER entries team members if different from the main FER team */}
+                {patent.fer_entries && patent.fer_entries.length > 0 && (
+                  <div className="col-span-1 md:col-span-2 mt-2">
+                    <h4 className="text-md font-medium mb-3">FER Entry Specific Assignments</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {patent.fer_entries.map((entry) => (
+                        <React.Fragment key={entry.id}>
+                          {entry.fer_drafter_assgn && entry.fer_drafter_assgn !== patent.fer_drafter_assgn && (
+                            <div className="p-3 border rounded-md bg-slate-50">
+                              <div className="flex items-center gap-2">
+                                <User className="h-5 w-5 text-teal-600" />
+                                <div>
+                                  <div className="font-medium">{entry.fer_drafter_assgn}</div>
+                                  <div className="text-sm text-gray-500">FER #{entry.fer_number} Drafter</div>
+                                  {entry.fer_drafter_deadline && (
+                                    <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                                      <Calendar className="h-3 w-3" />
+                                      <span>Deadline: {format(new Date(entry.fer_drafter_deadline), 'PPP')}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {entry.fer_filer_assgn && entry.fer_filer_assgn !== patent.fer_filer_assgn && (
+                            <div className="p-3 border rounded-md bg-slate-50">
+                              <div className="flex items-center gap-2">
+                                <User className="h-5 w-5 text-amber-600" />
+                                <div>
+                                  <div className="font-medium">{entry.fer_filer_assgn}</div>
+                                  <div className="text-sm text-gray-500">FER #{entry.fer_number} Filer</div>
+                                  {entry.fer_filer_deadline && (
+                                    <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                                      <Calendar className="h-3 w-3" />
+                                      <span>Deadline: {format(new Date(entry.fer_filer_deadline), 'PPP')}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
       
       {isAdmin && (
         <div className="p-4 bg-gray-50 rounded-md mt-4">
