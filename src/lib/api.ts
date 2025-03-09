@@ -650,6 +650,17 @@ export const createPatent = async (patentData: PatentFormData): Promise<Patent |
       }
     }
 
+    // Also update the patent's fer_status if it's not already enabled
+    const { error: updateError } = await supabase
+      .from("patents")
+      .update({ fer_status: 1 })
+      .eq("id", data.id);
+
+    if (updateError) {
+      console.error('Error updating patent FER status:', updateError);
+      // Continue anyway as the FER entry was created
+    }
+
     return data;
   } catch (error) {
     console.error("Error creating patent:", error);
@@ -1047,7 +1058,8 @@ export const createFEREntry = async (
   drafterName?: string,
   drafterDeadline?: string,
   filerName?: string,
-  filerDeadline?: string
+  filerDeadline?: string,
+  ferDate?: string
 ): Promise<FEREntry | null> => {
   try {
     const { data, error } = await supabase
@@ -1059,6 +1071,7 @@ export const createFEREntry = async (
         fer_drafter_deadline: drafterDeadline || null,
         fer_filer_assgn: filerName || null,
         fer_filer_deadline: filerDeadline || null,
+        fer_date: ferDate || null,
         fer_drafter_status: 0,
         fer_filing_status: 0,
         fer_review_draft_status: 0,
@@ -1070,6 +1083,17 @@ export const createFEREntry = async (
 
     if (error) {
       throw error;
+    }
+
+    // Also update the patent's fer_status if it's not already enabled
+    const { error: updateError } = await supabase
+      .from("patents")
+      .update({ fer_status: 1 })
+      .eq("id", patentId);
+
+    if (updateError) {
+      console.error('Error updating patent FER status:', updateError);
+      // Continue anyway as the FER entry was created
     }
 
     return data;
@@ -1176,14 +1200,19 @@ export const completeFERDrafterTask = async (
   drafterName: string
 ): Promise<boolean> => {
   try {
+    // Verify the drafter assignment
+    if (ferEntry.fer_drafter_assgn !== drafterName) {
+      toast.error("You are not assigned as the drafter for this FER");
+      return false;
+    }
+
     const { error } = await supabase
       .from("fer_entries")
       .update({
         fer_drafter_status: 1,
         fer_review_draft_status: 1 // Set for review
       })
-      .eq("id", ferEntry.id)
-      .eq("fer_drafter_assgn", drafterName);
+      .eq("id", ferEntry.id);
 
     if (error) {
       throw error;
@@ -1203,15 +1232,25 @@ export const completeFERFilerTask = async (
   filerName: string
 ): Promise<boolean> => {
   try {
+    // Verify the filer assignment
+    if (ferEntry.fer_filer_assgn !== filerName) {
+      toast.error("You are not assigned as the filer for this FER");
+      return false;
+    }
+
+    // Verify the FER is ready for filing (draft is completed and approved)
+    if (ferEntry.fer_drafter_status !== 1 || ferEntry.fer_review_draft_status !== 0) {
+      toast.error("FER draft must be completed and approved before filing");
+      return false;
+    }
+
     const { error } = await supabase
       .from("fer_entries")
       .update({
         fer_filing_status: 1,
-        fer_review_file_status: 1, // Set for review
-        fer_completion_status: ferEntry.fer_drafter_status === 1 ? 1 : 0 // Set completion if drafting is done
+        fer_review_file_status: 1 // Set for review
       })
-      .eq("id", ferEntry.id)
-      .eq("fer_filer_assgn", filerName);
+      .eq("id", ferEntry.id);
 
     if (error) {
       throw error;

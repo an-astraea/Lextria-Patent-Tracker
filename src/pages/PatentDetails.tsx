@@ -11,7 +11,10 @@ import {
   updatePatentForms,
   createFEREntry,
   updateFEREntry,
-  deleteFEREntry
+  deleteFEREntry,
+  completeFERDrafterTask,
+  completeFERFilerTask,
+  approveFERReview
 } from '@/lib/api';
 import { FEREntry, Patent } from '@/lib/types';
 import { toast } from 'sonner';
@@ -62,6 +65,7 @@ const PatentDetails = () => {
   const [notes, setNotes] = useState('');
   const [isNotesSaving, setIsNotesSaving] = useState(false);
   const [userRole, setUserRole] = useState<string>('');
+  const [userName, setUserName] = useState<string>('');
   const [employees, setEmployees] = useState<any[]>([]);
   
   // FER Dialog state
@@ -79,10 +83,17 @@ const PatentDetails = () => {
   const [deleteFERDialogOpen, setDeleteFERDialogOpen] = useState(false);
   const [ferToDelete, setFERToDelete] = useState<FEREntry | null>(null);
 
+  // FER status update states
+  const [isCompletingDraft, setIsCompletingDraft] = useState(false);
+  const [isCompletingFiling, setIsCompletingFiling] = useState(false);
+  const [isApprovingDraft, setIsApprovingDraft] = useState(false);
+  const [isApprovingFiling, setIsApprovingFiling] = useState(false);
+
   useEffect(() => {
     // Get user role from localStorage
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     setUserRole(user.role || '');
+    setUserName(user.full_name || '');
 
     const fetchPatent = async () => {
       if (id) {
@@ -283,7 +294,8 @@ const PatentDetails = () => {
           ferDrafter, 
           ferDrafterDeadline,
           ferFiler,
-          ferFilerDeadline
+          ferFilerDeadline,
+          ferDate
         );
         
         if (newFER) {
@@ -295,7 +307,8 @@ const PatentDetails = () => {
             
             return {
               ...prev,
-              fer_entries: [...(prev.fer_entries || []), newFER]
+              fer_entries: [...(prev.fer_entries || []), newFER],
+              fer_status: 1 // Make sure FER status is enabled when creating a FER entry
             };
           });
         }
@@ -311,10 +324,117 @@ const PatentDetails = () => {
     }
   };
 
+  // New function to complete FER drafting
+  const handleCompleteFERDraft = async (ferEntry: FEREntry) => {
+    if (!ferEntry) return;
+    
+    setIsCompletingDraft(true);
+    try {
+      const success = await completeFERDrafterTask(ferEntry, userName);
+      if (success) {
+        toast.success('FER drafting completed and submitted for review');
+        // Update local state
+        refreshPatentData();
+      }
+    } catch (error) {
+      console.error('Error completing FER draft:', error);
+      toast.error('Failed to complete FER draft');
+    } finally {
+      setIsCompletingDraft(false);
+    }
+  };
+
+  // New function to complete FER filing
+  const handleCompleteFERFiling = async (ferEntry: FEREntry) => {
+    if (!ferEntry) return;
+    
+    setIsCompletingFiling(true);
+    try {
+      const success = await completeFERFilerTask(ferEntry, userName);
+      if (success) {
+        toast.success('FER filing completed and submitted for review');
+        // Update local state
+        refreshPatentData();
+      }
+    } catch (error) {
+      console.error('Error completing FER filing:', error);
+      toast.error('Failed to complete FER filing');
+    } finally {
+      setIsCompletingFiling(false);
+    }
+  };
+
+  // New function to approve FER draft
+  const handleApproveFERDraft = async (ferEntry: FEREntry) => {
+    if (!ferEntry) return;
+    
+    setIsApprovingDraft(true);
+    try {
+      const success = await approveFERReview(ferEntry, 'draft');
+      if (success) {
+        toast.success('FER draft approved');
+        // Update local state
+        refreshPatentData();
+      }
+    } catch (error) {
+      console.error('Error approving FER draft:', error);
+      toast.error('Failed to approve FER draft');
+    } finally {
+      setIsApprovingDraft(false);
+    }
+  };
+
+  // New function to approve FER filing
+  const handleApproveFERFiling = async (ferEntry: FEREntry) => {
+    if (!ferEntry) return;
+    
+    setIsApprovingFiling(true);
+    try {
+      const success = await approveFERReview(ferEntry, 'file');
+      if (success) {
+        toast.success('FER filing approved');
+        // Update local state
+        refreshPatentData();
+      }
+    } catch (error) {
+      console.error('Error approving FER filing:', error);
+      toast.error('Failed to approve FER filing');
+    } finally {
+      setIsApprovingFiling(false);
+    }
+  };
+
+  // Refresh patent data after status updates
+  const refreshPatentData = async () => {
+    if (!id) return;
+    
+    try {
+      const patentData = await fetchPatentById(id);
+      if (patentData) {
+        setPatent(patentData);
+      }
+    } catch (error) {
+      console.error('Error refreshing patent data:', error);
+    }
+  };
+
   // Check if user is allowed to edit forms (admin or filer)
   const canEditForms = userRole === 'admin' || userRole === 'filer';
   // Check if user is allowed to manage FERs (admin only)
   const canManageFERs = userRole === 'admin';
+  // Check if user is allowed to complete FER drafting (assigned drafter)
+  const canCompleteDrafting = (fer: FEREntry) => 
+    userRole === 'drafter' && fer.fer_drafter_assgn === userName && fer.fer_drafter_status === 0;
+  // Check if user is allowed to complete FER filing (assigned filer)
+  const canCompleteFiling = (fer: FEREntry) => 
+    userRole === 'filer' && fer.fer_filer_assgn === userName && 
+    fer.fer_filing_status === 0 && fer.fer_drafter_status === 1 && fer.fer_review_draft_status === 0;
+  // Check if user is allowed to approve FER drafting (admin only)
+  const canApproveDraft = (fer: FEREntry) => 
+    userRole === 'admin' && fer.fer_review_draft_status === 1;
+  // Check if user is allowed to approve FER filing (admin only)
+  const canApproveFiling = (fer: FEREntry) => 
+    userRole === 'admin' && fer.fer_review_file_status === 1;
 
   if (loading) {
     return (
@@ -490,7 +610,7 @@ const PatentDetails = () => {
         </CardHeader>
         <CardContent>
           {patent.fer_entries && patent.fer_entries.length > 0 ? (
-            <ScrollArea className="h-[300px] w-full rounded-md border">
+            <ScrollArea className="h-[400px] w-full rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -500,7 +620,7 @@ const PatentDetails = () => {
                     <TableHead>Filer</TableHead>
                     <TableHead>Draft Status</TableHead>
                     <TableHead>File Status</TableHead>
-                    {canManageFERs && <TableHead className="text-right">Actions</TableHead>}
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -544,26 +664,76 @@ const PatentDetails = () => {
                           <Badge variant="warning" className="ml-1">Under Review</Badge>
                         )}
                       </TableCell>
-                      {canManageFERs && (
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          {canManageFERs && (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleEditFER(fer)}
+                              >
+                                Edit
+                              </Button>
+                              <Button 
+                                variant="destructive" 
+                                size="sm" 
+                                onClick={() => handleDeleteFER(fer)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                              {canApproveDraft(fer) && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => handleApproveFERDraft(fer)}
+                                  disabled={isApprovingDraft}
+                                >
+                                  {isApprovingDraft ? 
+                                    <Loader2 className="h-4 w-4 animate-spin" /> : 
+                                    'Approve Draft'}
+                                </Button>
+                              )}
+                              {canApproveFiling(fer) && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => handleApproveFERFiling(fer)}
+                                  disabled={isApprovingFiling}
+                                >
+                                  {isApprovingFiling ? 
+                                    <Loader2 className="h-4 w-4 animate-spin" /> : 
+                                    'Approve Filing'}
+                                </Button>
+                              )}
+                            </>
+                          )}
+                          {canCompleteDrafting(fer) && (
                             <Button 
-                              variant="ghost" 
+                              variant="outline" 
                               size="sm" 
-                              onClick={() => handleEditFER(fer)}
+                              onClick={() => handleCompleteFERDraft(fer)}
+                              disabled={isCompletingDraft}
                             >
-                              Edit
+                              {isCompletingDraft ? 
+                                <Loader2 className="h-4 w-4 animate-spin" /> : 
+                                'Complete Draft'}
                             </Button>
+                          )}
+                          {canCompleteFiling(fer) && (
                             <Button 
-                              variant="destructive" 
+                              variant="outline" 
                               size="sm" 
-                              onClick={() => handleDeleteFER(fer)}
+                              onClick={() => handleCompleteFERFiling(fer)}
+                              disabled={isCompletingFiling}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              {isCompletingFiling ? 
+                                <Loader2 className="h-4 w-4 animate-spin" /> : 
+                                'Complete Filing'}
                             </Button>
-                          </div>
-                        </TableCell>
-                      )}
+                          )}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
