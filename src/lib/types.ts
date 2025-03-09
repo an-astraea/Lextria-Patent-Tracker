@@ -1,3 +1,4 @@
+
 export interface Inventor {
   id: string;
   tracking_id: string;
@@ -271,6 +272,13 @@ export interface ApiResponse<T> {
   fer?: any;
 }
 
+// Helper type for API responses
+export type ApiPatentsResponse = Patent[] | { patents: Patent[]; error?: any } | { error: any; patents: any[] };
+export type ApiEmployeesResponse = Employee[] | { employees: Employee[]; error?: any } | { error: any; employees: any[] };
+export type ApiPatentResponse = Patent | { patent: Patent; error?: any } | { error: any; patent: any };
+export type ApiTimelineResponse = TimelineEvent[] | { timeline: TimelineEvent[]; error?: any } | { error: any; timeline: any[] };
+export type ApiFERResponse = FEREntry | { fer: FEREntry; error?: any } | { error: any; fer: any; success: boolean };
+
 export type PatentResponse = Patent | { error: any; patent: any; } | { 
   patent: Patent; 
   error?: any; 
@@ -309,4 +317,63 @@ export interface CreateInventorResponse {
   success: boolean;
   inventor?: Inventor;
   error?: string;
+}
+
+// Helper function to handle API response for Patents
+export function handlePatentsResponse(response: ApiPatentsResponse): Patent[] {
+  if (Array.isArray(response)) {
+    return response;
+  } else if (response && 'patents' in response && Array.isArray(response.patents)) {
+    return response.patents;
+  }
+  return [];
+}
+
+// Helper function to handle API response for Employees
+export function handleEmployeesResponse(response: ApiEmployeesResponse): Employee[] {
+  if (Array.isArray(response)) {
+    return response;
+  } else if (response && 'employees' in response && Array.isArray(response.employees)) {
+    return response.employees;
+  }
+  return [];
+}
+
+// Helper function to handle API response for a single Patent
+export function handlePatentResponse(response: ApiPatentResponse): Patent | null {
+  if (!response) return null;
+  
+  if ('id' in response) {
+    return response as Patent;
+  } else if ('patent' in response && response.patent) {
+    return response.patent as Patent;
+  }
+  return null;
+}
+
+// Helper function to handle API response for Timeline
+export function handleTimelineResponse(response: ApiTimelineResponse): TimelineEvent[] {
+  if (Array.isArray(response)) {
+    return response;
+  } else if (response && 'timeline' in response && Array.isArray(response.timeline)) {
+    return response.timeline;
+  }
+  return [];
+}
+
+// Helper function to handle API response for FER Entry
+export function handleFERResponse(response: ApiFERResponse): FEREntry | null {
+  if (!response) return null;
+  
+  if ('id' in response && 'fer_number' in response) {
+    return response as FEREntry;
+  } else if ('fer' in response && response.fer) {
+    return response.fer as FEREntry;
+  }
+  return null;
+}
+
+// Helper function to create dummy ID for inventors
+export function createDummyInventorId(): string {
+  return `temp-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }

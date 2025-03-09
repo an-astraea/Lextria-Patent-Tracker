@@ -45,7 +45,8 @@ const Approvals = () => {
       try {
         setLoading(true);
         const reviews = await fetchPendingReviews();
-        setPendingReviews(reviews);
+        const patents = handlePatentsResponse(reviews);
+        setPendingReviews(patents);
       } catch (error) {
         console.error('Error loading reviews:', error);
         toast.error('Failed to load pending reviews');

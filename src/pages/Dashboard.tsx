@@ -104,37 +104,39 @@ const Dashboard = () => {
     }
   };
 
-  // Update the useEffect for fetching patents to properly handle the API response
-
-useEffect(() => {
-  const fetchPatentData = async () => {
-    try {
-      setLoading(true);
-      const response = await fetchPatentsAndEmployees();
-      
-      if (response && 'patents' in response) {
-        setAllPatents(response.patents || []);
-        setFilteredPatents(response.patents || []);
-      } else if (Array.isArray(response)) {
-        // Handle case where response is directly an array of patents
-        setAllPatents(response);
-        setFilteredPatents(response);
-      } else {
+  useEffect(() => {
+    const fetchPatentData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetchPatentsAndEmployees();
+        
+        if (response) {
+          if ('patents' in response && Array.isArray(response.patents)) {
+            setAllPatents(response.patents);
+            setFilteredPatents(response.patents);
+          } else if (Array.isArray(response)) {
+            setAllPatents(response);
+            setFilteredPatents(response);
+          } else {
+            setAllPatents([]);
+            setFilteredPatents([]);
+          }
+        } else {
+          setAllPatents([]);
+          setFilteredPatents([]);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load dashboard data');
         setAllPatents([]);
         setFilteredPatents([]);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load dashboard data');
-      setAllPatents([]);
-      setFilteredPatents([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  fetchPatentData();
-}, []);
+    fetchPatentData();
+  }, []);
 
   useEffect(() => {
     if (allPatents.length > 0) {

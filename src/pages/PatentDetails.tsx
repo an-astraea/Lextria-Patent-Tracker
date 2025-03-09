@@ -87,9 +87,10 @@ const PatentDetails = () => {
   const [isApprovingFiling, setIsApprovingFiling] = useState(false);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    setUserRole(user.role || '');
-    setUserName(user.full_name || '');
+    const userString = localStorage.getItem('user');
+    const userObj = userString ? JSON.parse(userString) : null;
+    setUserRole(userObj?.role || '');
+    setUserName(userObj?.full_name || '');
 
     const fetchPatent = async () => {
       if (id) {
@@ -493,9 +494,9 @@ const PatentDetails = () => {
         
         <PaymentStatusSection 
           patent={patent} 
-          userRole={user?.role}
+          userRole={userRole}
           refreshPatentData={refreshPatentData}
-          onUpdate={refreshPatentData}
+          onUpdate={() => refreshPatentData()}
         />
       </div>
 

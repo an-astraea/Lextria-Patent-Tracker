@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,12 +48,15 @@ const Drafts = () => {
         setLoading(true);
       }
       
-      const [activeData, completedData] = await Promise.all([
+      const [activeResp, completedResp] = await Promise.all([
         fetchDrafterAssignments(user.full_name),
         fetchDrafterCompletedAssignments(user.full_name)
       ]);
       
-      const sortedActivePatents = activeData.sort((a, b) => {
+      const activeData = handlePatentsResponse(activeResp);
+      const completedData = handlePatentsResponse(completedResp);
+      
+      const sortedActivePatents = [...activeData].sort((a, b) => {
         const getQueueOrder = (patent: Patent) => {
           if (patent.ps_drafter_assgn === user.full_name && patent.ps_drafting_status === 0) {
             return 1;
@@ -95,7 +97,7 @@ const Drafts = () => {
     if (!user) return;
     
     try {
-      const success = await completeDrafterTask(patent, user.full_name);
+      const success = await completeDrafterTask(patent.id, user.full_name);
       if (success) {
         toast.success('Drafting task completed and sent for review');
         
@@ -170,7 +172,6 @@ const Drafts = () => {
     return false;
   };
 
-  // Pagination logic
   const paginateData = (data: Patent[], pageNumber: number) => {
     const startIndex = (pageNumber - 1) * ITEMS_PER_PAGE;
     return data.slice(startIndex, startIndex + ITEMS_PER_PAGE);

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Patent, TimelineEvent } from '@/lib/types';
+import { Patent, TimelineEvent, handleTimelineResponse } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { fetchPatentTimeline } from '@/lib/api';
 import { format } from 'date-fns';
@@ -33,17 +33,8 @@ const TimelineDialog: React.FC<TimelineDialogProps> = ({ patent, children }) => 
         setLoading(true);
         try {
           const timelineData = await fetchPatentTimeline(patent.id);
-          
-          if (Array.isArray(timelineData)) {
-            // If it's already an array, use it directly
-            setEvents(timelineData);
-          } else if (timelineData && 'timeline' in timelineData && Array.isArray(timelineData.timeline)) {
-            // If it's an object with a timeline property that is an array
-            setEvents(timelineData.timeline);
-          } else {
-            // Default to empty array
-            setEvents([]);
-          }
+          const timelineEvents = handleTimelineResponse(timelineData);
+          setEvents(timelineEvents);
         } catch (error) {
           console.error("Error loading timeline:", error);
           setEvents([]);

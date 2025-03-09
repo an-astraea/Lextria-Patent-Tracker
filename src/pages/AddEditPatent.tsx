@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Save, Plus, Trash, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
@@ -25,7 +25,7 @@ import {
   updateFEREntry,
   deleteFEREntry
 } from '@/lib/api';
-import { Patent, PatentFormData, Employee, FEREntry } from '@/lib/types';
+import { Patent, PatentFormData, Employee, FEREntry, handleEmployeesResponse, handlePatentResponse, handleFERResponse, createDummyInventorId } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Table,
@@ -133,7 +133,8 @@ const AddEditPatent = () => {
     const getEmployees = async () => {
       try {
         const employeeData = await fetchEmployees();
-        setEmployees(employeeData);
+        const employees = handleEmployeesResponse(employeeData);
+        setEmployees(employees);
       } catch (error) {
         console.error('Error fetching employees:', error);
         toast.error('Failed to load employees data');
@@ -150,10 +151,9 @@ const AddEditPatent = () => {
         try {
           setLoading(true);
           const patentData = await fetchPatentById(id);
-          
-          if (patentData && 'patent' in patentData && patentData.patent) {
-            // Access properties from the patent object
-            const patent = patentData.patent;
+          const patent = handlePatentResponse(patentData);
+        
+          if (patent) {
             setFormData({
               tracking_id: patent.tracking_id || '',
               patent_applicant: patent.patent_applicant || '',
@@ -182,7 +182,7 @@ const AddEditPatent = () => {
                 inventor_addr: inv.inventor_addr
               })) : [{ inventor_name: '', inventor_addr: '' }]
             });
-            
+          
             // Set FER entries
             if (patent.fer_entries && patent.fer_entries.length > 0) {
               setFerEntries(patent.fer_entries);
@@ -300,7 +300,7 @@ const AddEditPatent = () => {
           fer_filer_deadline: ferFilerDeadline || null,
           fer_date: ferDate || null
         };
-        
+      
         const success = await updateFEREntry(selectedFER.id, ferData);
         if (success) {
           // Update local state
@@ -314,22 +314,18 @@ const AddEditPatent = () => {
         const nextFERNumber = ferEntries.length > 0 
           ? Math.max(...ferEntries.map(fer => fer.fer_number)) + 1 
           : 1;
-        
-        const newFER = await createFEREntry(
-          id, 
-          nextFERNumber, 
-          ferDrafter, 
-          ferDrafterDeadline,
-          ferFiler,
-          ferFilerDeadline
-        );
-        
+      
+        const newFER = await createFEREntry(id, nextFERNumber);
+      
         if (newFER) {
-          setFerEntries(prev => [...prev, newFER]);
-          toast.success('New FER created successfully');
+          const safeFER = handleFERResponse(newFER);
+          if (safeFER) {
+            setFerEntries(prev => [...prev, safeFER]);
+            toast.success('New FER created successfully');
+          }
         }
       }
-      
+    
       // Close dialog
       setIsFERDialogOpen(false);
     } catch (error) {
@@ -361,46 +357,52 @@ const AddEditPatent = () => {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+  
     if (!validateForm()) {
       return;
     }
-    
+  
     try {
       setLoading(true);
-      
+    
       if (isEditing && id) {
         // Update existing patent
-        const success = await updatePatent(id, formData);
+        // Convert inventor data to match Patent type
+        const patentData: Partial<Patent> = {
+          ...formData,
+          inventors: formData.inventors.map(inv => ({
+            ...inv,
+            id: createDummyInventorId(),
+            tracking_id: formData.tracking_id
+          }))
+        };
+      
+        const success = await updatePatent(id, patentData);
         if (success) {
           toast.success('Patent updated successfully');
           navigate('/patents');
         }
       } else {
         // Create new patent
-        const newPatent = await createPatent(formData);
-        if (newPatent) {
-          // Add inventors
-          for (const inventor of formData.inventors) {
-            await createInventor({
-              tracking_id: newPatent.tracking_id,
-              inventor_name: inventor.inventor_name,
-              inventor_addr: inventor.inventor_addr
-            });
-          }
-          
+        // Convert inventor data to match Patent type
+        const patentData: Partial<Patent> = {
+          ...formData,
+          inventors: formData.inventors.map(inv => ({
+            ...inv,
+            id: createDummyInventorId(),
+            tracking_id: formData.tracking_id
+          }))
+        };
+      
+        const newPatent = await createPatent(patentData);
+        const patent = handlePatentResponse(newPatent);
+      
+        if (patent) {
           // If FER status is enabled, create the first FER entry
-          if (newPatent.fer_status === 1 && newPatent.id) {
-            await createFEREntry(
-              newPatent.id, 
-              1, // First FER number
-              newPatent.fer_drafter_assgn || undefined,
-              newPatent.fer_drafter_deadline || undefined,
-              newPatent.fer_filer_assgn || undefined,
-              newPatent.fer_filer_deadline || undefined
-            );
+          if (patent.fer_status === 1 && patent.id) {
+            await createFEREntry(patent.id, 1); // First FER number
           }
-          
+        
           toast.success('Patent created successfully');
           navigate('/patents');
         }
@@ -859,223 +861,3 @@ const AddEditPatent = () => {
                         <TableHead>Drafter</TableHead>
                         <TableHead>Filer</TableHead>
                         <TableHead>Draft Status</TableHead>
-                        <TableHead>File Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {ferEntries.map((fer) => (
-                        <TableRow key={fer.id}>
-                          <TableCell className="font-medium">{fer.fer_number}</TableCell>
-                          <TableCell>{fer.fer_date ? format(new Date(fer.fer_date), 'yyyy-MM-dd') : 'N/A'}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span>{fer.fer_drafter_assgn || 'Not assigned'}</span>
-                              <span className="text-xs text-gray-500">
-                                {fer.fer_drafter_deadline ? 
-                                  `Due: ${format(new Date(fer.fer_drafter_deadline), 'yyyy-MM-dd')}` : 
-                                  ''}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span>{fer.fer_filer_assgn || 'Not assigned'}</span>
-                              <span className="text-xs text-gray-500">
-                                {fer.fer_filer_deadline ? 
-                                  `Due: ${format(new Date(fer.fer_filer_deadline), 'yyyy-MM-dd')}` : 
-                                  ''}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={fer.fer_drafter_status === 1 ? "success" : "secondary"}>
-                              {fer.fer_drafter_status === 1 ? "Completed" : "Pending"}
-                            </Badge>
-                            {fer.fer_review_draft_status === 1 && (
-                              <Badge variant="warning" className="ml-1">Under Review</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={fer.fer_filing_status === 1 ? "success" : "secondary"}>
-                              {fer.fer_filing_status === 1 ? "Completed" : "Pending"}
-                            </Badge>
-                            {fer.fer_review_file_status === 1 && (
-                              <Badge variant="warning" className="ml-1">Under Review</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => handleEditFER(fer)}
-                              >
-                                Edit
-                              </Button>
-                              <Button 
-                                variant="destructive" 
-                                size="sm" 
-                                onClick={() => handleDeleteFER(fer)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              ) : (
-                <div className="text-gray-500 flex flex-col items-center justify-center py-8">
-                  <p className="mb-4">No FER entries found for this patent.</p>
-                  <Button variant="outline" onClick={handleAddFER}>
-                    <Plus className="h-4 w-4 mr-2" /> Add First FER
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-        
-        <div className="flex justify-end space-x-4 pb-6">
-          <Button type="button" variant="outline" onClick={() => navigate('/patents')}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? (
-              <>
-                <span className="animate-spin mr-2">⟳</span>
-                {isEditing ? 'Updating...' : 'Creating...'}
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                {isEditing ? 'Update Patent' : 'Create Patent'}
-              </>
-            )}
-          </Button>
-        </div>
-      </form>
-      
-      {/* FER Dialog */}
-      <Dialog open={isFERDialogOpen} onOpenChange={setIsFERDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>{isEditingFER ? 'Edit FER Entry' : 'Add New FER Entry'}</DialogTitle>
-            <DialogDescription>
-              {isEditingFER 
-                ? `Update FER #${selectedFER?.fer_number} details` 
-                : 'Create a new First Examination Report entry for this patent'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="fer-date">FER Date</Label>
-              <Input
-                id="fer-date"
-                type="date"
-                value={ferDate}
-                onChange={(e) => setFERDate(e.target.value)}
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="fer-drafter">Drafter</Label>
-              <Select value={ferDrafter} onValueChange={setFERDrafter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select drafter" />
-                </SelectTrigger>
-                <SelectContent>
-                  {drafters.length > 0 ? 
-                    drafters.map(drafter => (
-                      <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
-                    )) :
-                    <SelectItem value="none" disabled>No drafters available</SelectItem>
-                  }
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="fer-drafter-deadline">Drafter Deadline</Label>
-              <Input
-                id="fer-drafter-deadline"
-                type="date"
-                value={ferDrafterDeadline}
-                onChange={(e) => setFERDrafterDeadline(e.target.value)}
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="fer-filer">Filer</Label>
-              <Select value={ferFiler} onValueChange={setFERFiler}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select filer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filers.length > 0 ? 
-                    filers.map(filer => (
-                      <SelectItem key={filer} value={filer}>{filer}</SelectItem>
-                    )) :
-                    <SelectItem value="none" disabled>No filers available</SelectItem>
-                  }
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="fer-filer-deadline">Filer Deadline</Label>
-              <Input
-                id="fer-filer-deadline"
-                type="date"
-                value={ferFilerDeadline}
-                onChange={(e) => setFERFilerDeadline(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsFERDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveFER} disabled={isProcessingFER}>
-              {isProcessingFER ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isEditingFER ? 'Updating...' : 'Creating...'}
-                </>
-              ) : (
-                isEditingFER ? 'Update FER' : 'Create FER'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Delete FER Confirmation Dialog */}
-      <AlertDialog open={deleteFERDialogOpen} onOpenChange={setDeleteFERDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to delete this FER?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete FER #{ferToDelete?.fer_number} 
-              and all associated data.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDeleteFER} 
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-};
-
-export default AddEditPatent;

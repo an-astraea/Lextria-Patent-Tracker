@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { fetchPatents } from '@/lib/api';
 import { Patent } from '@/lib/types';
@@ -41,7 +40,6 @@ const ClientDashboard = () => {
     loadPatents();
   }, []);
 
-  // Filter patents based on search term and status filter
   const filteredPatents = patents.filter(patent => {
     const matchesSearch = 
       patent.tracking_id?.toLowerCase().includes(search.toLowerCase()) ||
@@ -62,7 +60,7 @@ const ClientDashboard = () => {
     <div className="space-y-6">
       <PageHeader 
         title="Client Dashboard" 
-        description="Overview of all client patents and their statuses"
+        subtitle="Overview of all client patents and their statuses"
         icon="Building"
       />
 
@@ -103,11 +101,11 @@ const ClientDashboard = () => {
       </Card>
 
       {loading ? (
-        <LoadingState message="Loading client patents..." />
+        <LoadingState />
       ) : filteredPatents.length === 0 ? (
         <EmptyState 
           title="No patents found" 
-          description={search ? "Try adjusting your search query" : "No patents have been added yet"} 
+          message={search ? "Try adjusting your search query" : "No patents have been added yet"} 
           icon="FileText"
         />
       ) : (
