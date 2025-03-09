@@ -32,23 +32,31 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
         if (!parsedUser.role.includes('admin') && adminOnlyPages.some(page => currentPath.startsWith(page))) {
           console.log('Non-admin trying to access admin page:', currentPath);
           toast.error('You do not have permission to access this page');
-          navigate('/dashboard');
+          
+          // Redirect based on role
+          if (parsedUser.role === 'drafter') {
+            navigate('/drafts');
+          } else if (parsedUser.role === 'filer') {
+            navigate('/filings');
+          } else {
+            navigate('/dashboard');
+          }
           return;
         }
         
         // Drafter-only pages
-        if (parsedUser.role === 'drafter' && currentPath.startsWith('/filings')) {
-          console.log('Drafter trying to access filer page:', currentPath);
-          toast.error('You do not have permission to access this page');
-          navigate('/drafts');
-          return;
-        }
-        
-        // Filer-only pages
         if (parsedUser.role === 'filer' && currentPath.startsWith('/drafts')) {
           console.log('Filer trying to access drafter page:', currentPath);
           toast.error('You do not have permission to access this page');
           navigate('/filings');
+          return;
+        }
+        
+        // Filer-only pages
+        if (parsedUser.role === 'drafter' && currentPath.startsWith('/filings')) {
+          console.log('Drafter trying to access filer page:', currentPath);
+          toast.error('You do not have permission to access this page');
+          navigate('/drafts');
           return;
         }
       } else if (!isIndexPage) {
