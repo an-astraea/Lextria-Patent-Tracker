@@ -1,275 +1,215 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Patent } from '@/lib/types';
-import { updatePatentStatus, updatePatentPayment } from '@/lib/api';
 import { toast } from 'sonner';
-import { Loader2, IndianRupee } from 'lucide-react';
+import { updatePatentStatus, updatePatentPayment } from '@/lib/api';
+import { Patent } from '@/lib/types';
+import StatusBadge from '../StatusBadge';
 
 interface PaymentStatusSectionProps {
   patent: Patent;
-  userRole: string;
-  refreshPatentData: () => Promise<void>;
+  onUpdate: () => void;
+  isAdmin?: boolean;
 }
 
-const PaymentStatusSection = ({ patent, userRole, refreshPatentData }: PaymentStatusSectionProps) => {
-  const [isUpdating, setIsUpdating] = useState<string | null>(null);
-  const [paymentAmount, setPaymentAmount] = useState(patent.payment_amount?.toString() || '0');
-  const [paymentReceived, setPaymentReceived] = useState(patent.payment_received?.toString() || '0');
-  const [paymentStatus, setPaymentStatus] = useState(patent.payment_status || 'not_sent');
+const PaymentStatusSection: React.FC<PaymentStatusSectionProps> = ({ 
+  patent, 
+  onUpdate,
+  isAdmin = false 
+}) => {
+  const [status, setStatus] = useState<string>(String(patent.payment_status || '0'));
+  const [amount, setAmount] = useState<string>(String(patent.payment_amount || '0'));
+  const [received, setReceived] = useState<string>(String(patent.payment_received || '0'));
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const isAdmin = userRole === 'admin';
-  
-  const handleInvoiceToggle = async (checked: boolean) => {
-    if (!isAdmin) {
-      toast.error("Only administrators can change payment settings");
-      return;
-    }
-    
-    setIsUpdating('invoice_sent');
-    try {
-      const success = await updatePatentStatus(patent.id, 'invoice_sent', checked ? 1 : 0);
-      if (success) {
-        toast.success(`Invoice status updated successfully`);
-        refreshPatentData();
-      }
-    } catch (error) {
-      console.error('Error updating invoice status:', error);
-      toast.error('Failed to update invoice status');
-    } finally {
-      setIsUpdating(null);
+  const getStatusLabel = (status: number) => {
+    switch (status) {
+      case 0: return 'Not Started';
+      case 1: return 'Pending';
+      case 2: return 'Partial';
+      case 3: return 'Completed';
+      default: return 'Unknown';
     }
   };
   
-  const handlePaymentStatusChange = async (status: string) => {
+  const getStatusVariant = (status: number) => {
+    switch (status) {
+      case 0: return 'outline';
+      case 1: return 'secondary';
+      case 2: return 'warning';
+      case 3: return 'success';
+      default: return 'outline';
+    }
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (!isAdmin) {
-      toast.error("Only administrators can change payment settings");
+      toast.error('Only admins can update payment status');
       return;
     }
     
-    setIsUpdating('payment_status');
+    setIsSubmitting(true);
+    
     try {
-      // Update the payment status in database
-      const success = await updatePatentStatus(patent.id, 'payment_status', status);
-      if (success) {
-        setPaymentStatus(status);
-        toast.success(`Payment status updated successfully`);
-        refreshPatentData();
+      // Convert string values to numbers for the API
+      const statusNum = parseInt(status, 10);
+      const amountNum = parseFloat(amount);
+      const receivedNum = parseFloat(received);
+      
+      // First update the payment status
+      const statusResult = await updatePatentStatus(patent.id, 'payment_status', statusNum);
+      
+      if (!statusResult.success) {
+        toast.error('Failed to update payment status');
+        return;
+      }
+      
+      // Then update the payment details
+      const paymentResult = await updatePatentPayment(patent.id, {
+        payment_status: statusNum,
+        payment_amount: amountNum,
+        payment_received: receivedNum
+      });
+      
+      if (paymentResult.success) {
+        toast.success('Payment status updated');
+        onUpdate();
+      } else {
+        toast.error('Failed to update payment details');
       }
     } catch (error) {
       console.error('Error updating payment status:', error);
-      toast.error('Failed to update payment status');
+      toast.error('An error occurred while updating payment status');
     } finally {
-      setIsUpdating(null);
+      setIsSubmitting(false);
     }
   };
   
-  const handlePaymentAmountUpdate = async () => {
-    if (!isAdmin) {
-      toast.error("Only administrators can change payment settings");
-      return;
-    }
+  const calculatePercentage = () => {
+    const amountNum = parseFloat(amount);
+    const receivedNum = parseFloat(received);
     
-    setIsUpdating('payment_amount');
-    try {
-      const amount = parseFloat(paymentAmount);
-      const received = parseFloat(paymentReceived);
-      
-      if (isNaN(amount)) {
-        toast.error("Payment amount must be a valid number");
-        return;
-      }
-      
-      if (isNaN(received)) {
-        toast.error("Payment received must be a valid number");
-        return;
-      }
-      
-      if (received > amount) {
-        toast.error("Payment received cannot exceed total amount");
-        return;
-      }
-      
-      // Update both amount and received in one call
-      const success = await updatePatentPayment(patent.id, amount, received);
-      if (success) {
-        toast.success(`Payment amounts updated successfully`);
-        
-        // Determine and update payment status based on amounts
-        let newStatus = 'not_sent';
-        if (patent.invoice_sent) {
-          if (received === 0) {
-            newStatus = 'invoice_sent';
-          } else if (received < amount) {
-            newStatus = 'partially_paid';
-          } else if (received === amount) {
-            newStatus = 'fully_paid';
-          }
-          await updatePatentStatus(patent.id, 'payment_status', newStatus);
-        }
-        
-        refreshPatentData();
-      }
-    } catch (error) {
-      console.error('Error updating payment amounts:', error);
-      toast.error('Failed to update payment amounts');
-    } finally {
-      setIsUpdating(null);
-    }
-  };
-  
-  // Calculate payment completion percentage
-  const paymentPercentage = 
-    patent.payment_amount && patent.payment_amount > 0 
-      ? Math.round((patent.payment_received || 0) / patent.payment_amount * 100) 
-      : 0;
-  
-  // Get a display label for the payment status
-  const getPaymentStatusLabel = (status: string) => {
-    switch (status) {
-      case 'not_sent': return 'Not Sent';
-      case 'invoice_sent': return 'Invoice Sent';
-      case 'partially_paid': return 'Partially Paid';
-      case 'fully_paid': return 'Fully Paid';
-      default: return status;
-    }
+    if (isNaN(amountNum) || amountNum === 0) return 0;
+    return Math.round((receivedNum / amountNum) * 100);
   };
   
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Payment Status</CardTitle>
-        <CardDescription>Track invoice and payment status for this patent</CardDescription>
+        <CardTitle className="flex items-center justify-between">
+          <span>Payment Status</span>
+          <StatusBadge 
+            status={getStatusLabel(patent.payment_status || 0)} 
+            variant={getStatusVariant(patent.payment_status || 0)}
+          />
+        </CardTitle>
+        <CardDescription>Track payment status and amounts</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex items-center justify-between py-2 space-x-2">
-          <div className="space-y-0.5">
-            <Label htmlFor="invoice_sent">Invoice Sent</Label>
-            <p className="text-xs text-muted-foreground">Mark when the invoice has been sent to the client</p>
-          </div>
-          <div className="flex items-center">
-            {isUpdating === 'invoice_sent' ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : null}
-            <Switch
-              id="invoice_sent"
-              checked={patent.invoice_sent || false}
-              onCheckedChange={handleInvoiceToggle}
-              disabled={!isAdmin || !!isUpdating}
-            />
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="payment_status">Payment Status</Label>
-          <Select 
-            value={paymentStatus} 
-            onValueChange={handlePaymentStatusChange}
-            disabled={!isAdmin || !!isUpdating}
-          >
-            <SelectTrigger id="payment_status" className="w-full">
-              <SelectValue placeholder="Select payment status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="not_sent">Not Sent</SelectItem>
-              <SelectItem value="invoice_sent">Invoice Sent</SelectItem>
-              <SelectItem value="partially_paid">Partially Paid</SelectItem>
-              <SelectItem value="fully_paid">Fully Paid</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+      <CardContent>
+        {isAdmin ? (
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="payment_amount">Total Amount</Label>
-              <div className="relative">
-                <IndianRupee className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="payment_amount"
-                  type="number"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  disabled={!isAdmin || !!isUpdating}
-                  className="pl-8"
+              <label className="text-sm font-medium">Payment Status</label>
+              <Select 
+                value={status} 
+                onValueChange={setStatus}
+                disabled={isSubmitting}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Not Started</SelectItem>
+                  <SelectItem value="1">Pending</SelectItem>
+                  <SelectItem value="2">Partial</SelectItem>
+                  <SelectItem value="3">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Total Amount</label>
+                <Input 
+                  type="number" 
+                  value={amount} 
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.00"
+                  disabled={isSubmitting}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Amount Received</label>
+                <Input 
+                  type="number" 
+                  value={received} 
+                  onChange={(e) => setReceived(e.target.value)}
+                  placeholder="0.00"
+                  disabled={isSubmitting}
+                  min="0"
+                  step="0.01"
                 />
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="payment_received">Amount Received</Label>
-              <div className="relative">
-                <IndianRupee className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="payment_received"
-                  type="number"
-                  value={paymentReceived}
-                  onChange={(e) => setPaymentReceived(e.target.value)}
-                  disabled={!isAdmin || !!isUpdating}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-          </div>
-          
-          {isAdmin && (
             <Button 
-              onClick={handlePaymentAmountUpdate} 
-              disabled={!!isUpdating}
-              size="sm"
+              type="submit" 
               className="w-full"
+              disabled={isSubmitting}
             >
-              {isUpdating === 'payment_amount' ? (
+              {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Updating...
                 </>
-              ) : (
-                'Update Payment Information'
-              )}
+              ) : 'Update Payment Status'}
             </Button>
-          )}
-        </div>
-        
-        {/* Payment status display */}
-        <div className="mt-4 p-4 bg-slate-50 rounded-md">
-          <div className="flex justify-between mb-2">
-            <span className="font-medium">Payment Status:</span>
-            <span className="text-right">{getPaymentStatusLabel(patent.payment_status || 'not_sent')}</span>
-          </div>
-          
-          <div className="flex justify-between mb-2">
-            <span className="font-medium">Amount:</span>
-            <span className="text-right">₹{patent.payment_amount?.toFixed(2) || '0.00'}</span>
-          </div>
-          
-          <div className="flex justify-between mb-2">
-            <span className="font-medium">Received:</span>
-            <span className="text-right">₹{patent.payment_received?.toFixed(2) || '0.00'}</span>
-          </div>
-          
-          <div className="mt-3">
-            <div className="flex justify-between mb-1 text-sm">
-              <span>Completion: {paymentPercentage}%</span>
-              <span>{patent.payment_received || 0} of {patent.payment_amount || 0}</span>
+          </form>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Amount</p>
+                <p className="text-xl font-bold">
+                  {patent.payment_amount ? new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'INR'
+                  }).format(patent.payment_amount) : 'Not set'}
+                </p>
+              </div>
+              
+              <div>
+                <p className="text-sm font-medium text-gray-500">Amount Received</p>
+                <p className="text-xl font-bold">
+                  {patent.payment_received ? new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'INR'
+                  }).format(patent.payment_received) : 'Not set'}
+                </p>
+              </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div 
-                className="bg-green-600 h-2.5 rounded-full" 
-                style={{ width: `${paymentPercentage}%` }}
-              ></div>
+            
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1">Progress</p>
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div 
+                  className="bg-green-600 h-2.5 rounded-full" 
+                  style={{ width: `${calculatePercentage()}%` }}
+                ></div>
+              </div>
+              <p className="text-xs text-right mt-1 text-gray-500">
+                {calculatePercentage()}% complete
+              </p>
             </div>
-          </div>
-        </div>
-        
-        {!isAdmin && (
-          <div className="p-3 bg-slate-100 border border-slate-200 rounded text-sm">
-            <p>Note: Payment information can only be updated by administrators.</p>
           </div>
         )}
       </CardContent>
