@@ -33,8 +33,6 @@ import { Label } from "@/components/ui/label";
 import { format } from 'date-fns';
 import FormRequirementsList from '@/components/patent/FormRequirementsList';
 import PatentStatusSection from '@/components/patent/PatentStatusSection';
-import WorkflowStatusSection from '@/components/patent/WorkflowStatusSection';
-import PaymentStatusSection from '@/components/patent/PaymentStatusSection';
 import PatentNotes from '@/components/patent/PatentNotes';
 import { 
   AlertDialog,
@@ -68,6 +66,7 @@ const PatentDetails = () => {
   const [userName, setUserName] = useState<string>('');
   const [employees, setEmployees] = useState<any[]>([]);
   
+  // FER Dialog state
   const [isFERDialogOpen, setIsFERDialogOpen] = useState(false);
   const [isEditingFER, setIsEditingFER] = useState(false);
   const [selectedFER, setSelectedFER] = useState<FEREntry | null>(null);
@@ -78,15 +77,18 @@ const PatentDetails = () => {
   const [ferDate, setFERDate] = useState('');
   const [isProcessingFER, setIsProcessingFER] = useState(false);
   
+  // FER delete confirmation dialog
   const [deleteFERDialogOpen, setDeleteFERDialogOpen] = useState(false);
   const [ferToDelete, setFERToDelete] = useState<FEREntry | null>(null);
 
+  // FER status update states
   const [isCompletingDraft, setIsCompletingDraft] = useState(false);
   const [isCompletingFiling, setIsCompletingFiling] = useState(false);
   const [isApprovingDraft, setIsApprovingDraft] = useState(false);
   const [isApprovingFiling, setIsApprovingFiling] = useState(false);
 
   useEffect(() => {
+    // Get user role from localStorage
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     setUserRole(user.role || '');
     setUserName(user.full_name || '');
@@ -141,12 +143,14 @@ const PatentDetails = () => {
     
     setIsSaving(true);
     try {
+      // Create an object with just the updated form field
       const formData: Record<string, boolean> = {
         [formName]: value
       };
       
       const success = await updatePatentForms(id, formData);
       if (success) {
+        // Update local state to reflect the change
         setPatent(prev => {
           if (!prev) return null;
           return {
@@ -198,6 +202,7 @@ const PatentDetails = () => {
       const success = await deleteFEREntry(ferToDelete.id);
       if (success) {
         toast.success('FER entry deleted successfully');
+        // Update local state to remove the deleted FER
         setPatent(prev => {
           if (!prev || !prev.fer_entries) return prev;
           return {
@@ -221,6 +226,7 @@ const PatentDetails = () => {
     
     try {
       if (isEditingFER && selectedFER) {
+        // Update existing FER
         const ferData: Partial<FEREntry> = {
           fer_drafter_assgn: ferDrafter || null,
           fer_drafter_deadline: ferDrafterDeadline || null,
@@ -233,6 +239,7 @@ const PatentDetails = () => {
         if (success) {
           toast.success('FER updated successfully');
           
+          // Update local state
           setPatent(prev => {
             if (!prev || !prev.fer_entries) return prev;
             
@@ -247,6 +254,7 @@ const PatentDetails = () => {
           });
         }
       } else {
+        // Create new FER - When a new FER is created, ensure patent.fer_status is set to 1
         const nextFERNumber = patent.fer_entries && patent.fer_entries.length > 0 
           ? Math.max(...patent.fer_entries.map(fer => fer.fer_number)) + 1 
           : 1;
@@ -264,19 +272,21 @@ const PatentDetails = () => {
         if (newFER) {
           toast.success('New FER created successfully');
           
+          // Update local state
           setPatent(prev => {
             if (!prev) return prev;
             
             return {
               ...prev,
               fer_entries: [...(prev.fer_entries || []), newFER],
-              fer_status: 1,
-              fer_completion_status: 0
+              fer_status: 1, // Make sure FER status is enabled when creating a FER entry
+              fer_completion_status: 0 // Reset completion status when a new FER is added
             };
           });
         }
       }
       
+      // Close dialog
       setIsFERDialogOpen(false);
     } catch (error) {
       console.error('Error saving FER:', error);
@@ -294,6 +304,7 @@ const PatentDetails = () => {
       const success = await completeFERDrafterTask(ferEntry, userName);
       if (success) {
         toast.success('FER drafting completed and submitted for review');
+        // Update local state
         refreshPatentData();
       }
     } catch (error) {
@@ -312,6 +323,7 @@ const PatentDetails = () => {
       const success = await completeFERFilerTask(ferEntry, userName);
       if (success) {
         toast.success('FER filing completed and submitted for review');
+        // Update local state
         refreshPatentData();
       }
     } catch (error) {
@@ -330,6 +342,7 @@ const PatentDetails = () => {
       const success = await approveFERReview(ferEntry, 'draft');
       if (success) {
         toast.success('FER draft approved');
+        // Update local state
         refreshPatentData();
       }
     } catch (error) {
@@ -348,6 +361,7 @@ const PatentDetails = () => {
       const success = await approveFERReview(ferEntry, 'file');
       if (success) {
         toast.success('FER filing approved');
+        // Update local state and check if all FERs are now complete
         refreshPatentData();
       }
     } catch (error) {
@@ -483,20 +497,6 @@ const PatentDetails = () => {
           )}
         </CardContent>
       </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <WorkflowStatusSection 
-          patent={patent} 
-          userRole={userRole} 
-          refreshPatentData={refreshPatentData} 
-        />
-        
-        <PaymentStatusSection 
-          patent={patent} 
-          userRole={userRole} 
-          refreshPatentData={refreshPatentData} 
-        />
-      </div>
 
       <Card>
         <CardHeader>
@@ -835,4 +835,3 @@ const PatentDetails = () => {
 import { fetchPatentsAndEmployees } from '@/lib/api';
 
 export default PatentDetails;
-

@@ -1,373 +1,335 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import PageHeader from '@/components/common/PageHeader';
-import EmptyState from '@/components/common/EmptyState';
-import LoadingState from '@/components/common/LoadingState';
-import { fetchPatentsByDrafter, submitDraftForReview } from '@/lib/api';
-import { Patent } from '@/lib/types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { Check, Clock, FileText, Loader2 } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { fetchDrafterAssignments, fetchDrafterCompletedAssignments, completeDrafterTask } from '@/lib/api';
+import { Patent } from '@/lib/types';
+import { useNavigate } from 'react-router-dom';
+import StatusBadge from '@/components/StatusBadge';
+import RefreshButton from '@/components/approvals/RefreshButton';
+import LoadingSpinner from '@/components/approvals/LoadingSpinner';
+import EmptyApprovals from '@/components/approvals/EmptyApprovals';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+const ITEMS_PER_PAGE = 6; // Number of items to show per page
 
 const Drafts = () => {
-  const [psDrafts, setPSDrafts] = useState<Patent[]>([]);
-  const [csDrafts, setCSDrafts] = useState<Patent[]>([]);
-  const [ferDrafts, setFERDrafts] = useState<Patent[]>([]);
-  const [loadingPS, setLoadingPS] = useState(true);
-  const [loadingCS, setLoadingCS] = useState(true);
-  const [loadingFER, setLoadingFER] = useState(true);
-  const [selectedPatent, setSelectedPatent] = useState<Patent | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [reviewNotes, setReviewNotes] = useState('');
   const navigate = useNavigate();
-  
-  // Get user from localStorage
+  const [activePatents, setActivePatents] = useState<Patent[]>([]);
+  const [completedPatents, setCompletedPatents] = useState<Patent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [activePage, setActivePage] = useState(1);
+  const [completedPage, setCompletedPage] = useState(1);
+  const isMobile = useIsMobile();
+
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
-  
-  // Fetch drafts on mount
-  useEffect(() => {
-    fetchDrafts();
-  }, [user]);
-  
-  const fetchDrafts = async () => {
-    if (!user) {
-      toast.error('User not found. Please log in.');
-      return;
+
+  React.useEffect(() => {
+    if (!user || user.role !== 'drafter') {
+      toast.error('Access denied. Drafter privileges required.');
+      navigate('/dashboard');
+    } else if (!initialLoadComplete) {
+      loadPatents();
     }
+  }, [user, navigate, initialLoadComplete]);
+
+  const loadPatents = async (isRefresh = false) => {
+    if (!user || user.role !== 'drafter') return;
     
     try {
-      setLoadingPS(true);
-      setLoadingCS(true);
-      setLoadingFER(true);
-      
-      const psResponse = await fetchPatentsByDrafter(user.full_name, 'ps');
-      if (psResponse && psResponse.patents) {
-        setPSDrafts(psResponse.patents);
+      if (isRefresh) {
+        setRefreshing(true);
       } else {
-        toast.error('Failed to load PS drafts');
+        setLoading(true);
       }
       
-      const csResponse = await fetchPatentsByDrafter(user.full_name, 'cs');
-      if (csResponse && csResponse.patents) {
-        setCSDrafts(csResponse.patents);
-      } else {
-        toast.error('Failed to load CS drafts');
-      }
+      const [activeData, completedData] = await Promise.all([
+        fetchDrafterAssignments(user.full_name),
+        fetchDrafterCompletedAssignments(user.full_name)
+      ]);
       
-      const ferResponse = await fetchPatentsByDrafter(user.full_name, 'fer');
-        if (ferResponse && ferResponse.patents) {
-          setFERDrafts(ferResponse.patents);
-        } else {
-          toast.error('Failed to load FER drafts');
-        }
+      const sortedActivePatents = activeData.sort((a, b) => {
+        const getQueueOrder = (patent: Patent) => {
+          if (patent.ps_drafter_assgn === user.full_name && patent.ps_drafting_status === 0) {
+            return 1;
+          } else if (patent.cs_drafter_assgn === user.full_name && patent.cs_drafting_status === 0) {
+            return 2;
+          } else if (patent.fer_drafter_assgn === user.full_name && patent.fer_drafter_status === 0) {
+            return 3;
+          }
+          return 4;
+        };
+        
+        return getQueueOrder(a) - getQueueOrder(b);
+      });
+      
+      setActivePatents(sortedActivePatents);
+      setCompletedPatents(completedData);
+      setInitialLoadComplete(true);
+      
+      // Reset to first page when refreshing data
+      if (isRefresh) {
+        setActivePage(1);
+        setCompletedPage(1);
+      }
     } catch (error) {
-      console.error('Error fetching drafts:', error);
-      toast.error('Failed to load drafts');
+      console.error('Error loading drafter assignments:', error);
+      toast.error('Failed to load assignments');
     } finally {
-      setLoadingPS(false);
-      setLoadingCS(false);
-      setLoadingFER(false);
+      setLoading(false);
+      setRefreshing(false);
     }
   };
-  
-  const handleOpenDialog = (patent: Patent) => {
-    setSelectedPatent(patent);
-    setIsDialogOpen(true);
+
+  const handleRefresh = () => {
+    loadPatents(true);
   };
-  
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setReviewNotes('');
-    setSelectedPatent(null);
-  };
-  
-  const handleSubmitForReview = async () => {
-    if (!selectedPatent) {
-      toast.error('No patent selected for review.');
-      return;
-    }
+
+  const handleComplete = async (patent: Patent) => {
+    if (!user) return;
     
     try {
-      // Determine the workflow stage based on the selected tab
-      let workflowStage = '';
-      if (psDrafts.find(p => p.id === selectedPatent.id)) {
-        workflowStage = 'ps';
-      } else if (csDrafts.find(p => p.id === selectedPatent.id)) {
-        workflowStage = 'cs';
-      } else if (ferDrafts.find(p => p.id === selectedPatent.id)) {
-        workflowStage = 'fer';
-      }
-      
-      // Submit the draft for review
-      const success = await submitDraftForReview(selectedPatent.id, workflowStage, reviewNotes);
+      const success = await completeDrafterTask(patent, user.full_name);
       if (success) {
-        toast.success('Draft submitted for review successfully!');
-        fetchDrafts(); // Refresh drafts
-      } else {
-        toast.error('Failed to submit draft for review.');
+        toast.success('Drafting task completed and sent for review');
+        
+        // Update local state to reflect changes without needing to reload
+        const updatedPatent = { ...patent };
+        
+        if (patent.ps_drafter_assgn === user.full_name) {
+          updatedPatent.ps_drafting_status = 1;
+          updatedPatent.ps_review_draft_status = 1;
+        } else if (patent.cs_drafter_assgn === user.full_name) {
+          updatedPatent.cs_drafting_status = 1;
+          updatedPatent.cs_review_draft_status = 1;
+        } else if (patent.fer_drafter_assgn === user.full_name) {
+          updatedPatent.fer_drafter_status = 1;
+          updatedPatent.fer_review_draft_status = 1;
+        }
+        
+        // Remove from active patents
+        setActivePatents(prevPatents => prevPatents.filter(p => p.id !== patent.id));
+        
+        // Add to completed patents
+        setCompletedPatents(prevPatents => [updatedPatent, ...prevPatents]);
       }
     } catch (error) {
-      console.error('Error submitting draft for review:', error);
-      toast.error('Failed to submit draft for review.');
-    } finally {
-      handleCloseDialog();
+      console.error('Error completing drafting task:', error);
+      toast.error('Failed to complete drafting task');
     }
   };
+
+  const getTaskType = (patent: Patent) => {
+    if (patent.ps_drafter_assgn === user?.full_name && patent.ps_drafting_status === 0) {
+      return 'Provisional Specification';
+    } else if (patent.cs_drafter_assgn === user?.full_name && patent.cs_drafting_status === 0) {
+      return 'Complete Specification';
+    } else if (patent.fer_drafter_assgn === user?.full_name && patent.fer_drafter_status === 0) {
+      return 'First Examination Report';
+    }
+    return 'Unknown Task';
+  };
+
+  const getDeadline = (patent: Patent) => {
+    if (patent.ps_drafter_assgn === user?.full_name && patent.ps_drafting_status === 0) {
+      return patent.ps_drafter_deadline;
+    } else if (patent.cs_drafter_assgn === user?.full_name && patent.cs_drafting_status === 0) {
+      return patent.cs_drafter_deadline;
+    } else if (patent.fer_drafter_assgn === user?.full_name && patent.fer_drafter_status === 0) {
+      return patent.fer_drafter_deadline;
+    }
+    return null;
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'No deadline set';
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  const isTaskAvailable = (patent: Patent) => {
+    if (patent.ps_drafter_assgn === user?.full_name && patent.ps_drafting_status === 0) {
+      return true;
+    } 
+    
+    if (patent.cs_drafter_assgn === user?.full_name && patent.cs_drafting_status === 0) {
+      return !patent.ps_drafter_assgn || patent.ps_drafting_status === 1;
+    }
+    
+    if (patent.fer_drafter_assgn === user?.full_name && patent.fer_drafter_status === 0) {
+      const psCompleted = !patent.ps_drafter_assgn || patent.ps_drafting_status === 1;
+      const csCompleted = !patent.cs_drafter_assgn || patent.cs_drafting_status === 1;
+      return psCompleted && csCompleted;
+    }
+    
+    return false;
+  };
+
+  // Pagination logic
+  const paginateData = (data: Patent[], pageNumber: number) => {
+    const startIndex = (pageNumber - 1) * ITEMS_PER_PAGE;
+    return data.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  };
+
+  const activePatentsPaginated = paginateData(activePatents, activePage);
+  const completedPatentsPaginated = paginateData(completedPatents, completedPage);
   
+  const renderPagination = (data: Patent[], currentPage: number, setPage: React.Dispatch<React.SetStateAction<number>>) => {
+    const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+    
+    if (totalPages <= 1) return null;
+    
+    return (
+      <Pagination className="mt-4">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious 
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+            />
+          </PaginationItem>
+          
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <PaginationItem key={i} className={isMobile && totalPages > 5 && ![0, 1, totalPages - 2, totalPages - 1].includes(i) && i !== currentPage - 1 ? "hidden" : ""}>
+              <PaginationLink
+                onClick={() => setPage(i + 1)}
+                isActive={currentPage === i + 1}
+              >
+                {i + 1}
+              </PaginationLink>
+            </PaginationItem>
+          ))}
+          
+          <PaginationItem>
+            <PaginationNext 
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    );
+  };
+
   return (
-    <div className="space-y-6">
-      <PageHeader 
-        title="My Drafting Tasks" 
-        description="Manage and track your assigned patent drafting tasks"
-      />
+    <div className="container mx-auto py-6 px-4 sm:px-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
+        <h1 className="text-2xl font-bold">Drafting Assignments</h1>
+        <RefreshButton onRefresh={handleRefresh} loading={refreshing} />
+      </div>
       
-      <Tabs defaultValue="ps">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="ps">PS Drafts</TabsTrigger>
-          <TabsTrigger value="cs">CS Drafts</TabsTrigger>
-          <TabsTrigger value="fer">FER Drafts</TabsTrigger>
+      <Tabs defaultValue="active" className="w-full">
+        <TabsList className="mb-4 w-full sm:w-auto justify-start overflow-x-auto">
+          <TabsTrigger value="active">Active Tasks ({activePatents.length})</TabsTrigger>
+          <TabsTrigger value="completed">Completed Tasks ({completedPatents.length})</TabsTrigger>
         </TabsList>
         
-        {/* PS Drafting Tab */}
-        <TabsContent value="ps">
-          {loadingPS ? (
-            <LoadingState message="Loading provisional specification drafting tasks..." />
-          ) : (
-            psDrafts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {psDrafts.map(patent => (
-                  <Card key={patent.id} className="overflow-hidden">
-                    <CardHeader>
-                      <CardTitle className="text-base line-clamp-1">{patent.patent_title}</CardTitle>
-                      <CardDescription className="flex items-center gap-2">
-                        ID: {patent.tracking_id}
-                        {patent.ps_review_draft_status === 1 && (
-                          <Badge variant="warning">Under Review</Badge>
-                        )}
-                      </CardDescription>
+        <TabsContent value="active" className="min-h-[50vh]">
+          {loading ? (
+            <LoadingSpinner />
+          ) : activePatents.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {activePatentsPaginated.map(patent => (
+                  <Card key={patent.id} className="hover:shadow-md transition-shadow flex flex-col">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex justify-between items-start">
+                        <div className="truncate">{patent.patent_title}</div>
+                        <StatusBadge status={isTaskAvailable(patent) ? 'active' : 'pending'} />
+                      </CardTitle>
+                      <CardDescription>ID: {patent.tracking_id}</CardDescription>
                     </CardHeader>
-                    <CardContent className="pb-2">
-                      <div className="text-sm space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Deadline:</span>
-                          <span className="font-medium">
-                            {patent.ps_drafter_deadline ? format(new Date(patent.ps_drafter_deadline), 'dd MMM yyyy') : 'No deadline set'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Status:</span>
-                          <span className="font-medium">
-                            {patent.ps_drafting_status === 1 ? 'Completed' : 'Pending'}
-                          </span>
-                        </div>
+                    <CardContent className="flex-grow flex flex-col">
+                      <div className="space-y-2 text-sm flex-grow">
+                        <div><span className="font-medium">Applicant:</span> {patent.patent_applicant}</div>
+                        <div><span className="font-medium">Task:</span> {getTaskType(patent)}</div>
+                        <div><span className="font-medium">Client ID:</span> {patent.client_id}</div>
+                        <div><span className="font-medium">Deadline:</span> {formatDate(getDeadline(patent))}</div>
                       </div>
+                      
+                      <div className="pt-4 mt-auto flex flex-col sm:flex-row justify-between gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/patents/${patent.id}`)}
+                          className="w-full sm:w-auto"
+                        >
+                          View Details
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleComplete(patent)}
+                          disabled={!isTaskAvailable(patent)}
+                          className="w-full sm:w-auto"
+                        >
+                          Complete & Submit
+                        </Button>
+                      </div>
+                      
+                      {!isTaskAvailable(patent) && (
+                        <div className="text-amber-600 font-medium text-xs mt-2">
+                          Waiting for previous stage to be completed
+                        </div>
+                      )}
                     </CardContent>
-                    <CardFooter className="flex gap-2">
-                      <Button 
-                        className="flex-1" 
-                        variant="outline"
-                        onClick={() => navigate(`/patents/${patent.id}`)}
-                      >
-                        View Details
-                      </Button>
-                      <Button 
-                        className="flex-1" 
-                        onClick={() => handleOpenDialog(patent)}
-                        disabled={patent.ps_review_draft_status === 1}
-                      >
-                        Submit for Review
-                      </Button>
-                    </CardFooter>
                   </Card>
                 ))}
               </div>
-            ) : (
-              <EmptyState 
-                title="No PS Drafting Tasks" 
-                description="You don't have any provisional specification drafting tasks assigned to you."
-                icon="FileText"
-                buttonText="Refresh Tasks"
-                onButtonClick={fetchDrafts}
-              />
-            )
+              {renderPagination(activePatents, activePage, setActivePage)}
+            </>
+          ) : (
+            <EmptyApprovals />
           )}
         </TabsContent>
         
-        {/* CS Drafting Tab */}
-        <TabsContent value="cs">
-          {loadingCS ? (
-            <LoadingState message="Loading complete specification drafting tasks..." />
-          ) : (
-            csDrafts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {csDrafts.map(patent => (
-                  <Card key={patent.id} className="overflow-hidden">
-                    <CardHeader>
-                      <CardTitle className="text-base line-clamp-1">{patent.patent_title}</CardTitle>
-                      <CardDescription className="flex items-center gap-2">
-                        ID: {patent.tracking_id}
-                        {patent.cs_review_draft_status === 1 && (
-                          <Badge variant="warning">Under Review</Badge>
-                        )}
-                      </CardDescription>
+        <TabsContent value="completed" className="min-h-[50vh]">
+          {loading ? (
+            <LoadingSpinner />
+          ) : completedPatents.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {completedPatentsPaginated.map(patent => (
+                  <Card key={patent.id} className="hover:shadow-md transition-shadow flex flex-col">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex justify-between items-start">
+                        <div className="truncate">{patent.patent_title}</div>
+                        <StatusBadge status="completed" />
+                      </CardTitle>
+                      <CardDescription>ID: {patent.tracking_id}</CardDescription>
                     </CardHeader>
-                    <CardContent className="pb-2">
-                      <div className="text-sm space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Deadline:</span>
-                          <span className="font-medium">
-                            {patent.cs_drafter_deadline ? format(new Date(patent.cs_drafter_deadline), 'dd MMM yyyy') : 'No deadline set'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Status:</span>
-                          <span className="font-medium">
-                            {patent.cs_drafting_status === 1 ? 'Completed' : 'Pending'}
-                          </span>
-                        </div>
+                    <CardContent className="flex-grow flex flex-col">
+                      <div className="space-y-2 text-sm flex-grow">
+                        <div><span className="font-medium">Applicant:</span> {patent.patent_applicant}</div>
+                        <div><span className="font-medium">Client ID:</span> {patent.client_id}</div>
+                        <div><span className="font-medium">Filing Date:</span> {formatDate(patent.date_of_filing)}</div>
+                      </div>
+                      
+                      <div className="pt-4 mt-auto">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/patents/${patent.id}`)}
+                          className="w-full"
+                        >
+                          View Details
+                        </Button>
                       </div>
                     </CardContent>
-                    <CardFooter className="flex gap-2">
-                      <Button 
-                        className="flex-1" 
-                        variant="outline"
-                        onClick={() => navigate(`/patents/${patent.id}`)}
-                      >
-                        View Details
-                      </Button>
-                      <Button 
-                        className="flex-1" 
-                        onClick={() => handleOpenDialog(patent)}
-                        disabled={patent.cs_review_draft_status === 1}
-                      >
-                        Submit for Review
-                      </Button>
-                    </CardFooter>
                   </Card>
                 ))}
               </div>
-            ) : (
-              <EmptyState 
-                title="No CS Drafting Tasks" 
-                description="You don't have any complete specification drafting tasks assigned to you."
-                icon="FileText"
-                buttonText="Refresh Tasks"
-                onButtonClick={fetchDrafts}
-              />
-            )
-          )}
-        </TabsContent>
-        
-        {/* FER Drafting Tab */}
-        <TabsContent value="fer">
-          {loadingFER ? (
-            <LoadingState message="Loading FER drafting tasks..." />
+              {renderPagination(completedPatents, completedPage, setCompletedPage)}
+            </>
           ) : (
-            ferDrafts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {ferDrafts.map(patent => (
-                  <Card key={patent.id} className="overflow-hidden">
-                    <CardHeader>
-                      <CardTitle className="text-base line-clamp-1">{patent.patent_title}</CardTitle>
-                      <CardDescription className="flex items-center gap-2">
-                        ID: {patent.tracking_id}
-                        {patent.fer_review_draft_status === 1 && (
-                          <Badge variant="warning">Under Review</Badge>
-                        )}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pb-2">
-                      <div className="text-sm space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Deadline:</span>
-                          <span className="font-medium">
-                            {patent.fer_drafter_deadline ? format(new Date(patent.fer_drafter_deadline), 'dd MMM yyyy') : 'No deadline set'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Status:</span>
-                          <span className="font-medium">
-                            {patent.fer_drafter_status === 1 ? 'Completed' : 'Pending'}
-                          </span>
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex gap-2">
-                      <Button 
-                        className="flex-1" 
-                        variant="outline"
-                        onClick={() => navigate(`/patents/${patent.id}`)}
-                      >
-                        View Details
-                      </Button>
-                      <Button 
-                        className="flex-1" 
-                        onClick={() => handleOpenDialog(patent)}
-                        disabled={patent.fer_review_draft_status === 1}
-                      >
-                        Submit for Review
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <EmptyState 
-                title="No FER Drafting Tasks" 
-                description="You don't have any first examination report drafting tasks assigned to you."
-                icon="FileText"
-                buttonText="Refresh Tasks"
-                onButtonClick={fetchDrafts}
-              />
-            )
+            <EmptyApprovals />
           )}
         </TabsContent>
       </Tabs>
-      
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Submit Draft for Review</DialogTitle>
-            <DialogDescription>
-              Add any notes or comments for the reviewer before submitting.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="review-notes">Review Notes</Label>
-              <Textarea 
-                id="review-notes" 
-                value={reviewNotes} 
-                onChange={(e) => setReviewNotes(e.target.value)} 
-                placeholder="Enter any notes for the reviewer..." 
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseDialog}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmitForReview}>
-              Submit for Review
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

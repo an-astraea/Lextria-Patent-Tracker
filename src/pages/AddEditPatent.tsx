@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,7 @@ import {
   updateFEREntry,
   deleteFEREntry
 } from '@/lib/api';
-import { Patent, PatentFormData, Employee, FEREntry, Inventor } from '@/lib/types';
+import { Patent, PatentFormData, Employee, FEREntry } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Table,
@@ -132,12 +133,8 @@ const AddEditPatent = () => {
   useEffect(() => {
     const getEmployees = async () => {
       try {
-        const response = await fetchEmployees();
-        if (response && response.employees) {
-          setEmployees(response.employees);
-        } else {
-          toast.error('Failed to load employees data');
-        }
+        const employeeData = await fetchEmployees();
+        setEmployees(employeeData);
       } catch (error) {
         console.error('Error fetching employees:', error);
         toast.error('Failed to load employees data');
@@ -156,15 +153,15 @@ const AddEditPatent = () => {
           const patent = await fetchPatentById(id);
           if (patent) {
             setFormData({
-              tracking_id: patent.tracking_id || '',
-              patent_applicant: patent.patent_applicant || '',
-              client_id: patent.client_id || '',
+              tracking_id: patent.tracking_id,
+              patent_applicant: patent.patent_applicant,
+              client_id: patent.client_id,
               application_no: patent.application_no || '',
-              date_of_filing: patent.date_of_filing ? patent.date_of_filing.split('T')[0] : '',
-              patent_title: patent.patent_title || '',
-              applicant_addr: patent.applicant_addr || '',
-              inventor_ph_no: patent.inventor_ph_no || '',
-              inventor_email: patent.inventor_email || '',
+              date_of_filing: patent.date_of_filing ? patent.date_of_filing.split('T')[0] : '', // Format date for input
+              patent_title: patent.patent_title,
+              applicant_addr: patent.applicant_addr,
+              inventor_ph_no: patent.inventor_ph_no,
+              inventor_email: patent.inventor_email,
               ps_drafter_assgn: patent.ps_drafter_assgn || '',
               ps_drafter_deadline: patent.ps_drafter_deadline ? patent.ps_drafter_deadline.split('T')[0] : '',
               ps_filer_assgn: patent.ps_filer_assgn || '',
@@ -173,7 +170,7 @@ const AddEditPatent = () => {
               cs_drafter_deadline: patent.cs_drafter_deadline ? patent.cs_drafter_deadline.split('T')[0] : '',
               cs_filer_assgn: patent.cs_filer_assgn || '',
               cs_filer_deadline: patent.cs_filer_deadline ? patent.cs_filer_deadline.split('T')[0] : '',
-              fer_status: patent.fer_status || 0,
+              fer_status: patent.fer_status,
               fer_drafter_assgn: patent.fer_drafter_assgn || '',
               fer_drafter_deadline: patent.fer_drafter_deadline ? patent.fer_drafter_deadline.split('T')[0] : '',
               fer_filer_assgn: patent.fer_filer_assgn || '',
@@ -183,6 +180,7 @@ const AddEditPatent = () => {
                 : [{ inventor_name: '', inventor_addr: '' }]
             });
             
+            // Set FER entries if available
             if (patent.fer_entries && patent.fer_entries.length > 0) {
               setFerEntries(patent.fer_entries);
             }
@@ -268,6 +266,7 @@ const AddEditPatent = () => {
     try {
       const success = await deleteFEREntry(ferToDelete.id);
       if (success) {
+        // Update local state to remove the deleted FER
         setFerEntries(prev => prev.filter(fer => fer.id !== ferToDelete.id));
         toast.success('FER entry deleted successfully');
       }
@@ -290,6 +289,7 @@ const AddEditPatent = () => {
     
     try {
       if (isEditingFER && selectedFER) {
+        // Update existing FER
         const ferData: Partial<FEREntry> = {
           fer_drafter_assgn: ferDrafter || null,
           fer_drafter_deadline: ferDrafterDeadline || null,
@@ -300,12 +300,14 @@ const AddEditPatent = () => {
         
         const success = await updateFEREntry(selectedFER.id, ferData);
         if (success) {
+          // Update local state
           setFerEntries(prev => 
             prev.map(fer => fer.id === selectedFER.id ? { ...fer, ...ferData } : fer)
           );
           toast.success('FER updated successfully');
         }
       } else {
+        // Create new FER
         const nextFERNumber = ferEntries.length > 0 
           ? Math.max(...ferEntries.map(fer => fer.fer_number)) + 1 
           : 1;
@@ -325,6 +327,7 @@ const AddEditPatent = () => {
         }
       }
       
+      // Close dialog
       setIsFERDialogOpen(false);
     } catch (error) {
       console.error('Error saving FER:', error);
@@ -335,12 +338,14 @@ const AddEditPatent = () => {
   };
   
   const validateForm = () => {
+    // Basic validation
     if (!formData.patent_applicant || !formData.client_id || 
         !formData.patent_title || !formData.applicant_addr) {
       toast.error('Please fill in all required fields');
       return false;
     }
     
+    // Validate inventors
     for (const inventor of formData.inventors) {
       if (!inventor.inventor_name || !inventor.inventor_addr) {
         toast.error('Please fill in all inventor details');
@@ -361,32 +366,35 @@ const AddEditPatent = () => {
     try {
       setLoading(true);
       
-      const { inventors, ...patentData } = formData;
-      
       if (isEditMode && id) {
-        const response = await updatePatent(id, patentData);
-        if (response && response.success) {
+        // Update existing patent
+        const success = await updatePatent(id, formData);
+        if (success) {
           toast.success('Patent updated successfully');
           navigate('/patents');
         }
       } else {
-        const response = await createPatent(patentData);
-        if (response && response.success && response.patent) {
-          for (const inventor of inventors) {
-            await createInventor(response.patent.id, {
+        // Create new patent
+        const newPatent = await createPatent(formData);
+        if (newPatent) {
+          // Add inventors
+          for (const inventor of formData.inventors) {
+            await createInventor({
+              tracking_id: newPatent.tracking_id,
               inventor_name: inventor.inventor_name,
               inventor_addr: inventor.inventor_addr
             });
           }
           
-          if (response.patent.fer_status === 1) {
+          // If FER status is enabled, create the first FER entry
+          if (newPatent.fer_status === 1 && newPatent.id) {
             await createFEREntry(
-              response.patent.id, 
-              1, 
-              response.patent.fer_drafter_assgn || '',
-              response.patent.fer_drafter_deadline || '',
-              response.patent.fer_filer_assgn || '',
-              response.patent.fer_filer_deadline || ''
+              newPatent.id, 
+              1, // First FER number
+              newPatent.fer_drafter_assgn || undefined,
+              newPatent.fer_drafter_deadline || undefined,
+              newPatent.fer_filer_assgn || undefined,
+              newPatent.fer_filer_deadline || undefined
             );
           }
           
@@ -402,6 +410,7 @@ const AddEditPatent = () => {
     }
   };
   
+  // Filter employees by role for dropdowns
   const drafters = employees.filter(emp => emp.role === 'drafter').map(emp => emp.full_name);
   const filers = employees.filter(emp => emp.role === 'filer').map(emp => emp.full_name);
   

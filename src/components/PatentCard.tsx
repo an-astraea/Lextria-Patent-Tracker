@@ -1,205 +1,175 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
 import { Patent } from '@/lib/types';
-import { format } from 'date-fns';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ClipboardList, FileText, FileCheck, AlertCircle, MoreHorizontal, ExternalLink, Trash2 } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import StatusBadge from './StatusBadge';
+import { Button } from '@/components/ui/button';
+import { 
+  FileText, 
+  Edit, 
+  Trash2, 
+  CalendarClock, 
+  User, 
+  Building,
+  History
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
+import TimelineDialog from './TimelineDialog';
 
-export interface PatentCardProps {
+interface PatentCardProps {
   patent: Patent;
-  isCompact?: boolean;
-  showClientInfo?: boolean;
-  showReviewBadge?: boolean;
-  onDelete?: () => void;
+  showDeadline?: boolean;
+  onDelete?: (id: string) => void;
 }
 
-const PatentCard = ({ patent, isCompact = false, showClientInfo = false, showReviewBadge = false, onDelete }: PatentCardProps) => {
-  const navigate = useNavigate();
-  
-  // Function to get status text and color
-  const getStatus = () => {
-    if (patent.withdrawn) {
-      return { text: 'Withdrawn', variant: 'destructive' as const };
+const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
+  // Get user from localStorage
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
+
+  const determineStatus = (patent: Patent) => {
+    if (patent.ps_completion_status === 1 && patent.cs_completion_status === 1) {
+      return 'completed';
+    } else if ((patent.ps_drafting_status === 1 || patent.cs_drafting_status === 1 || patent.fer_drafter_status === 1) && 
+               (patent.ps_filing_status === 0 || patent.cs_filing_status === 0 || patent.fer_filing_status === 0)) {
+      return 'inProgress';
+    } else if (patent.ps_drafting_status === 0 && patent.cs_drafting_status === 0) {
+      return 'notStarted';
+    } else {
+      return 'pending';
     }
-    if (patent.completed) {
-      return { text: 'Completed', variant: 'success' as const };
+  };
+
+  const status = determineStatus(patent);
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(patent.id);
+    } else {
+      toast.error("Delete functionality not implemented");
     }
+  };
+
+  // Find the closest deadline if showDeadline is true
+  const findClosestDeadline = () => {
+    if (!showDeadline) return null;
     
-    // Check PS status
-    if (patent.ps_completion_status === 1) {
-      // CS Status
-      if (patent.cs_completion_status === 1) {
-        // FER Status
-        if (patent.fer_status === 1) {
-          if (patent.fer_completion_status === 1) {
-            return { text: 'FER Completed', variant: 'success' as const };
-          }
-          return { text: 'FER in Progress', variant: 'warning' as const };
-        }
-        return { text: 'CS Completed', variant: 'success' as const };
-      }
-      return { text: 'PS Completed / CS in Progress', variant: 'warning' as const };
-    }
+    const deadlines = [
+      { label: 'PS Draft', date: patent.ps_drafter_deadline },
+      { label: 'PS File', date: patent.ps_filer_deadline },
+      { label: 'CS Draft', date: patent.cs_drafter_deadline },
+      { label: 'CS File', date: patent.cs_filer_deadline },
+      { label: 'FER Draft', date: patent.fer_drafter_deadline },
+      { label: 'FER File', date: patent.fer_filer_deadline }
+    ].filter(d => d.date);
     
-    return { text: 'PS in Progress', variant: 'warning' as const };
+    if (deadlines.length === 0) return null;
+    
+    deadlines.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return deadlines[0];
   };
   
-  // Check if patent is under review
-  const isUnderReview = 
-    patent.ps_review_draft_status === 1 || 
-    patent.ps_review_file_status === 1 || 
-    patent.cs_review_draft_status === 1 || 
-    patent.cs_review_file_status === 1 || 
-    patent.fer_review_draft_status === 1 || 
-    patent.fer_review_file_status === 1;
-  
-  // Get status info
-  const status = getStatus();
-  
+  const closestDeadline = findClosestDeadline();
+
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString();
+  };
+
   return (
-    <Card className={`transition-all hover:border-primary/50 ${isCompact ? 'h-[240px]' : ''}`}>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
+    <Card className="overflow-hidden transition-all hover:shadow-md border border-border">
+      <div className="relative p-6">
+        <div className="flex justify-between items-start mb-4">
           <div>
-            <CardTitle className="text-base line-clamp-1" title={patent.patent_title}>
-              {patent.patent_title}
-            </CardTitle>
-            <CardDescription className="line-clamp-1">
-              ID: {patent.tracking_id}
-            </CardDescription>
+            <h3 className="text-lg font-semibold line-clamp-1">{patent.patent_title}</h3>
+            <div className="text-sm text-muted-foreground mt-1">ID: {patent.tracking_id}</div>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <StatusBadge variant={status.variant}>
-              {status.text}
-            </StatusBadge>
-            
-            {showReviewBadge && isUnderReview && (
-              <Badge variant="warning" className="ml-1">Under Review</Badge>
-            )}
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate(`/patents/${patent.id}`)}>
-                  <FileText className="mr-2 h-4 w-4" />
-                  View Details
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(`/patents/edit/${patent.id}`)}>
-                  <ClipboardList className="mr-2 h-4 w-4" />
-                  Edit Patent
-                </DropdownMenuItem>
-                {onDelete && (
-                  <DropdownMenuItem onClick={onDelete} className="text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Patent
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <StatusBadge status={status} />
         </div>
-      </CardHeader>
-      
-      <CardContent className={`pb-2 ${isCompact ? 'pt-1' : ''}`}>
-        <div className="space-y-1 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Applicant:</span>
-            <span className="font-medium">{patent.patent_applicant}</span>
+        
+        <div className="grid grid-cols-1 gap-3 mb-4">
+          <div className="flex items-center gap-2">
+            <Building className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">{patent.patent_applicant}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">Client: {patent.client_id}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CalendarClock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">Filed: {formatDate(patent.date_of_filing)}</span>
           </div>
           
-          {showClientInfo && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Client ID:</span>
-              <span className="font-medium">{patent.client_id}</span>
+          {closestDeadline && (
+            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md text-sm">
+              <span className="font-medium">{closestDeadline.label} Deadline:</span> {formatDate(closestDeadline.date)}
             </div>
           )}
+        </div>
+
+        <div className="flex flex-wrap gap-2 mt-3">
+          {patent.ps_drafting_status === 1 && (
+            <Badge variant="secondary" className="text-xs">PS Draft Complete</Badge>
+          )}
+          {patent.ps_filing_status === 1 && (
+            <Badge variant="secondary" className="text-xs">PS File Complete</Badge>
+          )}
+          {patent.cs_drafting_status === 1 && (
+            <Badge variant="secondary" className="text-xs">CS Draft Complete</Badge>
+          )}
+          {patent.cs_filing_status === 1 && (
+            <Badge variant="secondary" className="text-xs">CS File Complete</Badge>
+          )}
+          {patent.fer_drafter_status === 1 && (
+            <Badge variant="secondary" className="text-xs">FER Draft Complete</Badge>
+          )}
+          {patent.fer_filing_status === 1 && (
+            <Badge variant="secondary" className="text-xs">FER File Complete</Badge>
+          )}
+        </div>
+      </div>
+      
+      <CardFooter className="flex justify-between bg-muted/30 p-4 border-t">
+        <div className="flex items-center gap-1">
+          <Link to={`/patents/${patent.id}`}>
+            <Button variant="ghost" size="sm" className="flex items-center gap-1">
+              <FileText className="h-4 w-4" />
+              <span>View</span>
+            </Button>
+          </Link>
           
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Filing Date:</span>
-            <span className="font-medium">
-              {patent.date_of_filing ? format(new Date(patent.date_of_filing), 'dd MMM yyyy') : 'Not filed yet'}
-            </span>
-          </div>
-          
-          {!isCompact && (
+          <TimelineDialog patent={patent}>
+            <Button variant="ghost" size="sm" className="flex items-center gap-1">
+              <History className="h-4 w-4" />
+              <span>Timeline</span>
+            </Button>
+          </TimelineDialog>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          {user?.role === 'admin' && (
             <>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">PS Status:</span>
-                <StatusBadge 
-                  variant={patent.ps_completion_status === 1 ? "success" : "warning"}
-                  size="sm"
-                >
-                  {patent.ps_completion_status === 1 ? "Completed" : "In Progress"}
-                </StatusBadge>
-              </div>
+              <Link to={`/patents/edit/${patent.id}`}>
+                <Button variant="ghost" size="sm">
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </Link>
               
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">CS Status:</span>
-                <StatusBadge 
-                  variant={patent.cs_completion_status === 1 ? "success" : "warning"}
-                  size="sm"
-                >
-                  {patent.cs_completion_status === 1 ? "Completed" : "In Progress"}
-                </StatusBadge>
-              </div>
-              
-              {patent.fer_status === 1 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">FER Status:</span>
-                  <StatusBadge 
-                    variant={patent.fer_completion_status === 1 ? "success" : "warning"}
-                    size="sm"
-                  >
-                    {patent.fer_completion_status === 1 ? "Completed" : "In Progress"}
-                  </StatusBadge>
-                </div>
-              )}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleDelete}
+                className="hover:text-destructive"
+                disabled={!onDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </>
           )}
         </div>
-      </CardContent>
-      
-      <CardFooter>
-        {isCompact ? (
-          <Button 
-            className="w-full" 
-            variant="outline" 
-            onClick={() => navigate(`/patents/${patent.id}`)}
-          >
-            View Details
-          </Button>
-        ) : (
-          <div className="flex w-full gap-2">
-            <Button 
-              className="flex-1" 
-              variant="outline" 
-              onClick={() => navigate(`/patents/${patent.id}`)}
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              View Details
-            </Button>
-            <Button 
-              className="flex-1" 
-              variant="outline" 
-              onClick={() => navigate(`/patents/edit/${patent.id}`)}
-            >
-              <ClipboardList className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
-          </div>
-        )}
       </CardFooter>
     </Card>
   );

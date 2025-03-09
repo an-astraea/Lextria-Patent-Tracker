@@ -2,18 +2,16 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Badge, BadgeProps } from '@/components/ui/badge';
-import { CheckCircle, Clock, AlertCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react';
 
-type Status = 'completed' | 'pending' | 'inProgress' | 'notStarted' | 'withdrawn';
+type Status = 'completed' | 'pending' | 'inProgress' | 'notStarted';
 
 interface StatusBadgeProps {
-  status?: Status | string;
+  status: Status | string;
   label?: string;
   showIcon?: boolean;
   className?: string;
   variant?: BadgeProps['variant'];
-  size?: string;
-  children?: React.ReactNode;
 }
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({
@@ -22,21 +20,11 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
   showIcon = true,
   className,
   variant: propVariant,
-  size,
-  children,
 }) => {
   let displayLabel = label;
   let icon = CheckCircle;
   let color = 'bg-green-100 text-green-800 border-green-200';
   let defaultLabel = 'Status';
-  
-  // If children are provided, use them directly
-  if (children) {
-    // If status is not provided but children are, we'll still need an icon
-    if (!status) {
-      status = typeof children === 'string' ? children.toLowerCase() : 'inProgress';
-    }
-  }
   
   // Set up configuration based on the status
   switch (status) {
@@ -60,11 +48,6 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
       icon = XCircle;
       color = 'bg-gray-100 text-gray-800 border-gray-200';
       break;
-    case 'withdrawn':
-      defaultLabel = 'Withdrawn';
-      icon = AlertTriangle;
-      color = 'bg-red-100 text-red-800 border-red-200';
-      break;
     case 'PS Draft':
     case 'PS Filing':
     case 'CS Draft':
@@ -77,7 +60,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
       break;
     default:
       // Default fallback for any other string values
-      defaultLabel = status || '';
+      defaultLabel = status;
       break;
   }
 
@@ -85,21 +68,18 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
   displayLabel = displayLabel || defaultLabel;
 
   const variant = propVariant || (status === 'completed' ? 'outline' : 'outline');
-  
-  const sizeClass = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-xs';
 
   return (
     <Badge
       variant={variant}
       className={cn(
-        'rounded-full font-medium flex items-center gap-1',
-        sizeClass,
+        'rounded-full px-3 py-1 text-xs font-medium flex items-center gap-1',
         color,
         className
       )}
     >
       {showIcon && <Icon className="h-3 w-3 mr-1" />}
-      {children || displayLabel}
+      {displayLabel}
     </Badge>
   );
 };
