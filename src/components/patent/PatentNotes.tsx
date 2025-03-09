@@ -14,6 +14,34 @@ interface PatentNotesProps {
   onNotesUpdated?: () => void;
 }
 
+// Function to convert URLs in text to anchor tags
+const linkifyText = (text: string) => {
+  if (!text) return '';
+  
+  // URL regex pattern
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  
+  // Replace URLs with anchor tags
+  return text.split(urlRegex).map((part, i) => {
+    // Check if this part is a URL
+    if (part.match(urlRegex)) {
+      return (
+        <a 
+          key={i} 
+          href={part} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline"
+        >
+          {part}
+        </a>
+      );
+    }
+    // Return regular text
+    return part;
+  });
+};
+
 const PatentNotes = ({ patentId, initialNotes, userRole, onNotesUpdated }: PatentNotesProps) => {
   const [notes, setNotes] = useState(initialNotes || '');
   const [isNotesSaving, setIsNotesSaving] = useState(false);
@@ -80,17 +108,25 @@ const PatentNotes = ({ patentId, initialNotes, userRole, onNotesUpdated }: Paten
       </CardHeader>
       <CardContent>
         <div className="grid gap-4">
-          <div className="grid gap-2">
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={handleNotesChange}
-              placeholder="Type your notes here."
-              readOnly={!isEditMode}
-              className={!isEditMode ? "bg-gray-100" : ""}
-              rows={6}
-            />
-          </div>
+          {isEditMode ? (
+            // Editable text area in edit mode
+            <div className="grid gap-2">
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={handleNotesChange}
+                placeholder="Type your notes here."
+                className=""
+                rows={6}
+              />
+            </div>
+          ) : (
+            // Linkified read-only view when not in edit mode
+            <div className="whitespace-pre-wrap bg-gray-100 p-3 rounded-md min-h-[160px]">
+              {notes ? linkifyText(notes) : <span className="text-gray-400">No notes available</span>}
+            </div>
+          )}
+          
           {isEditMode && (
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={handleCancelEdit}>
