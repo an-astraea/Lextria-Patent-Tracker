@@ -1,9 +1,11 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 import { EmployeeFormData, FEREntry, PatentFormData, Patent, Employee } from './types';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// Use import.meta.env for Vite projects instead of process.env
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://afjnaobrkqxejmztqyhd.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmam5hb2Jya3F4ZWptenRxeWhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEyMDA3OTEsImV4cCI6MjA1Njc3Njc5MX0.zOz-qXNc_eMOqE63uzwLNovVIBXDoBjhiKteu8YOK-E';
 const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 
 // Function to fetch all patents

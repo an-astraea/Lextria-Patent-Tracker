@@ -13,25 +13,49 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
   const isIndexPage = location.pathname === '/';
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
-      navigate('/');
+    console.log('MainLayoutWrapper useEffect');
+    try {
+      const storedUser = localStorage.getItem('user');
+      console.log('Stored user:', storedUser);
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      } else if (!isIndexPage) {
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Error getting user from localStorage:', error);
+      if (!isIndexPage) {
+        navigate('/');
+      }
     }
-  }, [navigate]);
+  }, [navigate, isIndexPage]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
     navigate('/');
   };
 
+  // Log current state for debugging
+  console.log('isIndexPage:', isIndexPage);
+  console.log('user:', user);
+  console.log('current path:', location.pathname);
+
   if (isIndexPage) {
     return <MainLayout>{children}</MainLayout>;
   }
 
   if (!user) {
-    return <MainLayout>{children}</MainLayout>;
+    // For non-index pages without user, show loading state
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>Loading...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
   }
 
   if (user?.role === 'admin') {
@@ -110,6 +134,7 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
     );
   }
 
+  // Fallback if role doesn't match any condition
   return <MainLayout>{children}</MainLayout>;
 };
 
