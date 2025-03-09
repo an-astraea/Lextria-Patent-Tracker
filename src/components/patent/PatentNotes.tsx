@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { updatePatentNotes } from '@/lib/api';
-import { Loader2 } from 'lucide-react';
+import { Loader2, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PatentNotesProps {
@@ -17,6 +17,7 @@ interface PatentNotesProps {
 const PatentNotes = ({ patentId, initialNotes, userRole, onNotesUpdated }: PatentNotesProps) => {
   const [notes, setNotes] = useState(initialNotes || '');
   const [isNotesSaving, setIsNotesSaving] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   
   // Determine if user can edit notes (admin or drafter)
   const canEditNotes = userRole === 'admin' || userRole === 'drafter';
@@ -38,6 +39,7 @@ const PatentNotes = ({ patentId, initialNotes, userRole, onNotesUpdated }: Paten
 
       if (success) {
         toast.success('Notes updated successfully');
+        setIsEditMode(false); // Exit edit mode after saving
         if (onNotesUpdated) {
           onNotesUpdated();
         }
@@ -52,13 +54,29 @@ const PatentNotes = ({ patentId, initialNotes, userRole, onNotesUpdated }: Paten
     }
   };
 
+  const handleCancelEdit = () => {
+    setNotes(initialNotes || ''); // Reset to original notes
+    setIsEditMode(false);
+  };
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Notes</CardTitle>
-        <CardDescription>
-          {canEditNotes ? 'Add or update notes for this patent' : 'View notes for this patent'}
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0">
+        <div>
+          <CardTitle>Notes</CardTitle>
+          <CardDescription>
+            {canEditNotes ? 'View and manage notes for this patent' : 'View notes for this patent'}
+          </CardDescription>
+        </div>
+        {canEditNotes && !isEditMode && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setIsEditMode(true)}
+          >
+            <PenLine className="h-4 w-4 mr-2" /> Edit Notes
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         <div className="grid gap-4">
@@ -68,22 +86,27 @@ const PatentNotes = ({ patentId, initialNotes, userRole, onNotesUpdated }: Paten
               value={notes}
               onChange={handleNotesChange}
               placeholder="Type your notes here."
-              readOnly={!canEditNotes}
-              className={!canEditNotes ? "bg-gray-100" : ""}
+              readOnly={!isEditMode}
+              className={!isEditMode ? "bg-gray-100" : ""}
               rows={6}
             />
           </div>
-          {canEditNotes && (
-            <Button onClick={handleSaveNotes} disabled={isNotesSaving}>
-              {isNotesSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Notes'
-              )}
-            </Button>
+          {isEditMode && (
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={handleCancelEdit}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveNotes} disabled={isNotesSaving}>
+                {isNotesSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Notes'
+                )}
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>

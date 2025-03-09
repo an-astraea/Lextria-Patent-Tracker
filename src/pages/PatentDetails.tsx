@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react';
 import { 
   fetchPatentById, 
-  updatePatentNotes, 
   fetchPatentTimeline, 
   updatePatentForms,
   createFEREntry,
@@ -169,32 +168,6 @@ const PatentDetails = () => {
     }
   };
 
-  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNotes(e.target.value);
-  };
-
-  const handleSaveNotes = async () => {
-    if (!id) {
-      toast.error('Patent ID is missing');
-      return;
-    }
-
-    setIsNotesSaving(true);
-
-    try {
-      const success = await updatePatentNotes(id, notes);
-
-      if (success) {
-        toast.success('Notes updated successfully');
-      }
-    } catch (error) {
-      console.error('Error updating notes:', error);
-      toast.error('Failed to update notes');
-    } finally {
-      setIsNotesSaving(false);
-    }
-  };
-  
   const handleAddFER = () => {
     setIsEditingFER(false);
     setSelectedFER(null);
