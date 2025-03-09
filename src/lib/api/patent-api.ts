@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Inventor, Patent, PatentFormData } from "../types";
 import { toast } from "sonner";
@@ -339,24 +338,31 @@ export const updateInventor = async (id: string, inventorData: { inventor_name: 
 };
 
 // Function to update patent notes
-export const updatePatentNotes = async (
-  patentId: string,
-  notes: string
-): Promise<boolean> => {
+export const updatePatentNotes = async (patentId: string, notes: string): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from("patents")
+      .from('patents')
       .update({ notes })
-      .eq("id", patentId);
+      .eq('id', patentId);
 
     if (error) {
-      throw error;
+      console.error('Error updating patent notes:', error);
+      return false;
     }
+
+    // Add a timeline entry for the notes update
+    await supabase
+      .from('patent_timeline')
+      .insert({
+        patent_id: patentId,
+        event_type: 'notes_updated',
+        event_description: 'Patent notes updated',
+        status: 1
+      });
 
     return true;
   } catch (error) {
-    console.error("Error updating patent notes:", error);
-    toast.error("Failed to update notes");
+    console.error('Error updating patent notes:', error);
     return false;
   }
 };

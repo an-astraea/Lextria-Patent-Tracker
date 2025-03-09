@@ -34,6 +34,7 @@ import { Label } from "@/components/ui/label";
 import { format } from 'date-fns';
 import FormRequirementsList from '@/components/patent/FormRequirementsList';
 import PatentStatusSection from '@/components/patent/PatentStatusSection';
+import PatentNotes from '@/components/patent/PatentNotes';
 import { 
   AlertDialog,
   AlertDialogAction, 
@@ -62,8 +63,6 @@ const PatentDetails = () => {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [timeline, setTimeline] = useState([]);
-  const [notes, setNotes] = useState('');
-  const [isNotesSaving, setIsNotesSaving] = useState(false);
   const [userRole, setUserRole] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
   const [employees, setEmployees] = useState<any[]>([]);
@@ -101,7 +100,6 @@ const PatentDetails = () => {
           const patentData = await fetchPatentById(id);
           if (patentData) {
             setPatent(patentData);
-            setNotes(patentData.notes || '');
           } else {
             toast.error('Patent not found');
             navigate('/patents');
@@ -325,7 +323,6 @@ const PatentDetails = () => {
     }
   };
 
-  // New function to complete FER drafting
   const handleCompleteFERDraft = async (ferEntry: FEREntry) => {
     if (!ferEntry) return;
     
@@ -345,7 +342,6 @@ const PatentDetails = () => {
     }
   };
 
-  // New function to complete FER filing
   const handleCompleteFERFiling = async (ferEntry: FEREntry) => {
     if (!ferEntry) return;
     
@@ -365,7 +361,6 @@ const PatentDetails = () => {
     }
   };
 
-  // New function to approve FER draft
   const handleApproveFERDraft = async (ferEntry: FEREntry) => {
     if (!ferEntry) return;
     
@@ -385,7 +380,6 @@ const PatentDetails = () => {
     }
   };
 
-  // New function to approve FER filing
   const handleApproveFERFiling = async (ferEntry: FEREntry) => {
     if (!ferEntry) return;
     
@@ -405,7 +399,6 @@ const PatentDetails = () => {
     }
   };
 
-  // Refresh patent data after status updates
   const refreshPatentData = async () => {
     if (!id) return;
     
@@ -419,21 +412,15 @@ const PatentDetails = () => {
     }
   };
 
-  // Check if user is allowed to edit forms (admin or filer)
   const canEditForms = userRole === 'admin' || userRole === 'filer';
-  // Check if user is allowed to manage FERs (admin only)
   const canManageFERs = userRole === 'admin';
-  // Check if user is allowed to complete FER drafting (assigned drafter)
   const canCompleteDrafting = (fer: FEREntry) => 
     userRole === 'drafter' && fer.fer_drafter_assgn === userName && fer.fer_drafter_status === 0;
-  // Check if user is allowed to complete FER filing (assigned filer)
   const canCompleteFiling = (fer: FEREntry) => 
     userRole === 'filer' && fer.fer_filer_assgn === userName && 
     fer.fer_filing_status === 0 && fer.fer_drafter_status === 1 && fer.fer_review_draft_status === 0;
-  // Check if user is allowed to approve FER drafting (admin only)
   const canApproveDraft = (fer: FEREntry) => 
     userRole === 'admin' && fer.fer_review_draft_status === 1;
-  // Check if user is allowed to approve FER filing (admin only)
   const canApproveFiling = (fer: FEREntry) => 
     userRole === 'admin' && fer.fer_review_file_status === 1;
 
@@ -450,7 +437,6 @@ const PatentDetails = () => {
     return <div className="text-red-500">Patent not found.</div>;
   }
   
-  // Get drafters and filers for dropdown selection
   const drafters = employees.filter(emp => emp.role === 'drafter').map(emp => emp.full_name);
   const filers = employees.filter(emp => emp.role === 'filer').map(emp => emp.full_name);
 
@@ -553,7 +539,6 @@ const PatentDetails = () => {
         </CardContent>
       </Card>
       
-      {/* FER Entries Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -714,41 +699,18 @@ const PatentDetails = () => {
         </CardContent>
       </Card>
 
-      {/* Form Requirements Card */}
       <FormRequirementsList 
         patent={patent} 
         userRole={userRole} 
         onUpdate={canEditForms ? handleFormUpdate : undefined} 
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Notes</CardTitle>
-          <CardDescription>Add or update notes for this patent</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={handleNotesChange}
-                placeholder="Type your notes here."
-              />
-            </div>
-            <Button onClick={handleSaveNotes} disabled={isNotesSaving}>
-              {isNotesSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Notes'
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <PatentNotes 
+        patentId={id || ''}
+        initialNotes={patent.notes || ''}
+        userRole={userRole}
+        onNotesUpdated={refreshPatentData}
+      />
 
       <Card>
         <CardHeader>
@@ -780,7 +742,6 @@ const PatentDetails = () => {
         </CardContent>
       </Card>
       
-      {/* FER Dialog */}
       <Dialog open={isFERDialogOpen} onOpenChange={setIsFERDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -874,7 +835,6 @@ const PatentDetails = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Delete FER Confirmation Dialog */}
       <AlertDialog open={deleteFERDialogOpen} onOpenChange={setDeleteFERDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -899,7 +859,6 @@ const PatentDetails = () => {
   );
 };
 
-// Import missing function
 import { fetchPatentsAndEmployees } from '@/lib/api';
 
 export default PatentDetails;
