@@ -574,21 +574,6 @@ export const updateEmployee = async (id: string, employeeData: Partial<EmployeeF
   return true;
 };
 
-// Function to delete an employee
-export const deleteEmployee = async (id: string) => {
-  const { error } = await supabase
-    .from('employees')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    console.error('Error deleting employee:', error);
-    return false;
-  }
-
-  return true;
-};
-
 // Login user function
 export const loginUser = async (email: string, password: string) => {
   try {

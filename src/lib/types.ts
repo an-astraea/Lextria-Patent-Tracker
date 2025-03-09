@@ -13,7 +13,6 @@ export interface FERHistory {
   fer_drafter_deadline: string;
   fer_filer_assgn: string;
   fer_filer_deadline: string;
-  created_at: string;
 }
 
 export interface FEREntry {

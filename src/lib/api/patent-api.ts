@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Inventor, Patent, PatentFormData } from "../types";
 import { toast } from "sonner";
@@ -257,7 +256,6 @@ export const updatePatent = async (id: string, patentData: PatentFormData): Prom
         for (let i = 0; i < patentData.inventors.length; i++) {
           const inventor = patentData.inventors[i];
           if (i < existingInventors.length) {
-            // Fix: use existingInventors[i].id instead of inventor.id
             await updateInventor(existingInventors[i].id, {
               inventor_name: inventor.inventor_name,
               inventor_addr: inventor.inventor_addr
