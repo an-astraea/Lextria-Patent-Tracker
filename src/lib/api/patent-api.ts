@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Patent, EmployeeFormData, PatentFormData } from "@/lib/types";
+import { Patent, EmployeeFormData, PatentFormData, FEREntry } from "@/lib/types";
 
 // Fetch all patents with their relationships
 export const fetchPatents = async () => {
@@ -53,7 +53,6 @@ export const fetchPatentById = async (id: string) => {
 // Fetch patent timeline
 export const fetchPatentTimeline = async (patentId: string) => {
   try {
-    // Fix: Changed "patient_timeline" to "patent_timeline" to match actual table name
     const { data, error } = await supabase
       .from("patent_timeline")
       .select("*")
@@ -75,7 +74,6 @@ export const fetchPatentTimeline = async (patentId: string) => {
 // Create a new patent
 export const createPatent = async (patentData: PatentFormData) => {
   try {
-    // Insert the patent data
     const { data, error } = await supabase
       .from("patents")
       .insert([
@@ -111,7 +109,6 @@ export const createPatent = async (patentData: PatentFormData) => {
       return { success: false, message: error.message };
     }
 
-    // If there are inventors, add them
     if (patentData.inventors && patentData.inventors.length > 0) {
       const inventorsToInsert = patentData.inventors.map((inventor) => ({
         tracking_id: patentData.tracking_id,
@@ -233,6 +230,22 @@ export const updatePatentForms = async (patentId: string, formData: Record<strin
   
   if (error) {
     console.error('Error updating patent forms:', error);
+    return false;
+  }
+  
+  return true;
+};
+
+// Function to update FER entry
+export const updateFEREntry = async (ferEntryId: string, ferData: Partial<FEREntry>) => {
+  const { data, error } = await supabase
+    .from('fer_entries')
+    .update(ferData)
+    .eq('id', ferEntryId)
+    .select();
+  
+  if (error) {
+    console.error('Error updating FER entry:', error);
     return false;
   }
   
