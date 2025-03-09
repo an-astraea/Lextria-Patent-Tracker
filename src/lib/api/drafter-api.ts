@@ -1,5 +1,7 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Patent } from "@/lib/types";
+import { normalizePatents } from "@/lib/utils/type-converters";
 import { toast } from "sonner";
 
 export const fetchDrafterAssignments = async (drafterName: string): Promise<Patent[]> => {
