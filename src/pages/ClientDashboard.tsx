@@ -1,4 +1,4 @@
-
+<lov-code>
 import React, { useState, useEffect } from 'react';
 import { fetchPatents } from '@/lib/api';
 import { Patent } from '@/lib/types';
@@ -33,41 +33,75 @@ const ClientDashboard = () => {
       completed: false,
       inProgress: false,
       notStarted: false,
-      withdrawn: false, // Added admin-markable status
-      idfSent: false,   // Added admin-markable status
-      idfReceived: false, // Added admin-markable status
-      csDataSent: false, // Added admin-markable status
-      csDataReceived: false, // Added admin-markable status
+      withdrawn: false,
+      idfSent: false,
+      idfReceived: false,
+      idfSentNotReceived: false, // New filter for IDF sent but not received
+      csDataSent: false,
+      csDataReceived: false,
+      csDataSentNotReceived: false, // New filter for CS data sent but not received
     },
     paymentStatus: {
       notSent: false,
       sent: false,
       received: false,
-      invoiceSent: false, // Added admin-markable status
+      invoiceSent: false,
     },
     draftingStatus: {
       psDrafting: false,
       csDrafting: false,
       ferDrafting: false,
-      psDraftingReview: false, // Added admin-markable review status
-      csDraftingReview: false, // Added admin-markable review status
-      ferDraftingReview: false, // Added admin-markable review status
+      psDraftingReview: false,
+      csDraftingReview: false,
+      ferDraftingReview: false,
     },
     filingStatus: {
       psFiling: false,
       csFiling: false,
       ferFiling: false,
-      psFilingReview: false, // Added admin-markable review status
-      csFilingReview: false, // Added admin-markable review status
-      ferFilingReview: false, // Added admin-markable review status
+      psFilingReview: false,
+      csFilingReview: false,
+      ferFilingReview: false,
     },
     formStatus: {
-      form26: false, // Added form status that admin marks
-      form18: false,
-      form18a: false,
+      // Form 1 to Form 31 filters
+      form1: false,
+      form2: false,
+      form2Ps: false,
+      form2Cs: false,
+      form3: false,
+      form4: false,
+      form5: false,
+      form6: false,
+      form7: false,
+      form7a: false,
+      form8: false,
+      form8a: false,
       form9: false,
       form9a: false,
+      form10: false,
+      form11: false,
+      form12: false,
       form13: false,
+      form14: false,
+      form15: false,
+      form16: false,
+      form17: false,
+      form18: false,
+      form18a: false,
+      form19: false,
+      form20: false,
+      form21: false,
+      form22: false,
+      form23: false,
+      form24: false,
+      form25: false,
+      form26: false,
+      form27: false,
+      form28: false,
+      form29: false,
+      form30: false,
+      form31: false,
     },
     dateRange: {
       startDate: '',
@@ -114,7 +148,7 @@ const ClientDashboard = () => {
 
   const applyFilters = (patents: Patent[]) => {
     return patents.filter(patent => {
-      // Patent Status Filtering - Added admin-markable statuses
+      // Patent Status Filtering - Include new status combinations
       if (
         (filters.patentStatus.completed && !isPatentCompleted(patent)) ||
         (filters.patentStatus.inProgress && !isPatentInProgress(patent)) ||
@@ -122,8 +156,10 @@ const ClientDashboard = () => {
         (filters.patentStatus.withdrawn && !patent.withdrawn) ||
         (filters.patentStatus.idfSent && !patent.idf_sent) ||
         (filters.patentStatus.idfReceived && !patent.idf_received) ||
+        (filters.patentStatus.idfSentNotReceived && !(patent.idf_sent === true && patent.idf_received === false)) ||
         (filters.patentStatus.csDataSent && !patent.cs_data) ||
-        (filters.patentStatus.csDataReceived && !patent.cs_data_received)
+        (filters.patentStatus.csDataReceived && !patent.cs_data_received) ||
+        (filters.patentStatus.csDataSentNotReceived && !(patent.cs_data === true && patent.cs_data_received === false))
       ) {
         if (
           filters.patentStatus.completed || 
@@ -132,8 +168,10 @@ const ClientDashboard = () => {
           filters.patentStatus.withdrawn ||
           filters.patentStatus.idfSent ||
           filters.patentStatus.idfReceived ||
+          filters.patentStatus.idfSentNotReceived ||
           filters.patentStatus.csDataSent ||
-          filters.patentStatus.csDataReceived
+          filters.patentStatus.csDataReceived ||
+          filters.patentStatus.csDataSentNotReceived
         ) {
           return false;
         }
@@ -198,24 +236,56 @@ const ClientDashboard = () => {
         }
       }
       
-      // Form Status Filtering - Added form statuses that admin marks
-      if (
-        (filters.formStatus.form26 && !patent.form_26) ||
-        (filters.formStatus.form18 && !patent.form_18) ||
-        (filters.formStatus.form18a && !patent.form_18a) ||
-        (filters.formStatus.form9 && !patent.form_9) ||
-        (filters.formStatus.form9a && !patent.form_9a) ||
-        (filters.formStatus.form13 && !patent.form_13)
-      ) {
-        if (
-          filters.formStatus.form26 ||
-          filters.formStatus.form18 ||
-          filters.formStatus.form18a ||
-          filters.formStatus.form9 ||
-          filters.formStatus.form9a ||
-          filters.formStatus.form13
-        ) {
-          return false;
+      // Form Status Filtering - All forms
+      const formFields = {
+        form1: patent.form_1 || patent.form_01,
+        form2: patent.form_2,
+        form2Ps: patent.form_2_ps || patent.form_02_ps,
+        form2Cs: patent.form_2_cs || patent.form_02_cs,
+        form3: patent.form_3 || patent.form_03,
+        form4: patent.form_4 || patent.form_04,
+        form5: patent.form_5 || patent.form_05,
+        form6: patent.form_6 || patent.form_06,
+        form7: patent.form_7 || patent.form_07,
+        form7a: patent.form_7a || patent.form_07a,
+        form8: patent.form_8 || patent.form_08,
+        form8a: patent.form_8a || patent.form_08a,
+        form9: patent.form_9 || patent.form_09,
+        form9a: patent.form_9a || patent.form_09a,
+        form10: patent.form_10,
+        form11: patent.form_11,
+        form12: patent.form_12,
+        form13: patent.form_13,
+        form14: patent.form_14,
+        form15: patent.form_15,
+        form16: patent.form_16,
+        form17: patent.form_17,
+        form18: patent.form_18,
+        form18a: patent.form_18a,
+        form19: patent.form_19,
+        form20: patent.form_20,
+        form21: patent.form_21,
+        form22: patent.form_22,
+        form23: patent.form_23,
+        form24: patent.form_24,
+        form25: patent.form_25,
+        form26: patent.form_26,
+        form27: patent.form_27,
+        form28: patent.form_28,
+        form29: patent.form_29,
+        form30: patent.form_30,
+        form31: patent.form_31,
+      };
+
+      // Check if any form filter is active
+      const anyFormFilterActive = Object.values(filters.formStatus).some(value => value);
+      
+      if (anyFormFilterActive) {
+        // For each form that has filter active, check if patent doesn't have that form
+        for (const [key, value] of Object.entries(filters.formStatus)) {
+          if (value && !formFields[key]) {
+            return false;
+          }
         }
       }
 
@@ -367,8 +437,10 @@ const ClientDashboard = () => {
         withdrawn: false,
         idfSent: false,
         idfReceived: false,
+        idfSentNotReceived: false,
         csDataSent: false,
         csDataReceived: false,
+        csDataSentNotReceived: false,
       },
       paymentStatus: {
         notSent: false,
@@ -393,12 +465,43 @@ const ClientDashboard = () => {
         ferFilingReview: false,
       },
       formStatus: {
-        form26: false,
-        form18: false,
-        form18a: false,
+        form1: false,
+        form2: false,
+        form2Ps: false,
+        form2Cs: false,
+        form3: false,
+        form4: false,
+        form5: false,
+        form6: false,
+        form7: false,
+        form7a: false,
+        form8: false,
+        form8a: false,
         form9: false,
         form9a: false,
+        form10: false,
+        form11: false,
+        form12: false,
         form13: false,
+        form14: false,
+        form15: false,
+        form16: false,
+        form17: false,
+        form18: false,
+        form18a: false,
+        form19: false,
+        form20: false,
+        form21: false,
+        form22: false,
+        form23: false,
+        form24: false,
+        form25: false,
+        form26: false,
+        form27: false,
+        form28: false,
+        form29: false,
+        form30: false,
+        form31: false,
       },
       dateRange: {
         startDate: '',
@@ -416,7 +519,7 @@ const ClientDashboard = () => {
     Object.values(filters.paymentStatus).forEach(value => { if (value) count++; });
     Object.values(filters.draftingStatus).forEach(value => { if (value) count++; });
     Object.values(filters.filingStatus).forEach(value => { if (value) count++; });
-    Object.values(filters.formStatus).forEach(value => { if (value) count++; }); // Count form status filters
+    Object.values(filters.formStatus).forEach(value => { if (value) count++; });
     
     // Count date range filters
     if (filters.dateRange.startDate) count++;
@@ -564,6 +667,7 @@ const ClientDashboard = () => {
                     
                     <ScrollArea className="h-[400px] pr-4">
                       <div className="space-y-6">
+                        {/* Search field */}
                         <div>
                           <h5 className="mb-2 text-sm font-medium">Search</h5>
                           <Input 
@@ -574,6 +678,7 @@ const ClientDashboard = () => {
                           />
                         </div>
 
+                        {/* Patent Status Filters */}
                         <div>
                           <h5 className="mb-2 text-sm font-medium">Patent Status</h5>
                           <div className="space-y-2">
@@ -637,6 +742,17 @@ const ClientDashboard = () => {
                               />
                               <label htmlFor="idfReceived" className="ml-2 text-sm">IDF Received</label>
                             </div>
+                            {/* New combined status filters */}
+                            <div className="flex items-center">
+                              <Checkbox 
+                                id="idfSentNotReceived"
+                                checked={filters.patentStatus.idfSentNotReceived}
+                                onCheckedChange={(checked) => 
+                                  handleFilterChange('patentStatus', 'idfSentNotReceived', checked)
+                                }
+                              />
+                              <label htmlFor="idfSentNotReceived" className="ml-2 text-sm">IDF Sent but Not Received</label>
+                            </div>
                             <div className="flex items-center">
                               <Checkbox 
                                 id="csDataSent"
@@ -657,6 +773,16 @@ const ClientDashboard = () => {
                               />
                               <label htmlFor="csDataReceived" className="ml-2 text-sm">CS Data Received</label>
                             </div>
+                            <div className="flex items-center">
+                              <Checkbox 
+                                id="csDataSentNotReceived"
+                                checked={filters.patentStatus.csDataSentNotReceived}
+                                onCheckedChange={(checked) => 
+                                  handleFilterChange('patentStatus', 'csDataSentNotReceived', checked)
+                                }
+                              />
+                              <label htmlFor="csDataSentNotReceived" className="ml-2 text-sm">CS Data Sent but Not Received</label>
+                            </div>
                           </div>
                         </div>
 
@@ -668,434 +794,4 @@ const ClientDashboard = () => {
                                 id="notSent"
                                 checked={filters.paymentStatus.notSent}
                                 onCheckedChange={(checked) => 
-                                  handleFilterChange('paymentStatus', 'notSent', checked)
-                                }
-                              />
-                              <label htmlFor="notSent" className="ml-2 text-sm">Not Sent</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="sent"
-                                checked={filters.paymentStatus.sent}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('paymentStatus', 'sent', checked)
-                                }
-                              />
-                              <label htmlFor="sent" className="ml-2 text-sm">Sent</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="received"
-                                checked={filters.paymentStatus.received}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('paymentStatus', 'received', checked)
-                                }
-                              />
-                              <label htmlFor="received" className="ml-2 text-sm">Received</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="invoiceSent"
-                                checked={filters.paymentStatus.invoiceSent}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('paymentStatus', 'invoiceSent', checked)
-                                }
-                              />
-                              <label htmlFor="invoiceSent" className="ml-2 text-sm">Invoice Sent</label>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <h5 className="mb-2 text-sm font-medium">Drafting Status</h5>
-                          <div className="space-y-2">
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="psDrafting"
-                                checked={filters.draftingStatus.psDrafting}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('draftingStatus', 'psDrafting', checked)
-                                }
-                              />
-                              <label htmlFor="psDrafting" className="ml-2 text-sm">PS Drafting Completed</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="csDrafting"
-                                checked={filters.draftingStatus.csDrafting}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('draftingStatus', 'csDrafting', checked)
-                                }
-                              />
-                              <label htmlFor="csDrafting" className="ml-2 text-sm">CS Drafting Completed</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="ferDrafting"
-                                checked={filters.draftingStatus.ferDrafting}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('draftingStatus', 'ferDrafting', checked)
-                                }
-                              />
-                              <label htmlFor="ferDrafting" className="ml-2 text-sm">FER Drafting Completed</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="psDraftingReview"
-                                checked={filters.draftingStatus.psDraftingReview}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('draftingStatus', 'psDraftingReview', checked)
-                                }
-                              />
-                              <label htmlFor="psDraftingReview" className="ml-2 text-sm">PS Drafting Under Review</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="csDraftingReview"
-                                checked={filters.draftingStatus.csDraftingReview}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('draftingStatus', 'csDraftingReview', checked)
-                                }
-                              />
-                              <label htmlFor="csDraftingReview" className="ml-2 text-sm">CS Drafting Under Review</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="ferDraftingReview"
-                                checked={filters.draftingStatus.ferDraftingReview}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('draftingStatus', 'ferDraftingReview', checked)
-                                }
-                              />
-                              <label htmlFor="ferDraftingReview" className="ml-2 text-sm">FER Drafting Under Review</label>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <h5 className="mb-2 text-sm font-medium">Filing Status</h5>
-                          <div className="space-y-2">
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="psFiling"
-                                checked={filters.filingStatus.psFiling}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('filingStatus', 'psFiling', checked)
-                                }
-                              />
-                              <label htmlFor="psFiling" className="ml-2 text-sm">PS Filing Completed</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="csFiling"
-                                checked={filters.filingStatus.csFiling}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('filingStatus', 'csFiling', checked)
-                                }
-                              />
-                              <label htmlFor="csFiling" className="ml-2 text-sm">CS Filing Completed</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="ferFiling"
-                                checked={filters.filingStatus.ferFiling}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('filingStatus', 'ferFiling', checked)
-                                }
-                              />
-                              <label htmlFor="ferFiling" className="ml-2 text-sm">FER Filing Completed</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="psFilingReview"
-                                checked={filters.filingStatus.psFilingReview}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('filingStatus', 'psFilingReview', checked)
-                                }
-                              />
-                              <label htmlFor="psFilingReview" className="ml-2 text-sm">PS Filing Under Review</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="csFilingReview"
-                                checked={filters.filingStatus.csFilingReview}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('filingStatus', 'csFilingReview', checked)
-                                }
-                              />
-                              <label htmlFor="csFilingReview" className="ml-2 text-sm">CS Filing Under Review</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="ferFilingReview"
-                                checked={filters.filingStatus.ferFilingReview}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('filingStatus', 'ferFilingReview', checked)
-                                }
-                              />
-                              <label htmlFor="ferFilingReview" className="ml-2 text-sm">FER Filing Under Review</label>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <h5 className="mb-2 text-sm font-medium">Form Status</h5>
-                          <div className="space-y-2">
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="form26"
-                                checked={filters.formStatus.form26}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('formStatus', 'form26', checked)
-                                }
-                              />
-                              <label htmlFor="form26" className="ml-2 text-sm">Form 26 Completed</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="form18"
-                                checked={filters.formStatus.form18}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('formStatus', 'form18', checked)
-                                }
-                              />
-                              <label htmlFor="form18" className="ml-2 text-sm">Form 18 Completed</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="form18a"
-                                checked={filters.formStatus.form18a}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('formStatus', 'form18a', checked)
-                                }
-                              />
-                              <label htmlFor="form18a" className="ml-2 text-sm">Form 18A Completed</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="form9"
-                                checked={filters.formStatus.form9}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('formStatus', 'form9', checked)
-                                }
-                              />
-                              <label htmlFor="form9" className="ml-2 text-sm">Form 9 Completed</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="form9a"
-                                checked={filters.formStatus.form9a}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('formStatus', 'form9a', checked)
-                                }
-                              />
-                              <label htmlFor="form9a" className="ml-2 text-sm">Form 9A Completed</label>
-                            </div>
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id="form13"
-                                checked={filters.formStatus.form13}
-                                onCheckedChange={(checked) => 
-                                  handleFilterChange('formStatus', 'form13', checked)
-                                }
-                              />
-                              <label htmlFor="form13" className="ml-2 text-sm">Form 13 Completed</label>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <h5 className="mb-2 text-sm font-medium">Filing Date Range</h5>
-                          <div className="space-y-2">
-                            <div className="flex flex-col">
-                              <label htmlFor="startDate" className="mb-1 text-xs">Start Date</label>
-                              <Input 
-                                type="date"
-                                id="startDate"
-                                value={filters.dateRange.startDate}
-                                onChange={(e) => handleDateRangeChange('startDate', e.target.value)}
-                              />
-                            </div>
-                            <div className="flex flex-col">
-                              <label htmlFor="endDate" className="mb-1 text-xs">End Date</label>
-                              <Input 
-                                type="date"
-                                id="endDate"
-                                value={filters.dateRange.endDate}
-                                onChange={(e) => handleDateRangeChange('endDate', e.target.value)}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </ScrollArea>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Button 
-                onClick={handleExportToExcel} 
-                variant="outline" 
-                className="w-full md:w-auto"
-                disabled={filteredPatents.length === 0}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export to Excel
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {isLoading ? (
-        <LoadingState 
-          size="lg" 
-          text="Loading client data..."
-          className="py-12" 
-        />
-      ) : selectedClient ? (
-        <>
-          {filteredPatents.length > 0 ? (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Total Patents</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <FileText className="h-6 w-6 text-blue-500 mr-2" />
-                      <div className="text-2xl font-bold">{filteredPatents.length}</div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <PieChart className="h-6 w-6 text-green-500 mr-2" />
-                      <div className="text-2xl font-bold">{stats.percentage}%</div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {stats.completed} of {stats.total} patents completed
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">FER Patents</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <Users className="h-6 w-6 text-yellow-500 mr-2" />
-                      <div className="text-2xl font-bold">{stageStats.fer}</div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Patents requiring further examination
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">PS Only Completed</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <Clock className="h-6 w-6 text-purple-500 mr-2" />
-                      <div className="text-2xl font-bold">{stageStats.psOnly}</div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Patents with only PS stage completed
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {activeFiltersCount > 0 && (
-                <div className="mb-4 p-3 bg-muted rounded-md flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      Showing {filteredPatents.length} results with {activeFiltersCount} active {activeFiltersCount === 1 ? 'filter' : 'filters'}
-                    </span>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={resetFilters} className="h-8">
-                    <X className="h-3 w-3 mr-1" />
-                    Clear filters
-                  </Button>
-                </div>
-              )}
-
-              <Tabs defaultValue="all" className="mb-6">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="all">All Patents</TabsTrigger>
-                  <TabsTrigger value="ps">PS Stage</TabsTrigger>
-                  <TabsTrigger value="cs">CS Stage</TabsTrigger>
-                  <TabsTrigger value="fer">FER Stage</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="all">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredPatents.map(patent => (
-                      <PatentCard key={patent.id} patent={patent} />
-                    ))}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="ps">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredPatents
-                      .filter(p => p.ps_drafter_assgn)
-                      .map(patent => (
-                        <PatentCard key={patent.id} patent={patent} />
-                      ))}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="cs">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredPatents
-                      .filter(p => p.cs_drafter_assgn)
-                      .map(patent => (
-                        <PatentCard key={patent.id} patent={patent} />
-                      ))}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="fer">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredPatents
-                      .filter(p => p.fer_status === 1)
-                      .map(patent => (
-                        <PatentCard key={patent.id} patent={patent} />
-                      ))}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </>
-          ) : (
-            <EmptyState
-              title="No patents found"
-              message={`There are no patents matching your filters for client ${selectedClient}`}
-              icon={<FileText />}
-            />
-          )}
-        </>
-      ) : (
-        <Card className="text-center p-8">
-          <CardHeader>
-            <CardTitle>Select a Client</CardTitle>
-            <CardDescription>Choose a client from the dropdown to view their patent dashboard</CardDescription>
-          </CardHeader>
-        </Card>
-      )}
-    </div>
-  );
-};
-
-export default ClientDashboard;
+                                  handleFilterChange('paymentStatus',
