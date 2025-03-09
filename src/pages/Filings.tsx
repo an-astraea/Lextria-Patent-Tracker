@@ -78,7 +78,6 @@ const Filings = () => {
     setSelectedPatent(patent);
     setIsDialogOpen(true);
     
-    // Initialize form data based on patent's current form values
     const initialFormData: Record<string, boolean> = {};
     for (let i = 1; i <= 31; i++) {
       const formKey = i < 10 ? `form_0${i}` : `form_${i}`;
@@ -87,7 +86,6 @@ const Filings = () => {
       }
     }
     
-    // Special handling for form_02_ps and form_02_cs
     if ('form_02_ps' in patent) {
       initialFormData['form_02_ps'] = !!patent.form_02_ps;
     }
@@ -95,7 +93,6 @@ const Filings = () => {
       initialFormData['form_02_cs'] = !!patent.form_02_cs;
     }
     
-    // Special handling for form_07a, form_08a, form_09a, form_18a
     ['form_07a', 'form_08a', 'form_09a', 'form_18a'].forEach(formKey => {
       if (formKey in patent) {
         initialFormData[formKey] = !!patent[formKey as keyof Patent];
@@ -104,7 +101,7 @@ const Filings = () => {
     
     setFormData(initialFormData);
   };
-  
+
   const handleFERClick = (fer: FEREntry) => {
     setSelectedFER(fer);
     setIsFERDialogOpen(true);
@@ -125,7 +122,6 @@ const Filings = () => {
     try {
       let filingType = '';
       
-      // Determine which filing type is being completed
       if (selectedPatent.ps_filer_assgn === user.full_name && selectedPatent.ps_filing_status === 0) {
         filingType = 'PS';
       } else if (selectedPatent.cs_filer_assgn === user.full_name && selectedPatent.cs_filing_status === 0) {
@@ -134,7 +130,6 @@ const Filings = () => {
         filingType = 'FER';
       }
       
-      // Only submit form data for CS filings
       const success = await completeFilerTask(
         selectedPatent, 
         user.full_name,
@@ -144,11 +139,9 @@ const Filings = () => {
       if (success) {
         toast.success(`${filingType} filing completed successfully`);
         
-        // Update local state
         setPatents(prev => prev.filter(p => p.id !== selectedPatent.id));
         setCompletedPatents(prev => [selectedPatent, ...prev]);
         
-        // Close dialog
         setIsDialogOpen(false);
       }
     } catch (error) {
@@ -158,7 +151,7 @@ const Filings = () => {
       setIsSubmitting(false);
     }
   };
-  
+
   const handleFERSubmit = async () => {
     if (!selectedFER) return;
     
@@ -170,10 +163,8 @@ const Filings = () => {
       if (success) {
         toast.success('FER filing completed successfully');
         
-        // Update local state
         setFEREntries(prev => prev.filter(fer => fer.id !== selectedFER.id));
         
-        // Close dialog
         setIsFERDialogOpen(false);
       }
     } catch (error) {
@@ -187,6 +178,10 @@ const Filings = () => {
   const isDeadlinePassed = (deadline: string | undefined | null) => {
     if (!deadline) return false;
     return isAfter(new Date(), parseISO(deadline));
+  };
+
+  const getPatentInfo = (fer: FEREntry) => {
+    return fer.patent?.tracking_id || 'Unknown';
   };
 
   if (loading) {
@@ -213,7 +208,6 @@ const Filings = () => {
           {patents.length > 0 ? (
             <div className="grid gap-6">
               {patents.map(patent => {
-                // Determine which filing type is pending for this patent
                 let filingType = '';
                 let deadline = '';
                 
@@ -298,7 +292,7 @@ const Filings = () => {
                       <div>
                         <CardTitle className="flex items-center">
                           <FileText className="h-5 w-5 mr-2" />
-                          {fer.patent?.patent_title}
+                          {getPatentInfo(fer)}
                           {isLate && (
                             <Badge variant="destructive" className="ml-2">
                               <AlertCircle className="h-3 w-3 mr-1" /> Overdue
@@ -306,7 +300,7 @@ const Filings = () => {
                           )}
                         </CardTitle>
                         <CardDescription>
-                          FER #{fer.fer_number} | Tracking ID: {fer.patent?.tracking_id}
+                          FER #{fer.fer_number} | Tracking ID: {getPatentInfo(fer)}
                         </CardDescription>
                       </div>
                       <Badge>FER Filing</Badge>
@@ -365,7 +359,6 @@ const Filings = () => {
               </TableHeader>
               <TableBody>
                 {completedPatents.map(patent => {
-                  // Determine which filing type was completed
                   let filingType = '';
                   
                   if (patent.ps_filer_assgn === user.full_name && patent.ps_filing_status === 1) {
@@ -403,7 +396,6 @@ const Filings = () => {
         </TabsContent>
       </Tabs>
       
-      {/* Patent Filing Completion Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -434,7 +426,6 @@ const Filings = () => {
                 </div>
               </div>
               
-              {/* Only show form requirements for CS filings */}
               {selectedPatent.cs_filer_assgn === user.full_name && selectedPatent.cs_filing_status === 0 && (
                 <div className="mt-4">
                   <h3 className="text-lg font-medium mb-2">Form Requirements</h3>
@@ -467,7 +458,6 @@ const Filings = () => {
         </DialogContent>
       </Dialog>
       
-      {/* FER Filing Completion Dialog */}
       <Dialog open={isFERDialogOpen} onOpenChange={setIsFERDialogOpen}>
         <DialogContent>
           <DialogHeader>

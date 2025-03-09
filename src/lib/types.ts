@@ -44,6 +44,34 @@ export interface Patent {
   form_9?: boolean;
   form_9a?: boolean;
   form_13?: boolean;
+  // Adding the other forms that are referenced in the code
+  form_1?: boolean;
+  form_2?: boolean;
+  form_3?: boolean;
+  form_4?: boolean;
+  form_5?: boolean;
+  form_6?: boolean;
+  form_7?: boolean;
+  form_8?: boolean;
+  form_10?: boolean;
+  form_11?: boolean;
+  form_12?: boolean;
+  form_14?: boolean;
+  form_15?: boolean;
+  form_16?: boolean;
+  form_17?: boolean;
+  form_19?: boolean;
+  form_20?: boolean;
+  form_21?: boolean;
+  form_22?: boolean;
+  form_23?: boolean;
+  form_24?: boolean;
+  form_25?: boolean;
+  form_27?: boolean;
+  form_28?: boolean;
+  form_29?: boolean;
+  form_30?: boolean;
+  form_31?: boolean;
   completed?: boolean;
   withdrawn?: boolean;
   payment_status?: string;
@@ -122,6 +150,16 @@ export interface InventorInfo {
   updated_at?: string;
 }
 
+// Adding the Inventor interface that's referenced in the code
+export interface Inventor {
+  id?: string;
+  tracking_id: string;
+  inventor_name: string;
+  inventor_addr: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface FEREntry {
   id: string;
   patent_id: string;
@@ -138,6 +176,7 @@ export interface FEREntry {
   fer_date?: string | null;
   created_at?: string;
   updated_at?: string;
+  patent?: Patent; // Adding this for the Filings component
 }
 
 export interface FERHistory {
@@ -149,4 +188,5 @@ export interface FERHistory {
   notes?: string;
   created_at?: string;
   updated_at?: string;
+  tracking_id?: string; // Adding this since it's used in data.ts
 }

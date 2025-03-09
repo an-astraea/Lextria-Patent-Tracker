@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { fetchPatents } from '@/lib/api';
 import { Patent } from '@/lib/types';
@@ -72,8 +71,8 @@ const ClientDashboard = () => {
       if (patent.form_26) formData['Form 26'] = 'Yes';
       if (patent.form_18) formData['Form 18'] = 'Yes';
       if (patent.form_18a) formData['Form 18A'] = 'Yes';
-      if (patent.form_09) formData['Form 09'] = 'Yes';
-      if (patent.form_09a) formData['Form 09A'] = 'Yes';
+      if (patent.form_9) formData['Form 9'] = 'Yes';
+      if (patent.form_9a) formData['Form 9A'] = 'Yes';
       if (patent.form_13) formData['Form 13'] = 'Yes';
       
       return { ...baseData, ...formData };
@@ -141,10 +140,10 @@ const ClientDashboard = () => {
 
   const getFormCompletionPercentage = (patent: Patent) => {
     const formFields = [
-      patent.form_01, patent.form_02_ps, patent.form_02_cs, patent.form_03, 
-      patent.form_04, patent.form_05, patent.form_06, patent.form_07, 
-      patent.form_07a, patent.form_08, patent.form_08a, patent.form_09, 
-      patent.form_10, patent.form_11, patent.form_12, patent.form_13,
+      patent.form_1, patent.form_2, patent.form_3, 
+      patent.form_4, patent.form_5, patent.form_6, patent.form_7, 
+      patent.form_8, patent.form_9, patent.form_9a, patent.form_10, 
+      patent.form_11, patent.form_12, patent.form_13,
       patent.form_14, patent.form_15, patent.form_16, patent.form_17,
       patent.form_18, patent.form_18a, patent.form_19, patent.form_20,
       patent.form_21, patent.form_22, patent.form_23, patent.form_24,
