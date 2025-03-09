@@ -1,4 +1,4 @@
-import { Employee, FERHistory, Inventor, Patent } from './types';
+import { Employee, FERHistory, Inventor, Patent, FEREntry } from './types';
 
 export const MOCK_PATENTS: Patent[] = [
   {
@@ -261,7 +261,8 @@ export const MOCK_FER_HISTORY: FERHistory[] = [
     fer_drafter_assgn: "John Smith",
     fer_drafter_deadline: "2023-06-15",
     fer_filer_assgn: "Jane Doe",
-    fer_filer_deadline: "2023-07-01"
+    fer_filer_deadline: "2023-07-01",
+    created_at: new Date().toISOString()
   },
   {
     id: "fer-hist-2",
@@ -269,7 +270,8 @@ export const MOCK_FER_HISTORY: FERHistory[] = [
     fer_drafter_assgn: "",
     fer_drafter_deadline: "",
     fer_filer_assgn: "",
-    fer_filer_deadline: ""
+    fer_filer_deadline: "",
+    created_at: new Date().toISOString()
   }
 ];
 
