@@ -1,10 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
-import { Database } from '../database.types';
-import { Patent, FEREntry } from '../types';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient<Database>(supabaseUrl, supabaseKey);
+import { supabase } from './client';
+import { Patent } from '../types';
+import { approveFERReview } from './fer-api';
 
 // Function to fetch pending reviews for admin
 export const fetchPendingReviews = async () => {
@@ -167,79 +164,6 @@ export const rejectPatentReview = async (patent: Patent, reviewType: string) => 
     return true;
   } catch (error) {
     console.error('Error rejecting review:', error);
-    return false;
-  }
-};
-
-// Approve a FER review
-export const approveFERReview = async (ferEntry: FEREntry, reviewType: 'draft' | 'file') => {
-  try {
-    const updateData: any = {};
-    
-    if (reviewType === 'draft') {
-      updateData.fer_review_draft_status = 0; // Clear the review status
-    } else {
-      updateData.fer_review_file_status = 0; // Clear the review status
-    }
-    
-    const { error } = await supabase
-      .from('fer_entries')
-      .update(updateData)
-      .eq('id', ferEntry.id);
-    
-    if (error) {
-      console.error(`Error approving FER ${reviewType}:`, error);
-      return false;
-    }
-    
-    // After approving the last FER filing, check if all FERs are complete to update the patent status
-    if (reviewType === 'file') {
-      await updatePatentFERCompletionStatus(ferEntry.patent_id);
-    }
-    
-    return true;
-  } catch (error) {
-    console.error(`Error approving FER ${reviewType}:`, error);
-    return false;
-  }
-};
-
-// New function to update the patent's FER completion status based on all FER entries
-export const updatePatentFERCompletionStatus = async (patentId: string) => {
-  try {
-    // Fetch all FER entries for this patent
-    const { data: ferEntries, error } = await supabase
-      .from('fer_entries')
-      .select('*')
-      .eq('patent_id', patentId);
-    
-    if (error) {
-      console.error('Error fetching FER entries:', error);
-      return false;
-    }
-    
-    // Check if all FER entries are complete
-    const allFERsComplete = ferEntries.length > 0 && ferEntries.every(
-      fer => fer.fer_drafter_status === 1 && fer.fer_filing_status === 1 && 
-             fer.fer_review_draft_status === 0 && fer.fer_review_file_status === 0
-    );
-    
-    // Update the patent's FER completion status
-    const { error: updateError } = await supabase
-      .from('patents')
-      .update({
-        fer_completion_status: allFERsComplete ? 1 : 0
-      })
-      .eq('id', patentId);
-    
-    if (updateError) {
-      console.error('Error updating patent FER completion status:', updateError);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error updating patent FER completion status:', error);
     return false;
   }
 };
