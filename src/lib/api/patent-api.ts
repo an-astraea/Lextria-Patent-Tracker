@@ -1,7 +1,14 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Patent, PatientFormData, PatentFilters } from "../types";
+import { 
+  Patent, 
+  PatentFormData, 
+  PatentFilters, 
+  handlePatentResponse,
+  formatDateForDatabase
+} from "../types";
 
+// Fetch all patents with optional filters
 export const fetchPatents = async (filters?: PatentFilters) => {
   try {
     let query = supabase.from('patents').select('*');
@@ -35,6 +42,7 @@ export const fetchPatents = async (filters?: PatentFilters) => {
   }
 };
 
+// Fetch single patent by ID with related entities
 export const fetchPatentById = async (id: string) => {
   try {
     // Fetch the patent
@@ -81,7 +89,8 @@ export const fetchPatentById = async (id: string) => {
   }
 };
 
-export const createPatent = async (patentData: any) => {
+// Create new patent
+export const createPatent = async (patentData: PatentFormData) => {
   try {
     // Extract inventors to be created separately
     const { inventors, ...patentFields } = patentData;
@@ -100,7 +109,7 @@ export const createPatent = async (patentData: any) => {
     
     // Insert inventors if any
     if (inventors && inventors.length > 0) {
-      const inventorsWithTrackingId = inventors.map((inventor: any) => ({
+      const inventorsWithTrackingId = inventors.map(inventor => ({
         ...inventor,
         tracking_id: patentData.tracking_id
       }));
@@ -115,6 +124,18 @@ export const createPatent = async (patentData: any) => {
       }
     }
     
+    // Create FER entry if fer_status is 1
+    if (patentData.fer_status === 1) {
+      await createFEREntry(
+        patentResult.id,
+        1,
+        patentData.fer_drafter_assgn,
+        patentData.fer_drafter_deadline,
+        patentData.fer_filer_assgn,
+        patentData.fer_filer_deadline
+      );
+    }
+    
     return { success: true, patent: patentResult };
   } catch (error: any) {
     console.error("Exception creating patent:", error);
@@ -122,6 +143,7 @@ export const createPatent = async (patentData: any) => {
   }
 };
 
+// Update existing patent
 export const updatePatent = async (id: string, patentData: Partial<Patent>) => {
   try {
     // Extract inventors to handle separately
@@ -178,6 +200,7 @@ export const updatePatent = async (id: string, patentData: Partial<Patent>) => {
   }
 };
 
+// Delete patent
 export const deletePatent = async (id: string) => {
   try {
     const { error } = await supabase
@@ -197,6 +220,7 @@ export const deletePatent = async (id: string) => {
   }
 };
 
+// Update patent status
 export const updatePatentStatus = async (id: string, field: string, value: number | boolean | string) => {
   try {
     const { error } = await supabase
@@ -216,6 +240,7 @@ export const updatePatentStatus = async (id: string, field: string, value: numbe
   }
 };
 
+// Update patent forms
 export const updatePatentForms = async (id: string, formData: Record<string, boolean>) => {
   try {
     const { error } = await supabase
@@ -235,6 +260,7 @@ export const updatePatentForms = async (id: string, formData: Record<string, boo
   }
 };
 
+// Update patent notes
 export const updatePatentNotes = async (id: string, notes: string) => {
   try {
     const { error } = await supabase
@@ -254,6 +280,7 @@ export const updatePatentNotes = async (id: string, notes: string) => {
   }
 };
 
+// Update payment details
 export const updatePatentPayment = async (id: string, paymentData: { payment_status: string, payment_amount: number, payment_received: number }) => {
   try {
     const { error } = await supabase
@@ -273,26 +300,7 @@ export const updatePatentPayment = async (id: string, paymentData: { payment_sta
   }
 };
 
-export const fetchPatentTimeline = async (patentId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('patent_timeline')
-      .select('*')
-      .eq('patent_id', patentId)
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error("Error fetching patent timeline:", error);
-      return { error: error.message, timeline: [] };
-    }
-    
-    return data;
-  } catch (error: any) {
-    console.error("Exception fetching patent timeline:", error);
-    return { error: error.message, timeline: [] };
-  }
-};
-
+// Create FER entry
 export const createFEREntry = async (
   patentId: string,
   ferNumber: number,
@@ -307,10 +315,10 @@ export const createFEREntry = async (
       patent_id: patentId,
       fer_number: ferNumber,
       fer_drafter_assgn: drafterAssign || null,
-      fer_drafter_deadline: drafterDeadline || null,
+      fer_drafter_deadline: drafterDeadline ? formatDateForDatabase(drafterDeadline) : null,
       fer_filer_assgn: filerAssign || null,
-      fer_filer_deadline: filerDeadline || null,
-      fer_date: ferDate || null,
+      fer_filer_deadline: filerDeadline ? formatDateForDatabase(filerDeadline) : null,
+      fer_date: ferDate ? formatDateForDatabase(ferDate) : null,
       fer_drafter_status: 0,
       fer_filing_status: 0,
       fer_review_draft_status: 0,
