@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { fetchPendingReviews, approvePatentReview, rejectPatentReview } from '@/lib/api';
-import { Patent, handlePatentsResponse } from '@/lib/types';
+import { Patent } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
 import PendingReviewCard, { ReviewType, getPendingReviewTypes } from '@/components/approvals/PendingReviewCard';
 import RefreshButton from '@/components/approvals/RefreshButton';
@@ -44,13 +44,11 @@ const Approvals = () => {
     if (user && user.role === 'admin') {
       try {
         setLoading(true);
-        const response = await fetchPendingReviews();
-        const patents = handlePatentsResponse(response);
-        setPendingReviews(patents);
+        const reviews = await fetchPendingReviews();
+        setPendingReviews(reviews);
       } catch (error) {
         console.error('Error loading reviews:', error);
         toast.error('Failed to load pending reviews');
-        setPendingReviews([]);
       } finally {
         setLoading(false);
       }

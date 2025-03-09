@@ -1,3 +1,4 @@
+
 export interface Inventor {
   id: string;
   tracking_id: string;
@@ -31,6 +32,7 @@ export interface FEREntry {
   fer_completion_status: number;
   created_at: string;
   updated_at: string;
+  // Add patent reference for joining
   patent?: Patent;
 }
 
@@ -61,6 +63,7 @@ export interface Patent {
   cs_filing_status: number;
   cs_filer_assgn: string;
   cs_filer_deadline: string;
+  // Make all form fields optional to match database structure
   form_01?: boolean | null;
   form_02_ps?: boolean | null;
   form_02_cs?: boolean | null;
@@ -116,16 +119,6 @@ export interface Patent {
   fer_history?: FERHistory[];
   fer_entries?: FEREntry[];
   notes?: string;
-  withdrawn?: boolean;
-  idf_sent?: boolean;
-  idf_received?: boolean;
-  cs_data?: boolean;
-  cs_data_received?: boolean;
-  completed?: boolean;
-  invoice_sent?: boolean;
-  payment_status?: string;
-  payment_amount?: number;
-  payment_received?: number;
 }
 
 export interface Employee {
@@ -137,7 +130,7 @@ export interface Employee {
   password: string;
   created_at: string;
   updated_at: string;
-  role: 'admin' | 'drafter' | 'filer' | 'employee';
+  role: 'admin' | 'drafter' | 'filer';
 }
 
 export interface PatentFormData {
@@ -172,7 +165,7 @@ export interface EmployeeFormData {
   email: string;
   ph_no: string;
   password: string;
-  role: 'admin' | 'drafter' | 'filer' | 'employee';
+  role: 'admin' | 'drafter' | 'filer';
 }
 
 export interface User {
@@ -180,10 +173,10 @@ export interface User {
   emp_id: string;
   full_name: string;
   email: string;
-  role: 'admin' | 'drafter' | 'filer' | 'employee';
+  role: 'admin' | 'drafter' | 'filer';
 }
 
-export interface TimelineEvent {
+export interface PatientTimeline {
   id: string;
   patent_id: string;
   event_type: string;
@@ -194,11 +187,12 @@ export interface TimelineEvent {
   deadline_date?: string;
 }
 
+// Enhanced enum types to better represent the workflow states
 export enum ApprovalStatus {
-  Pending = 0,
-  Submitted = 1,
-  Approved = 2,
-  Rejected = 3
+  Pending = 0,      // Not yet reviewed
+  Submitted = 1,    // Submitted for review
+  Approved = 2,     // Approved by admin
+  Rejected = 3      // Rejected by admin (not used currently)
 }
 
 export enum WorkflowStage {
@@ -211,233 +205,8 @@ export enum WorkflowStage {
 }
 
 export enum WorkflowStatus {
-  NotStarted = 0,
-  InProgress = 1,
-  UnderReview = 2,
-  Completed = 3
-}
-
-export interface PatentFilters {
-  status?: string;
-  drafter?: string;
-  filer?: string;
-  searchTerm?: string;
-}
-
-export interface PatentCardProps {
-  patent: Patent;
-  key?: string;
-  isCompact?: boolean;
-  showClientInfo?: boolean;
-  showReviewBadge?: boolean;
-  onDelete?: () => void;
-}
-
-export interface PaymentStatusSectionProps {
-  patent: Patent;
-  onUpdate?: () => void;
-  isAdmin?: boolean;
-  userRole?: string;
-  refreshPatentData?: () => Promise<void>;
-}
-
-export interface EmptyStateProps {
-  title: string;
-  message?: string;
-  description?: string;
-  buttonText?: string;
-  onButtonClick?: () => Promise<void> | void;
-  icon?: string;
-}
-
-export interface LoadingStateProps {
-  message?: string;
-}
-
-export interface PageHeaderProps {
-  title: string;
-  subtitle?: string;
-  description?: string;
-  icon?: string;
-}
-
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: any;
-  patent?: T;
-  patents?: T[];
-  employees?: Employee[];
-  timeline?: any[];
-  fer?: any;
-}
-
-// Helper type for API responses with proper unions
-export type ApiPatentsResponse = Patent[] | { patents?: Patent[]; error?: any; };
-export type ApiEmployeesResponse = Employee[] | { employees?: Employee[]; error?: any; };
-export type ApiPatentResponse = Patent | { patent?: Patent; error?: any; success?: boolean; };
-export type ApiTimelineResponse = TimelineEvent[] | { timeline?: TimelineEvent[]; error?: any; };
-export type ApiFERResponse = FEREntry | { fer?: FEREntry; error?: any; success?: boolean; };
-
-export type PatentResponse = Patent | { 
-  patent?: Patent; 
-  error?: any; 
-  success?: boolean;
-};
-
-export type FEREntryResponse = FEREntry | { 
-  error?: any; 
-  success?: boolean; 
-  fer?: FEREntry;
-};
-
-export type EmployeeResponse = Employee | { 
-  error?: any; 
-  employee?: any; 
-  success?: boolean;
-};
-
-export function formatDateForDatabase(dateString: string | null): string | null {
-  if (!dateString) return null;
-  
-  if (dateString.includes('T')) {
-    return dateString;
-  }
-  
-  try {
-    const date = new Date(dateString);
-    return date.toISOString();
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return dateString;
-  }
-}
-
-export interface CreateInventorResponse {
-  success: boolean;
-  inventor?: Inventor;
-  error?: string;
-}
-
-// Helper function to handle API response for Patents
-export function handlePatentsResponse(response: ApiPatentsResponse): Patent[] {
-  if (Array.isArray(response)) {
-    return response;
-  } else if (response && 'patents' in response && Array.isArray(response.patents)) {
-    return response.patents;
-  }
-  return [];
-}
-
-// Helper function to handle API response for Employees
-export function handleEmployeesResponse(response: ApiEmployeesResponse): Employee[] {
-  if (Array.isArray(response)) {
-    return response.map(emp => ({
-      ...emp,
-      role: emp.role as 'admin' | 'drafter' | 'filer' | 'employee'
-    }));
-  } else if (response && 'employees' in response && Array.isArray(response.employees)) {
-    return response.employees.map(emp => ({
-      ...emp,
-      role: emp.role as 'admin' | 'drafter' | 'filer' | 'employee'
-    }));
-  }
-  return [];
-}
-
-// Helper function to handle API response for a single Patent
-export function handlePatentResponse(response: ApiPatentResponse): Patent | null {
-  if (!response) return null;
-  
-  if ('id' in response) {
-    return response as Patent;
-  } else if ('patent' in response && response.patent) {
-    return response.patent as Patent;
-  }
-  return null;
-}
-
-// Helper function to handle API response for Timeline
-export function handleTimelineResponse(response: ApiTimelineResponse): TimelineEvent[] {
-  if (Array.isArray(response)) {
-    return response;
-  } else if (response && 'timeline' in response && Array.isArray(response.timeline)) {
-    return response.timeline;
-  }
-  return [];
-}
-
-// Helper function to handle API response for FER Entry
-export function handleFERResponse(response: ApiFERResponse): FEREntry | null {
-  if (!response) return null;
-  
-  if ('id' in response) {
-    return response as FEREntry;
-  } else if ('fer' in response && response.fer) {
-    return response.fer as FEREntry;
-  }
-  return null;
-}
-
-// Helper function to create dummy ID for inventors
-export function createDummyInventorId(): string {
-  return `temp-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-}
-
-// Helper function to safely update state with Patent API response
-export function safelySetPatent(setState: React.Dispatch<React.SetStateAction<Patent | null>>, response: any): void {
-  if (!response) return;
-  
-  if ('id' in response) {
-    setState(response as Patent);
-  } else if ('patent' in response && response.patent) {
-    setState(response.patent as Patent);
-  } else {
-    console.error('Invalid patent response:', response);
-  }
-}
-
-// Helper function to safely update state with FER API response
-export function safelyUpdateFEREntries(setFerEntries: React.Dispatch<React.SetStateAction<FEREntry[]>>, newFER: any): void {
-  if (!newFER) return;
-  
-  setFerEntries(prev => {
-    if ('id' in newFER && 'fer_number' in newFER) {
-      return [...prev, newFER as FEREntry];
-    } else if ('fer' in newFER && newFER.fer) {
-      return [...prev, newFER.fer as FEREntry];
-    }
-    
-    console.error('Invalid FER entry:', newFER);
-    return prev;
-  });
-}
-
-// Helper function to safely update Patent state with new FER entries
-export function safelyUpdatePatentWithFER(setPatent: React.Dispatch<React.SetStateAction<Patent | null>>, newFER: any): void {
-  if (!newFER) return;
-  
-  setPatent(prev => {
-    if (!prev) return prev;
-    
-    let updatedFER: FEREntry | null = null;
-    
-    if ('id' in newFER && 'fer_number' in newFER) {
-      updatedFER = newFER as FEREntry;
-    } else if ('fer' in newFER && newFER.fer) {
-      updatedFER = newFER.fer as FEREntry;
-    }
-    
-    if (!updatedFER) {
-      console.error('Invalid FER entry:', newFER);
-      return prev;
-    }
-    
-    return {
-      ...prev,
-      fer_entries: [...(prev.fer_entries || []), updatedFER],
-      fer_status: 1,
-      fer_completion_status: 0
-    };
-  });
+  NotStarted = 0,   // Task not yet started
+  InProgress = 1,   // Task in progress
+  UnderReview = 2,  // Task submitted for review
+  Completed = 3     // Task approved and completed
 }

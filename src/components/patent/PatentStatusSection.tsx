@@ -23,12 +23,10 @@ const PatentStatusSection = ({ patent, userRole, refreshPatentData }: PatentStat
     
     setIsUpdating(statusField);
     try {
-      const result = await updatePatentStatus(patent.id, statusField, newValue);
-      if (result.success) {
+      const success = await updatePatentStatus(patent.id, statusField, newValue);
+      if (success) {
         toast.success(`Status updated successfully`);
         refreshPatentData();
-      } else {
-        toast.error('Failed to update status');
       }
     } catch (error) {
       console.error('Error updating status:', error);

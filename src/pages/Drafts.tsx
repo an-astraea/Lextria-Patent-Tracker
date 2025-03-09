@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { toast } from 'sonner';
 import { fetchDrafterAssignments, fetchDrafterCompletedAssignments, completeDrafterTask } from '@/lib/api';
-import { Patent, handlePatentsResponse } from '@/lib/types';
+import { Patent } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
 import StatusBadge from '@/components/StatusBadge';
 import RefreshButton from '@/components/approvals/RefreshButton';
@@ -48,15 +49,12 @@ const Drafts = () => {
         setLoading(true);
       }
       
-      const [activeResp, completedResp] = await Promise.all([
+      const [activeData, completedData] = await Promise.all([
         fetchDrafterAssignments(user.full_name),
         fetchDrafterCompletedAssignments(user.full_name)
       ]);
       
-      const activeData = handlePatentsResponse(activeResp);
-      const completedData = handlePatentsResponse(completedResp);
-      
-      const sortedActivePatents = [...activeData].sort((a, b) => {
+      const sortedActivePatents = activeData.sort((a, b) => {
         const getQueueOrder = (patent: Patent) => {
           if (patent.ps_drafter_assgn === user.full_name && patent.ps_drafting_status === 0) {
             return 1;
@@ -97,7 +95,7 @@ const Drafts = () => {
     if (!user) return;
     
     try {
-      const success = await completeDrafterTask(patent.id, user.full_name);
+      const success = await completeDrafterTask(patent, user.full_name);
       if (success) {
         toast.success('Drafting task completed and sent for review');
         
@@ -172,6 +170,7 @@ const Drafts = () => {
     return false;
   };
 
+  // Pagination logic
   const paginateData = (data: Patent[], pageNumber: number) => {
     const startIndex = (pageNumber - 1) * ITEMS_PER_PAGE;
     return data.slice(startIndex, startIndex + ITEMS_PER_PAGE);

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
-import { Employee, EmployeeFormData, EmployeeResponse } from '@/lib/types';
+import { EmployeeFormData } from '@/lib/types';
 import { toast } from 'sonner';
 import { createEmployee, updateEmployee, fetchEmployeeById } from '@/lib/api';
 
@@ -55,11 +55,8 @@ const AddEditEmployee = () => {
       if (isEditing && id) {
         try {
           setLoading(true);
-          const response = await fetchEmployeeById(id);
-          
-          if (response && !('error' in response)) {
-            // Cast the response to Employee type
-            const employee = response as Employee;
+          const employee = await fetchEmployeeById(id);
+          if (employee) {
             setFormData({
               emp_id: employee.emp_id,
               full_name: employee.full_name,
@@ -90,10 +87,7 @@ const AddEditEmployee = () => {
   };
   
   const handleRoleChange = (value: string) => {
-    setFormData((prev) => ({ 
-      ...prev, 
-      role: value as 'admin' | 'drafter' | 'filer' | 'employee' 
-    }));
+    setFormData((prev) => ({ ...prev, role: value as 'admin' | 'drafter' | 'filer' }));
   };
   
   const validateForm = (): boolean => {
@@ -146,20 +140,16 @@ const AddEditEmployee = () => {
           delete employeeData.password;
         }
         
-        const result = await updateEmployee(id, employeeData);
-        if (result.success) {
+        const success = await updateEmployee(id, employeeData);
+        if (success) {
           toast.success('Employee updated successfully');
           navigate('/employees');
-        } else {
-          toast.error(result.error || 'Failed to update employee');
         }
       } else {
-        const result = await createEmployee(formData);
-        if (result.success) {
+        const newEmployee = await createEmployee(formData);
+        if (newEmployee) {
           toast.success('Employee added successfully');
           navigate('/employees');
-        } else {
-          toast.error(result.error || 'Failed to create employee');
         }
       }
     } catch (error) {
@@ -220,7 +210,6 @@ const AddEditEmployee = () => {
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="drafter">Drafter</SelectItem>
                     <SelectItem value="filer">Filer</SelectItem>
-                    <SelectItem value="employee">Employee</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

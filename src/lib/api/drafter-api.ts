@@ -1,232 +1,124 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { FEREntry } from "../types";
+import { Patent } from "@/lib/types";
+import { toast } from "sonner";
 
-export const fetchEmployees = async () => {
+export const fetchDrafterAssignments = async (drafterName: string): Promise<Patent[]> => {
   try {
+    // Get patents where drafter is assigned with status 0 (pending)
     const { data, error } = await supabase
-      .from('employees')
-      .select('*')
-      .order('full_name', { ascending: true });
-    
+      .from("patents")
+      .select(`
+        *,
+        inventors(*),
+        fer_history(*)
+      `)
+      .or(`ps_drafter_assgn.eq.${drafterName},cs_drafter_assgn.eq.${drafterName},fer_drafter_assgn.eq.${drafterName}`)
+      .or('ps_drafting_status.eq.0,cs_drafting_status.eq.0,fer_drafter_status.eq.0');
+
     if (error) {
-      console.error("Error fetching employees:", error);
-      return { error: error.message, employees: [] };
+      throw error;
     }
-    
-    return { employees: data };
-  } catch (error: any) {
-    console.error("Exception fetching employees:", error);
-    return { error: error.message, employees: [] };
+
+    // Now we need to filter for proper queue order with approval dependencies
+    return (data || []).filter(patent => {
+      // If assigned to PS drafting and it's not completed
+      if (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 0) {
+        return true;
+      }
+      
+      // If assigned to CS drafting
+      if (patent.cs_drafter_assgn === drafterName && patent.cs_drafting_status === 0) {
+        // Case 1: Patent starts from CS (no PS drafter assigned)
+        if (!patent.ps_drafter_assgn) {
+          return true;
+        }
+        
+        // Case 2: PS must be completed or admin has manually set CS as ready
+        const psCompleted = patent.ps_completion_status === 1;
+        return psCompleted;
+      }
+      
+      // If assigned to FER drafting and previous stages are completed or not required
+      if (patent.fer_drafter_assgn === drafterName && patent.fer_drafter_status === 0 && patent.fer_status === 1) {
+        // Case 1: Patent starts from FER (no PS/CS assignees)
+        if (!patent.ps_drafter_assgn && !patent.cs_drafter_assgn) {
+          return true;
+        }
+        
+        // Case 2: PS and CS must be completed if they were assigned
+        const psCompleted = !patent.ps_drafter_assgn || patent.ps_completion_status === 1;
+        const csCompleted = !patent.cs_drafter_assgn || patent.cs_completion_status === 1;
+        return psCompleted && csCompleted;
+      }
+      
+      return false;
+    });
+  } catch (error) {
+    console.error("Error fetching drafter assignments:", error);
+    toast.error("Failed to load drafting assignments");
+    return [];
   }
 };
 
-export const fetchEmployeeById = async (id: string) => {
+export const fetchDrafterCompletedAssignments = async (drafterName: string): Promise<Patent[]> => {
   try {
     const { data, error } = await supabase
-      .from('employees')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
+      .from("patents")
+      .select(`
+        *,
+        inventors(*),
+        fer_history(*)
+      `)
+      .or(`ps_drafter_assgn.eq.${drafterName},cs_drafter_assgn.eq.${drafterName},fer_drafter_assgn.eq.${drafterName}`)
+      .or('ps_drafting_status.eq.1,cs_drafting_status.eq.1,fer_drafter_status.eq.1');
+
     if (error) {
-      console.error("Error fetching employee:", error);
-      return { error: error.message, employee: null };
+      throw error;
     }
-    
-    return data;
-  } catch (error: any) {
-    console.error("Exception fetching employee:", error);
-    return { error: error.message, employee: null };
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching completed drafting assignments:", error);
+    toast.error("Failed to load completed assignments");
+    return [];
   }
 };
 
-export const createEmployee = async (employeeData: any) => {
+export const completeDrafterTask = async (
+  patent: Patent,
+  drafterName: string
+): Promise<boolean> => {
   try {
-    // Create the employee record
-    const { data, error } = await supabase
-      .from('employees')
-      .insert([{
-        emp_id: employeeData.emp_id,
-        full_name: employeeData.full_name,
-        email: employeeData.email,
-        ph_no: employeeData.ph_no,
-        password: employeeData.password,
-        role: employeeData.role || 'drafter' // Default to drafter if role not specified
-      }])
-      .select()
-      .single();
+    const updateData: Record<string, any> = {};
     
-    if (error) {
-      console.error("Error creating employee:", error);
-      return { error: error.message, success: false };
+    if (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 0) {
+      updateData.ps_drafting_status = 1;
+      updateData.ps_review_draft_status = 1; // Set for review
+    } else if (patent.cs_drafter_assgn === drafterName && patent.cs_drafting_status === 0) {
+      updateData.cs_drafting_status = 1;
+      updateData.cs_review_draft_status = 1; // Set for review
+    } else if (patent.fer_drafter_assgn === drafterName && patent.fer_drafter_status === 0) {
+      updateData.fer_drafter_status = 1;
+      updateData.fer_review_draft_status = 1; // Set for review
+    } else {
+      toast.error("No valid drafting task found");
+      return false;
     }
-    
-    return { success: true, employee: data };
-  } catch (error: any) {
-    console.error("Exception creating employee:", error);
-    return { error: error.message, success: false };
-  }
-};
 
-export const updateEmployee = async (id: string, employeeData: any) => {
-  try {
-    // Update employee record
     const { error } = await supabase
-      .from('employees')
-      .update(employeeData)
-      .eq('id', id);
-    
-    if (error) {
-      console.error("Error updating employee:", error);
-      return { error: error.message, success: false };
-    }
-    
-    return { success: true };
-  } catch (error: any) {
-    console.error("Exception updating employee:", error);
-    return { error: error.message, success: false };
-  }
-};
-
-export const deleteEmployee = async (id: string) => {
-  try {
-    // Delete the employee record
-    const { error: deleteError } = await supabase
-      .from('employees')
-      .delete()
-      .eq('id', id);
-    
-    if (deleteError) {
-      console.error("Error deleting employee:", deleteError);
-      return { error: deleteError.message, success: false };
-    }
-    
-    return { success: true };
-  } catch (error: any) {
-    console.error("Exception deleting employee:", error);
-    return { error: error.message, success: false };
-  }
-};
-
-export const fetchDrafterAssignments = async (drafterId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('patents')
-      .select('*')
-      .or(`ps_drafter_assgn.eq.${drafterId},cs_drafter_assgn.eq.${drafterId}`)
-      .or('ps_drafting_status.eq.0,cs_drafting_status.eq.0')
-      .eq('ps_review_draft_status', 0)
-      .eq('cs_review_draft_status', 0);
-    
-    if (error) {
-      console.error("Error fetching drafter assignments:", error);
-      return { error: error.message, patents: [] };
-    }
-    
-    return { patents: data };
-  } catch (error: any) {
-    console.error("Exception fetching drafter assignments:", error);
-    return { error: error.message, patents: [] };
-  }
-};
-
-export const fetchDrafterCompletedAssignments = async (drafterId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('patents')
-      .select('*')
-      .or(`ps_drafter_assgn.eq.${drafterId},cs_drafter_assgn.eq.${drafterId}`)
-      .or('ps_drafting_status.eq.1,cs_drafting_status.eq.1');
-    
-    if (error) {
-      console.error("Error fetching completed drafter assignments:", error);
-      return { error: error.message, patents: [] };
-    }
-    
-    return { patents: data };
-  } catch (error: any) {
-    console.error("Exception fetching completed drafter assignments:", error);
-    return { error: error.message, patents: [] };
-  }
-};
-
-export const fetchDrafterFERAssignments = async (drafterId: string) => {
-  try {
-    // First get patents with fer_status = 1
-    const { data, error } = await supabase
-      .from('patents')
-      .select('*, fer_entries(*)')
-      .eq('fer_status', 1);
-    
-    if (error) {
-      console.error("Error fetching FER assignments:", error);
-      return { error: error.message, patents: [] };
-    }
-    
-    // Filter to only include patents with FER entries assigned to this drafter
-    const filteredPatents = data.filter(patent => 
-      patent.fer_entries && 
-      patent.fer_entries.some((entry: any) => 
-        entry.fer_drafter_assgn === drafterId && 
-        entry.fer_drafter_status === 0
-      )
-    );
-    
-    return { patents: filteredPatents };
-  } catch (error: any) {
-    console.error("Exception fetching FER assignments:", error);
-    return { error: error.message, patents: [] };
-  }
-};
-
-export const completeDrafterTask = async (patentId: string, taskType: 'ps' | 'cs') => {
-  try {
-    const updateData = taskType === 'ps' 
-      ? { 
-          ps_drafting_status: 1,
-          ps_review_draft_status: 1
-        } 
-      : { 
-          cs_drafting_status: 1,
-          cs_review_draft_status: 1
-        };
-    
-    const { error } = await supabase
-      .from('patents')
+      .from("patents")
       .update(updateData)
-      .eq('id', patentId);
-    
-    if (error) {
-      console.error("Error completing drafter task:", error);
-      return { error: error.message, success: false };
-    }
-    
-    return { success: true };
-  } catch (error: any) {
-    console.error("Exception completing drafter task:", error);
-    return { error: error.message, success: false };
-  }
-};
+      .eq("id", patent.id);
 
-export const completeFERDrafterTask = async (ferEntry: FEREntry, drafterName: string) => {
-  try {
-    const { error } = await supabase
-      .from('fer_entries')
-      .update({ 
-        fer_drafter_status: 1,
-        fer_review_draft_status: 1
-      })
-      .eq('id', ferEntry.id);
-    
     if (error) {
-      console.error("Error completing FER drafter task:", error);
-      return { error: error.message, success: false };
+      throw error;
     }
-    
-    return { success: true };
-  } catch (error: any) {
-    console.error("Exception completing FER drafter task:", error);
-    return { error: error.message, success: false };
+
+    return true;
+  } catch (error) {
+    console.error("Error completing drafting task:", error);
+    toast.error("Failed to complete drafting task");
+    return false;
   }
 };

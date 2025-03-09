@@ -220,11 +220,8 @@ export type Database = {
           applicant_addr: string
           application_no: string | null
           client_id: string
-          completed: boolean | null
           created_at: string | null
           cs_completion_status: number
-          cs_data: boolean | null
-          cs_data_received: boolean | null
           cs_drafter_assgn: string | null
           cs_drafter_deadline: string | null
           cs_drafting_status: number
@@ -283,18 +280,12 @@ export type Database = {
           form_9: boolean | null
           form_9a: boolean | null
           id: string
-          idf_received: boolean | null
-          idf_sent: boolean | null
           inventor_email: string
           inventor_ph_no: string
-          invoice_sent: boolean | null
           notes: string | null
           other_forms: string | null
           patent_applicant: string
           patent_title: string
-          payment_amount: number | null
-          payment_received: number | null
-          payment_status: string | null
           ps_completion_status: number
           ps_drafter_assgn: string | null
           ps_drafter_deadline: string | null
@@ -306,17 +297,13 @@ export type Database = {
           ps_review_file_status: number
           tracking_id: string
           updated_at: string | null
-          withdrawn: boolean | null
         }
         Insert: {
           applicant_addr: string
           application_no?: string | null
           client_id: string
-          completed?: boolean | null
           created_at?: string | null
           cs_completion_status?: number
-          cs_data?: boolean | null
-          cs_data_received?: boolean | null
           cs_drafter_assgn?: string | null
           cs_drafter_deadline?: string | null
           cs_drafting_status?: number
@@ -375,18 +362,12 @@ export type Database = {
           form_9?: boolean | null
           form_9a?: boolean | null
           id?: string
-          idf_received?: boolean | null
-          idf_sent?: boolean | null
           inventor_email: string
           inventor_ph_no: string
-          invoice_sent?: boolean | null
           notes?: string | null
           other_forms?: string | null
           patent_applicant: string
           patent_title: string
-          payment_amount?: number | null
-          payment_received?: number | null
-          payment_status?: string | null
           ps_completion_status?: number
           ps_drafter_assgn?: string | null
           ps_drafter_deadline?: string | null
@@ -398,17 +379,13 @@ export type Database = {
           ps_review_file_status?: number
           tracking_id: string
           updated_at?: string | null
-          withdrawn?: boolean | null
         }
         Update: {
           applicant_addr?: string
           application_no?: string | null
           client_id?: string
-          completed?: boolean | null
           created_at?: string | null
           cs_completion_status?: number
-          cs_data?: boolean | null
-          cs_data_received?: boolean | null
           cs_drafter_assgn?: string | null
           cs_drafter_deadline?: string | null
           cs_drafting_status?: number
@@ -467,18 +444,12 @@ export type Database = {
           form_9?: boolean | null
           form_9a?: boolean | null
           id?: string
-          idf_received?: boolean | null
-          idf_sent?: boolean | null
           inventor_email?: string
           inventor_ph_no?: string
-          invoice_sent?: boolean | null
           notes?: string | null
           other_forms?: string | null
           patent_applicant?: string
           patent_title?: string
-          payment_amount?: number | null
-          payment_received?: number | null
-          payment_status?: string | null
           ps_completion_status?: number
           ps_drafter_assgn?: string | null
           ps_drafter_deadline?: string | null
@@ -490,7 +461,6 @@ export type Database = {
           ps_review_file_status?: number
           tracking_id?: string
           updated_at?: string | null
-          withdrawn?: boolean | null
         }
         Relationships: []
       }
