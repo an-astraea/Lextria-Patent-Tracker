@@ -7,11 +7,13 @@ import { CheckCircle, Clock, AlertCircle, XCircle, AlertTriangle } from 'lucide-
 type Status = 'completed' | 'pending' | 'inProgress' | 'notStarted' | 'withdrawn';
 
 interface StatusBadgeProps {
-  status: Status | string;
+  status?: Status | string;
   label?: string;
   showIcon?: boolean;
   className?: string;
   variant?: BadgeProps['variant'];
+  size?: string;
+  children?: React.ReactNode;
 }
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({
@@ -20,11 +22,21 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
   showIcon = true,
   className,
   variant: propVariant,
+  size,
+  children,
 }) => {
   let displayLabel = label;
   let icon = CheckCircle;
   let color = 'bg-green-100 text-green-800 border-green-200';
   let defaultLabel = 'Status';
+  
+  // If children are provided, use them directly
+  if (children) {
+    // If status is not provided but children are, we'll still need an icon
+    if (!status) {
+      status = typeof children === 'string' ? children.toLowerCase() : 'inProgress';
+    }
+  }
   
   // Set up configuration based on the status
   switch (status) {
@@ -65,7 +77,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
       break;
     default:
       // Default fallback for any other string values
-      defaultLabel = status;
+      defaultLabel = status || '';
       break;
   }
 
@@ -73,18 +85,21 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
   displayLabel = displayLabel || defaultLabel;
 
   const variant = propVariant || (status === 'completed' ? 'outline' : 'outline');
+  
+  const sizeClass = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-xs';
 
   return (
     <Badge
       variant={variant}
       className={cn(
-        'rounded-full px-3 py-1 text-xs font-medium flex items-center gap-1',
+        'rounded-full font-medium flex items-center gap-1',
+        sizeClass,
         color,
         className
       )}
     >
       {showIcon && <Icon className="h-3 w-3 mr-1" />}
-      {displayLabel}
+      {children || displayLabel}
     </Badge>
   );
 };

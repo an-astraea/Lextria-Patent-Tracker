@@ -75,7 +75,9 @@ const PatentCard = ({ patent, isCompact = false, showClientInfo = false, showRev
           </div>
           
           <div className="flex items-center gap-2">
-            <StatusBadge variant={status.variant}>{status.text}</StatusBadge>
+            <StatusBadge variant={status.variant}>
+              {status.text}
+            </StatusBadge>
             
             {showReviewBadge && isUnderReview && (
               <Badge variant="warning" className="ml-1">Under Review</Badge>

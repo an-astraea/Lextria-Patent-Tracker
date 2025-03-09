@@ -1,315 +1,412 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from 'sonner';
-import { fetchFilerAssignments, fetchFilerCompletedAssignments, fetchFilerFERAssignments, completeFilerTask, completeFERFilerTask } from '@/lib/api';
-import { Patent, FEREntry } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import PageHeader from '@/components/common/PageHeader';
-import { CheckCircle2, Loader2, RefreshCcw } from 'lucide-react';
-import LoadingState from '@/components/common/LoadingState';
 import EmptyState from '@/components/common/EmptyState';
-import { format, isAfter, parseISO } from 'date-fns';
+import LoadingState from '@/components/common/LoadingState';
 import FormSelection from '@/components/patent/FormSelection';
+import { fetchPatentsByFiler, updatePatentForms, submitFilingForReview } from '@/lib/api';
+import { Patent, FEREntry } from '@/lib/types';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 const Filings = () => {
-  const [assignedPatents, setAssignedPatents] = useState<Patent[]>([]);
-  const [completedPatents, setCompletedPatents] = useState<Patent[]>([]);
-  const [ferAssignments, setFerAssignments] = useState<FEREntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [completing, setCompleting] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('pending');
-  const [selectedForms, setSelectedForms] = useState<Record<string, boolean>>({});
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [psFilings, setPsFilings] = useState<Patent[]>([]);
+  const [csFilings, setCsFilings] = useState<Patent[]>([]);
+  const [ferEntries, setFerEntries] = useState<FEREntry[]>([]);
+  const [loadingPS, setLoadingPS] = useState(true);
+  const [loadingCS, setLoadingCS] = useState(true);
+  const [loadingFER, setLoadingFER] = useState(true);
+  const [selectedPatentId, setSelectedPatentId] = useState<string | null>(null);
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingForms, setIsSavingForms] = useState(false);
   
-  // Get user from localStorage
-  const userString = localStorage.getItem('user');
-  const user = userString ? JSON.parse(userString) : null;
-  
-  // Redirect if not a filer
-  React.useEffect(() => {
-    if (!user || user.role !== 'filer') {
-      toast.error('Access denied. Filer access required.');
-      navigate('/dashboard');
-    }
-  }, [user, navigate]);
-  
-  const fetchFilings = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    try {
-      // Fetch assigned patents
-      const assignedResponse = await fetchFilerAssignments(user.id);
-      if (assignedResponse && assignedResponse.patents) {
-        setAssignedPatents(assignedResponse.patents);
-      }
-      
-      // Fetch completed patents
-      const completedResponse = await fetchFilerCompletedAssignments(user.id);
-      if (completedResponse && completedResponse.patents) {
-        setCompletedPatents(completedResponse.patents);
-      }
-      
-      // Fetch FER assignments
-      const ferResponse = await fetchFilerFERAssignments(user.id);
-      if (ferResponse && ferResponse.patents) {
-        // Extract FER entries from patents
-        const ferEntries: FEREntry[] = [];
-        ferResponse.patents.forEach(patent => {
-          if (patent.fer_entries) {
-            patent.fer_entries.forEach(entry => {
-              if (entry.fer_filer_assgn === user.full_name && entry.fer_filing_status === 0) {
-                ferEntries.push({...entry, patent});
-              }
-            });
-          }
-        });
-        setFerAssignments(ferEntries);
-      }
-    } catch (error) {
-      console.error('Error fetching filings:', error);
-      toast.error('Failed to load filing assignments');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Initial data fetch
   useEffect(() => {
-    fetchFilings();
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+  
+  useEffect(() => {
+    if (user?.email) {
+      fetchPSFilings(user.email);
+      fetchCSFilings(user.email);
+      fetchFERFilings(user.email);
+    }
   }, [user]);
   
-  const handleSelectForm = (formName: string, checked: boolean) => {
-    setSelectedForms(prev => ({
-      ...prev,
-      [formName]: checked
-    }));
-  };
-  
-  const completeFiling = async (patentId: string, taskType: 'ps' | 'cs' | 'fer') => {
-    setCompleting(patentId);
+  const fetchPSFilings = async (email: string) => {
+    setLoadingPS(true);
     try {
-      // Only pass form data for CS filings
-      const formData = taskType === 'cs' ? selectedForms : undefined;
-      
-      const result = await completeFilerTask(patentId, taskType, formData);
-      if (result.success) {
-        toast.success('Filing completed and submitted for review');
-        setSelectedForms({}); // Reset selected forms
-        fetchFilings(); // Refresh data
+      const response = await fetchPatentsByFiler(email, 'ps');
+      if (response && response.patents) {
+        setPsFilings(response.patents);
       } else {
-        toast.error('Failed to complete filing');
+        toast.error('Failed to load PS filing tasks');
       }
     } catch (error) {
-      console.error('Error completing filing:', error);
-      toast.error('An error occurred while completing the filing');
+      console.error('Error fetching PS filings:', error);
+      toast.error('Failed to load PS filing tasks');
     } finally {
-      setCompleting(null);
+      setLoadingPS(false);
     }
   };
   
-  const completeFERFiling = async (ferEntry: FEREntry) => {
-    if (!ferEntry.id) {
-      toast.error('Invalid FER entry');
+  const fetchCSFilings = async (email: string) => {
+    setLoadingCS(true);
+    try {
+      const response = await fetchPatentsByFiler(email, 'cs');
+      if (response && response.patents) {
+        setCsFilings(response.patents);
+      } else {
+        toast.error('Failed to load CS filing tasks');
+      }
+    } catch (error) {
+      console.error('Error fetching CS filings:', error);
+      toast.error('Failed to load CS filing tasks');
+    } finally {
+      setLoadingCS(false);
+    }
+  };
+  
+  const fetchFERFilings = async (email: string) => {
+    setLoadingFER(true);
+    try {
+      const response = await fetchPatentsByFiler(email, 'fer');
+      if (response && response.ferEntries) {
+        setFerEntries(response.ferEntries);
+      } else {
+        toast.error('Failed to load FER filing tasks');
+      }
+    } catch (error) {
+      console.error('Error fetching FER filings:', error);
+      toast.error('Failed to load FER filing tasks');
+    } finally {
+      setLoadingFER(false);
+    }
+  };
+  
+  const handleStartFiling = (patentId: string, type: 'ps' | 'cs') => {
+    setSelectedPatentId(patentId);
+    setIsFormDialogOpen(true);
+  };
+  
+  const handleStartFERFiling = (ferId: string) => {
+    // Find the patent ID associated with the FER entry
+    const ferEntry = ferEntries.find(fer => fer.id === ferId);
+    if (ferEntry && ferEntry.patent_id) {
+      setSelectedPatentId(ferEntry.patent_id);
+      setIsFormDialogOpen(true);
+    } else {
+      toast.error('Patent ID not found for this FER entry.');
+    }
+  };
+  
+  const handleSaveForms = async (forms: Record<string, boolean>) => {
+    if (!selectedPatentId) {
+      toast.error('No patent selected');
       return;
     }
     
-    setCompleting(ferEntry.id);
+    setIsSavingForms(true);
     try {
-      const result = await completeFERFilerTask(ferEntry);
-      if (result.success) {
-        toast.success('FER filing completed and submitted for review');
-        fetchFilings(); // Refresh data
+      const success = await updatePatentForms(selectedPatentId, forms);
+      if (success) {
+        toast.success('Forms updated successfully');
+        setIsFormDialogOpen(false);
+        // Refresh filings after saving forms
+        if (user?.email) {
+          fetchPSFilings(user.email);
+          fetchCSFilings(user.email);
+          fetchFERFilings(user.email);
+        }
       } else {
-        toast.error('Failed to complete FER filing');
+        toast.error('Failed to update forms');
       }
     } catch (error) {
-      console.error('Error completing FER filing:', error);
-      toast.error('An error occurred while completing the FER filing');
+      console.error('Error updating forms:', error);
+      toast.error('Failed to update forms');
     } finally {
-      setCompleting(null);
+      setIsSavingForms(false);
     }
   };
   
+  const handleSubmitForReview = async () => {
+    if (!selectedPatentId) {
+      toast.error('No patent selected');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      const success = await submitFilingForReview(selectedPatentId);
+      if (success) {
+        toast.success('Patent submitted for review');
+        setIsFormDialogOpen(false);
+        // Refresh filings after submission
+        if (user?.email) {
+          fetchPSFilings(user.email);
+          fetchCSFilings(user.email);
+          fetchFERFilings(user.email);
+        }
+      } else {
+        toast.error('Failed to submit patent for review');
+      }
+    } catch (error) {
+      console.error('Error submitting patent for review:', error);
+      toast.error('Failed to submit patent for review');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Filings" subtitle="Manage your filing assignments" />
+      <PageHeader 
+        title="My Filing Tasks" 
+        description="Manage and track your assigned patent filing tasks"
+      />
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList>
-          <TabsTrigger value="pending" className="focus:outline-none">Pending ({assignedPatents.length + ferAssignments.length})</TabsTrigger>
-          <TabsTrigger value="completed" className="focus:outline-none">Completed ({completedPatents.length})</TabsTrigger>
+      <Tabs defaultValue="ps">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="ps">PS Filings</TabsTrigger>
+          <TabsTrigger value="cs">CS Filings</TabsTrigger>
+          <TabsTrigger value="fer">FER Filings</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="pending" className="space-y-4">
-          {loading ? (
-            <LoadingState message="Loading assignments..." />
+        {/* PS Filing Tab */}
+        <TabsContent value="ps">
+          {loadingPS ? (
+            <LoadingState message="Loading provisional specification filing tasks..." />
           ) : (
-            <>
-              {assignedPatents.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {assignedPatents.map(patent => (
-                    <Card key={patent.id} className="shadow-md">
-                      <CardContent className="space-y-2">
-                        <div className="flex justify-between items-start">
-                          <h3 className="text-lg font-semibold">{patent.patent_title}</h3>
-                          <RefreshCcw 
-                            className="h-5 w-5 cursor-pointer hover:text-blue-500" 
-                            onClick={() => fetchFilings()} 
-                          />
+            psFilings.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {psFilings.map(patent => (
+                  <Card key={patent.id} className="overflow-hidden">
+                    <CardHeader>
+                      <CardTitle className="text-base line-clamp-1">{patent.patent_title}</CardTitle>
+                      <CardDescription className="flex items-center gap-2">
+                        ID: {patent.tracking_id}
+                        {patent.ps_review_file_status === 1 && (
+                          <Badge variant="warning">Under Review</Badge>
+                        )}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-2">
+                      <div className="text-sm space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Deadline:</span>
+                          <span className="font-medium">
+                            {patent.ps_filer_deadline ? format(new Date(patent.ps_filer_deadline), 'dd MMM yyyy') : 'No deadline set'}
+                          </span>
                         </div>
-                        <p className="text-gray-500">Tracking ID: {patent.tracking_id}</p>
-                        <p>Applicant: {patent.patent_applicant}</p>
-                        <p>Filing Date: {patent.date_of_filing ? format(parseISO(patent.date_of_filing), 'PPP') : 'Not Filed'}</p>
-                        
-                        <Button 
-                          variant="primary" 
-                          className="w-full mt-4"
-                          disabled={completing === patent.id}
-                          onClick={() => completeFiling(patent.id, 'ps')}
-                        >
-                          {completing === patent.id ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Completing...
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 className="mr-2 h-4 w-4" />
-                              Complete PS Filing
-                            </>
-                          )}
-                        </Button>
-                        
-                        <Button 
-                          variant="primary" 
-                          className="w-full mt-2"
-                          disabled={completing === patent.id}
-                          onClick={() => completeFiling(patent.id, 'cs')}
-                        >
-                          {completing === patent.id ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Completing...
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 className="mr-2 h-4 w-4" />
-                              Complete CS Filing
-                            </>
-                          )}
-                        </Button>
-                        
-                        {/* Form Selection Component */}
-                        <FormSelection 
-                          onSelectForm={handleSelectForm}
-                        />
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState 
-                  title="No Provisional Specification or Complete Specification filings assigned" 
-                  message="Check back later for new assignments." 
-                />
-              )}
-              
-              {ferAssignments.length > 0 ? (
-                <>
-                  <h2 className="text-xl font-semibold mt-6">FER Filing Assignments</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {ferAssignments.map(ferEntry => (
-                      <Card key={ferEntry.id} className="shadow-md">
-                        <CardContent className="space-y-2">
-                          <div className="flex justify-between items-start">
-                            <h3 className="text-lg font-semibold">
-                              {ferEntry.patent ? ferEntry.patent.patent_title : 'Unknown Patent'}
-                            </h3>
-                            <RefreshCcw 
-                              className="h-5 w-5 cursor-pointer hover:text-blue-500" 
-                              onClick={() => fetchFilings()} 
-                            />
-                          </div>
-                          <p className="text-gray-500">FER Number: {ferEntry.fer_number}</p>
-                          <p>
-                            Patent Applicant:{' '}
-                            {ferEntry.patent ? ferEntry.patent.patent_applicant : 'Unknown'}
-                          </p>
-                          
-                          <Button 
-                            variant="primary" 
-                            className="w-full mt-4"
-                            disabled={completing === ferEntry.id}
-                            onClick={() => completeFERFiling(ferEntry)}
-                          >
-                            {completing === ferEntry.id ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Completing...
-                              </>
-                            ) : (
-                              <>
-                                <CheckCircle2 className="mr-2 h-4 w-4" />
-                                Complete FER Filing
-                              </>
-                            )}
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <EmptyState 
-                  title="No First Examination Report (FER) filings assigned" 
-                  message="Check back later for new FER assignments." 
-                />
-              )}
-            </>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Status:</span>
+                          <span className="font-medium">
+                            {patent.ps_filing_status === 1 ? 'Completed' : 'Pending'}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex gap-2">
+                      <Button 
+                        className="flex-1" 
+                        variant="default"
+                        onClick={() => handleStartFiling(patent.id, 'ps')}
+                        disabled={patent.ps_review_file_status === 1}
+                      >
+                        File PS
+                      </Button>
+                      <Button 
+                        className="flex-1" 
+                        variant="outline"
+                        onClick={() => navigate(`/patents/${patent.id}`)}
+                      >
+                        View Details
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <EmptyState 
+                title="No PS Filing Tasks" 
+                description="You don't have any provisional specification filing tasks assigned to you." 
+                icon="FileText"
+              />
+            )
           )}
         </TabsContent>
         
-        <TabsContent value="completed" className="space-y-4">
-          {loading ? (
-            <LoadingState message="Loading completed assignments..." />
+        {/* CS Filing Tab */}
+        <TabsContent value="cs">
+          {loadingCS ? (
+            <LoadingState message="Loading complete specification filing tasks..." />
           ) : (
-            <>
-              {completedPatents.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {completedPatents.map(patent => (
-                    <Card key={patent.id} className="shadow-md">
-                      <CardContent className="space-y-2">
-                        <div className="flex justify-between items-start">
-                          <h3 className="text-lg font-semibold">{patent.patent_title}</h3>
-                          <RefreshCcw 
-                            className="h-5 w-5 cursor-pointer hover:text-blue-500" 
-                            onClick={() => fetchFilings()} 
-                          />
+            csFilings.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {csFilings.map(patent => (
+                  <Card key={patent.id} className="overflow-hidden">
+                    <CardHeader>
+                      <CardTitle className="text-base line-clamp-1">{patent.patent_title}</CardTitle>
+                      <CardDescription className="flex items-center gap-2">
+                        ID: {patent.tracking_id}
+                        {patent.cs_review_file_status === 1 && (
+                          <Badge variant="warning">Under Review</Badge>
+                        )}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-2">
+                      <div className="text-sm space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Deadline:</span>
+                          <span className="font-medium">
+                            {patent.cs_filer_deadline ? format(new Date(patent.cs_filer_deadline), 'dd MMM yyyy') : 'No deadline set'}
+                          </span>
                         </div>
-                        <p className="text-gray-500">Tracking ID: {patent.tracking_id}</p>
-                        <p>Applicant: {patent.patent_applicant}</p>
-                        <p>Filing Date: {patent.date_of_filing ? format(parseISO(patent.date_of_filing), 'PPP') : 'Not Filed'}</p>
-                        <Badge variant="outline">
-                          <CheckCircle2 className="mr-2 h-4 w-4" />
-                          Filing Completed
-                        </Badge>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState 
-                  title="No completed filings" 
-                  message="Once you complete filings, they will appear here." 
-                />
-              )}
-            </>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Status:</span>
+                          <span className="font-medium">
+                            {patent.cs_filing_status === 1 ? 'Completed' : 'Pending'}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex gap-2">
+                      <Button 
+                        className="flex-1" 
+                        variant="default"
+                        onClick={() => handleStartFiling(patent.id, 'cs')}
+                        disabled={patent.cs_review_file_status === 1}
+                      >
+                        File CS
+                      </Button>
+                      <Button 
+                        className="flex-1" 
+                        variant="outline"
+                        onClick={() => navigate(`/patents/${patent.id}`)}
+                      >
+                        View Details
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <EmptyState 
+                title="No CS Filing Tasks" 
+                description="You don't have any complete specification filing tasks assigned to you." 
+                icon="FileText"
+              />
+            )
+          )}
+        </TabsContent>
+        
+        {/* FER Filing Tab */}
+        <TabsContent value="fer">
+          {loadingFER ? (
+            <LoadingState message="Loading FER filing tasks..." />
+          ) : (
+            ferEntries.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {ferEntries.map(fer => (
+                  <Card key={fer.id} className="overflow-hidden">
+                    <CardHeader>
+                      <CardTitle className="text-base line-clamp-1">
+                        {fer.patent?.patent_title || "FER filing task"}
+                      </CardTitle>
+                      <CardDescription className="flex items-center gap-2">
+                        FER #{fer.fer_number}
+                        {fer.fer_review_file_status === 1 && (
+                          <Badge variant="warning">Under Review</Badge>
+                        )}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-2">
+                      <div className="text-sm space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Deadline:</span>
+                          <span className="font-medium">
+                            {fer.fer_filer_deadline ? format(new Date(fer.fer_filer_deadline), 'dd MMM yyyy') : 'No deadline set'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Status:</span>
+                          <span className="font-medium">
+                            {fer.fer_filing_status === 1 ? 'Completed' : 'Pending'}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex gap-2">
+                      <Button 
+                        className="flex-1" 
+                        variant="default"
+                        onClick={() => handleStartFERFiling(fer.id)}
+                        disabled={fer.fer_review_file_status === 1}
+                      >
+                        File FER
+                      </Button>
+                      <Button 
+                        className="flex-1" 
+                        variant="outline"
+                        onClick={() => navigate(`/patents/${fer.patent_id}`)}
+                      >
+                        View Details
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <EmptyState 
+                title="No FER Filing Tasks" 
+                description="You don't have any first examination report filing tasks assigned to you." 
+                icon="FileText"
+              />
+            )
           )}
         </TabsContent>
       </Tabs>
+      
+      {/* Dialog for selecting forms */}
+      {selectedPatentId && (
+        <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Select Required Forms</DialogTitle>
+              <DialogDescription>
+                Choose the necessary forms for this filing.
+              </DialogDescription>
+            </DialogHeader>
+            <FormSelection 
+              patentId={selectedPatentId}
+              onSaveForms={handleSaveForms}
+              isLoading={isSavingForms}
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsFormDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="button" disabled={isSubmitting} onClick={handleSubmitForReview}>
+                {isSubmitting ? (
+                  <span className="animate-spin mr-2">⟳</span>
+                ) : null}
+                Submit for Review
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +32,6 @@ const PaymentStatusSection = ({ patent, userRole, refreshPatentData }: PaymentSt
     
     setIsUpdating('invoice_sent');
     try {
-      // Convert boolean to number (1/0) for the API
       const success = await updatePatentStatus(patent.id, 'invoice_sent', checked ? 1 : 0);
       if (success) {
         toast.success(`Invoice status updated successfully`);
@@ -55,8 +53,8 @@ const PaymentStatusSection = ({ patent, userRole, refreshPatentData }: PaymentSt
     
     setIsUpdating('payment_status');
     try {
-      // Pass the status as a number - converts string to number
-      const success = await updatePatentStatus(patent.id, 'payment_status', status);
+      const numericStatus = status === 'fully_paid' ? 1 : 0;
+      const success = await updatePatentStatus(patent.id, 'payment_status', numericStatus);
       if (success) {
         setPaymentStatus(status);
         toast.success(`Payment status updated successfully`);
@@ -96,12 +94,10 @@ const PaymentStatusSection = ({ patent, userRole, refreshPatentData }: PaymentSt
         return;
       }
       
-      // Update both amount and received in one call
       const success = await updatePatentPayment(patent.id, amount, received);
       if (success) {
         toast.success(`Payment amounts updated successfully`);
         
-        // Determine and update payment status based on amounts
         let newStatus = 'not_sent';
         if (patent.invoice_sent) {
           if (received === 0) {
@@ -111,7 +107,8 @@ const PaymentStatusSection = ({ patent, userRole, refreshPatentData }: PaymentSt
           } else if (received === amount) {
             newStatus = 'fully_paid';
           }
-          await updatePatentStatus(patent.id, 'payment_status', newStatus);
+          const numericStatus = newStatus === 'fully_paid' ? 1 : 0;
+          await updatePatentStatus(patent.id, 'payment_status', numericStatus);
         }
         
         refreshPatentData();
@@ -124,13 +121,11 @@ const PaymentStatusSection = ({ patent, userRole, refreshPatentData }: PaymentSt
     }
   };
   
-  // Calculate payment completion percentage
   const paymentPercentage = 
     patent.payment_amount && patent.payment_amount > 0 
       ? Math.round((patent.payment_received || 0) / patent.payment_amount * 100) 
       : 0;
   
-  // Get a display label for the payment status
   const getPaymentStatusLabel = (status: string) => {
     switch (status) {
       case 'not_sent': return 'Not Sent';
@@ -237,7 +232,6 @@ const PaymentStatusSection = ({ patent, userRole, refreshPatentData }: PaymentSt
           )}
         </div>
         
-        {/* Payment status display */}
         <div className="mt-4 p-4 bg-slate-50 rounded-md">
           <div className="flex justify-between mb-2">
             <span className="font-medium">Payment Status:</span>

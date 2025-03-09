@@ -1,4 +1,3 @@
-
 // Mock API utilities for development
 import { Patent, Employee, FEREntry, PatientTimeline } from './types';
 
@@ -73,42 +72,160 @@ export const fetchPatentById = async (id: string) => {
   }
 };
 
-export const createPatent = async (patentData: Partial<Patent>) => {
-  await new Promise(resolve => setTimeout(resolve, API_DELAY));
+export const createPatent = async (data: Partial<Patent>): Promise<{ success: boolean; patent: Patent; error: any }> => {
   try {
-    const newPatent = {
-      ...patentData,
+    // In a real world scenario, this would be an API call
+    console.log('Creating patent with data:', data);
+    
+    // Prepare inventors with IDs if they exist
+    const inventors = data.inventors?.map(inv => ({
+      id: inv.id || `inv-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      tracking_id: data.tracking_id,
+      inventor_name: inv.inventor_name,
+      inventor_addr: inv.inventor_addr
+    })) || [];
+    
+    // Create a new patent
+    const newPatent: Patent = {
       id: `patent-${Date.now()}`,
+      tracking_id: data.tracking_id,
+      patent_applicant: data.patent_applicant || '',
+      client_id: data.client_id || '',
+      application_no: data.application_no || null,
+      date_of_filing: data.date_of_filing || new Date().toISOString(),
+      patent_title: data.patent_title || '',
+      applicant_addr: data.applicant_addr || '',
+      inventor_ph_no: data.inventor_ph_no || '',
+      inventor_email: data.inventor_email || '',
+      ps_drafting_status: 0,
+      ps_drafter_assgn: data.ps_drafter_assgn || '',
+      ps_drafter_deadline: data.ps_drafter_deadline || '',
+      ps_review_draft_status: 0,
+      ps_filing_status: 0,
+      ps_filer_assgn: data.ps_filer_assgn || '',
+      ps_filer_deadline: data.ps_filer_deadline || '',
+      ps_review_file_status: 0,
+      ps_completion_status: 0,
+      cs_drafting_status: 0,
+      cs_drafter_assgn: data.cs_drafter_assgn || '',
+      cs_drafter_deadline: data.cs_drafter_deadline || '',
+      cs_review_draft_status: 0,
+      cs_filing_status: 0,
+      cs_filer_assgn: data.cs_filer_assgn || '',
+      cs_filer_deadline: data.cs_filer_deadline || '',
+      cs_review_file_status: 0,
+      cs_completion_status: 0,
+      fer_status: data.fer_status || 0,
+      fer_drafter_status: 0,
+      fer_drafter_assgn: data.fer_drafter_assgn || '',
+      fer_drafter_deadline: data.fer_drafter_deadline || '',
+      fer_review_draft_status: 0,
+      fer_filing_status: 0,
+      fer_filer_assgn: data.fer_filer_assgn || '',
+      fer_filer_deadline: data.fer_filer_deadline || '',
+      fer_review_file_status: 0,
+      fer_completion_status: 0,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    } as Patent;
+      updated_at: new Date().toISOString(),
+      inventors: inventors,
+      withdrawn: false,
+      idf_sent: false,
+      idf_received: false,
+      cs_data: false,
+      cs_data_received: false,
+      completed: false,
+      // Set all form fields to false initially
+      form_01: false,
+      form_02_ps: false,
+      form_02_cs: false,
+      form_03: false,
+      form_04: false,
+      form_05: false,
+      form_06: false,
+      form_07: false,
+      form_07a: false,
+      form_08: false,
+      form_08a: false,
+      form_09: false,
+      form_09a: false,
+      form_10: false,
+      form_11: false,
+      form_12: false,
+      form_13: false,
+      form_14: false,
+      form_15: false,
+      form_16: false,
+      form_17: false,
+      form_18: false,
+      form_18a: false,
+      form_19: false,
+      form_20: false,
+      form_21: false,
+      form_22: false,
+      form_23: false,
+      form_24: false,
+      form_25: false,
+      form_26: false,
+      form_27: false,
+      form_28: false,
+      form_29: false,
+      form_30: false,
+      form_31: false,
+    };
+    
+    // Add to mock database
     MOCK_PATENTS.push(newPatent);
+    
     return { success: true, patent: newPatent, error: null };
   } catch (error) {
     console.error('Error creating patent:', error);
-    return { success: false, patent: null, error: error };
+    return { success: false, patent: null, error };
   }
 };
 
-export const updatePatent = async (id: string, patentData: Partial<Patent>) => {
-  await new Promise(resolve => setTimeout(resolve, API_DELAY));
+export const updatePatent = async (id: string, data: Partial<Patent>): Promise<{ success: boolean; patent: Patent; error: any }> => {
   try {
-    const patentIndex = MOCK_PATENTS.findIndex(p => p.id === id);
-    if (patentIndex === -1) {
-      throw new Error(`Patent with ID ${id} not found`);
+    // In a real world scenario, this would be an API call
+    console.log(`Updating patent ${id} with:`, data);
+    
+    // Get the current patent to modify
+    const currentPatent = MOCK_PATENTS.find(p => p.id === id);
+    if (!currentPatent) {
+      return { success: false, patent: null, error: 'Patent not found' };
     }
     
+    // Special handling for inventors to ensure they have id and tracking_id
+    if (data.inventors) {
+      // If the inventors passed in don't have id and tracking_id, add them
+      data.inventors = data.inventors.map(inv => {
+        if (!inv.id || !inv.tracking_id) {
+          return {
+            ...inv,
+            id: inv.id || `inv-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            tracking_id: inv.tracking_id || currentPatent.tracking_id
+          };
+        }
+        return inv;
+      });
+    }
+    
+    // Create the updated patent
     const updatedPatent = {
-      ...MOCK_PATENTS[patentIndex],
-      ...patentData,
+      ...currentPatent,
+      ...data,
       updated_at: new Date().toISOString()
     };
     
-    MOCK_PATENTS[patentIndex] = updatedPatent;
+    // Update in our mock database
+    const index = MOCK_PATENTS.findIndex(p => p.id === id);
+    if (index !== -1) {
+      MOCK_PATENTS[index] = updatedPatent;
+    }
+    
     return { success: true, patent: updatedPatent, error: null };
   } catch (error) {
-    console.error(`Error updating patent with ID ${id}:`, error);
-    return { success: false, patent: null, error: error };
+    console.error('Error updating patent:', error);
+    return { success: false, patent: null, error };
   }
 };
 
@@ -817,31 +934,35 @@ export const fetchPatentTimeline = async (patentId: string) => {
 };
 
 // Create inventors
-export const createInventor = async (patentId: string, inventorData: { inventor_name: string, inventor_addr: string }) => {
-  await new Promise(resolve => setTimeout(resolve, API_DELAY));
+export const createInventor = async (patentId: string, inventor: { inventor_name: string; inventor_addr: string }): Promise<boolean> => {
   try {
-    const patentIndex = MOCK_PATENTS.findIndex(p => p.id === patentId);
-    if (patentIndex === -1) {
-      throw new Error(`Patent with ID ${patentId} not found`);
+    // Simulate API call - in a real implementation we would call an API
+    console.log(`Creating inventor "${inventor.inventor_name}" for patent ${patentId}`);
+    
+    // Get the existing patent to work with
+    const patent = await fetchPatentById(patentId);
+    if (!patent) {
+      console.error('Patent not found for adding inventor');
+      return false;
     }
     
+    // Generate an ID for the new inventor
     const newInventor = {
-      id: `inventor-${Date.now()}`,
-      tracking_id: MOCK_PATENTS[patentIndex].tracking_id,
-      inventor_name: inventorData.inventor_name,
-      inventor_addr: inventorData.inventor_addr
+      id: `inv-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      tracking_id: patent.tracking_id,
+      inventor_name: inventor.inventor_name,
+      inventor_addr: inventor.inventor_addr
     };
     
-    const updatedPatent = { ...MOCK_PATENTS[patentIndex] };
-    updatedPatent.inventors = [...(updatedPatent.inventors || []), newInventor];
-    updatedPatent.updated_at = new Date().toISOString();
+    // Update the patent's inventors array
+    const updatedInventors = [...(patent.inventors || []), newInventor];
     
-    MOCK_PATENTS[patentIndex] = updatedPatent;
-    
-    return { success: true, inventor: newInventor, error: null };
+    // Save the updated patent
+    const response = await updatePatent(patentId, { inventors: updatedInventors });
+    return response && response.success;
   } catch (error) {
-    console.error(`Error creating inventor for patent with ID ${patentId}:`, error);
-    return { success: false, inventor: null, error: error };
+    console.error('Error creating inventor:', error);
+    return false;
   }
 };
 

@@ -4,11 +4,12 @@ import { Building, CheckSquare, FileText, Home, Landmark, LucideIcon, User, User
 
 export interface PageHeaderProps {
   title: string;
+  subtitle?: string; // Alternative to description for some components
   description?: string;
   icon?: string;
 }
 
-const PageHeader: React.FC<PageHeaderProps> = ({ title, description, icon }) => {
+const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, description, icon }) => {
   const getIcon = (): React.ReactNode => {
     switch (icon) {
       case 'Home':
@@ -30,6 +31,9 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, description, icon }) => 
     }
   };
 
+  // Use subtitle as fallback for description
+  const displayDescription = description || subtitle;
+
   return (
     <div className="flex items-center justify-between">
       <div className="space-y-1">
@@ -37,7 +41,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, description, icon }) => 
           {icon && <span className="text-muted-foreground">{getIcon()}</span>}
           {title}
         </h2>
-        {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        {displayDescription && <p className="text-sm text-muted-foreground">{displayDescription}</p>}
       </div>
     </div>
   );

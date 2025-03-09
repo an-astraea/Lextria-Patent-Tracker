@@ -1,14 +1,25 @@
 
 import React from 'react';
 import { FileText, AlertTriangle, CheckCircle, Info, LucideIcon, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export interface EmptyStateProps {
   title: string;
   description?: string;
+  message?: string; // Alternative to description for some components
   icon?: string;
+  buttonText?: string;
+  onButtonClick?: () => void | Promise<void>;
 }
 
-const EmptyState: React.FC<EmptyStateProps> = ({ title, description, icon }) => {
+const EmptyState: React.FC<EmptyStateProps> = ({ 
+  title, 
+  description, 
+  message, 
+  icon,
+  buttonText,
+  onButtonClick
+}) => {
   const getIcon = (): React.ReactNode => {
     switch (icon) {
       case 'FileText':
@@ -26,13 +37,26 @@ const EmptyState: React.FC<EmptyStateProps> = ({ title, description, icon }) => 
     }
   };
 
+  // Use message as fallback for description
+  const displayDescription = description || message;
+
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center">
       <div className="mb-4">
         {getIcon()}
       </div>
       <h3 className="text-lg font-medium">{title}</h3>
-      {description && <p className="mt-2 text-sm text-muted-foreground">{description}</p>}
+      {displayDescription && <p className="mt-2 text-sm text-muted-foreground">{displayDescription}</p>}
+      
+      {buttonText && onButtonClick && (
+        <Button 
+          onClick={onButtonClick} 
+          className="mt-4"
+          variant="outline"
+        >
+          {buttonText}
+        </Button>
+      )}
     </div>
   );
 };
