@@ -42,7 +42,7 @@ const PatentDetails = () => {
   const [dialogType, setDialogType] = useState<'complete-draft' | 'complete-file'>('complete-draft');
   const [isCompletingDraft, setIsCompletingDraft] = useState(false);
   const [isCompletingFiling, setIsCompletingFiling] = useState(false);
-  const [timelineMilestones, setTimelineMilestones] = useState([]);
+  const [timelineMilestones, setTimelineMilestones] = useState<any[]>([]);
   const [showTimelineDialog, setShowTimelineDialog] = useState(false);
   
   const [formValues, setFormValues] = useState<Record<string, boolean>>({});
@@ -220,19 +220,119 @@ const PatentDetails = () => {
   };
 
   const handleFERDraftCompletion = async (fer: any) => {
-    // ... keep existing code
+    if (!patent || !user) return;
+
+    try {
+      const updatedPatent = await completeDrafterTask(patent, user.full_name);
+
+      if (updatedPatent) {
+        toast({
+          title: 'Success',
+          description: 'FER Draft Completion marked as completed and submitted for review',
+        });
+        await fetchPatentData();
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to complete FER draft completion task',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error completing FER draft completion task:', error);
+      toast({
+        title: 'Error',
+        description: 'An error occurred while completing the FER draft completion task',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleFERFilingCompletion = async (fer: any) => {
-    // ... keep existing code
+    if (!patent || !user) return;
+
+    try {
+      const updatedPatent = await completeFilerTask(patent, user.full_name, formValues);
+
+      if (updatedPatent) {
+        toast({
+          title: 'Success',
+          description: 'FER Filing Completion marked as completed and submitted for review',
+        });
+        await fetchPatentData();
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to complete FER filing completion task',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error completing FER filing completion task:', error);
+      toast({
+        title: 'Error',
+        description: 'An error occurred while completing the FER filing completion task',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleFERDraftApproval = async (fer: any) => {
-    // ... keep existing code
+    if (!patent || !user) return;
+
+    try {
+      const updatedPatent = await completeDrafterTask(patent, user.full_name);
+
+      if (updatedPatent) {
+        toast({
+          title: 'Success',
+          description: 'FER Draft Approval marked as completed',
+        });
+        await fetchPatentData();
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to complete FER draft approval task',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error completing FER draft approval task:', error);
+      toast({
+        title: 'Error',
+        description: 'An error occurred while completing the FER draft approval task',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleFERFilingApproval = async (fer: any) => {
-    // ... keep existing code
+    if (!patent || !user) return;
+
+    try {
+      const updatedPatent = await completeFilerTask(patent, user.full_name, formValues);
+
+      if (updatedPatent) {
+        toast({
+          title: 'Success',
+          description: 'FER Filing Approval marked as completed',
+        });
+        await fetchPatentData();
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to complete FER filing approval task',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error completing FER filing approval task:', error);
+      toast({
+        title: 'Error',
+        description: 'An error occurred while completing the FER filing approval task',
+        variant: 'destructive',
+      });
+    }
   };
 
   const getDrafterCompletionField = () => {
@@ -491,6 +591,7 @@ const PatentDetails = () => {
         open={showTimelineDialog} 
         onOpenChange={setShowTimelineDialog}
         milestones={timelineMilestones}
+        patent={patent}
       />
     </div>
   );
