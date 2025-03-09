@@ -488,13 +488,14 @@ const PatentDetails = () => {
         <WorkflowStatusSection 
           patent={patent} 
           userRole={userRole} 
-          refreshPatentData={refreshPatentData} 
+          refreshPatentData={refreshPatentData}
         />
         
         <PaymentStatusSection 
           patent={patent} 
-          userRole={userRole} 
-          refreshPatentData={refreshPatentData} 
+          userRole={user?.role}
+          refreshPatentData={refreshPatentData}
+          onUpdate={refreshPatentData}
         />
       </div>
 
@@ -835,4 +836,3 @@ const PatentDetails = () => {
 import { fetchPatentsAndEmployees } from '@/lib/api';
 
 export default PatentDetails;
-

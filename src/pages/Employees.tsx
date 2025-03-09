@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Search, Filter } from 'lucide-react';
@@ -36,11 +35,9 @@ const Employees = () => {
   const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
   
-  // Get user role from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
-  // Redirect if not admin
   useEffect(() => {
     if (user?.role !== 'admin') {
       toast.error('Access denied. Admin privileges required.');
@@ -48,21 +45,31 @@ const Employees = () => {
     }
   }, [user, navigate]);
   
-  // Fetch employees only once on component mount
   useEffect(() => {
     const getData = async () => {
       try {
         setLoading(true);
-        const { employees } = await fetchPatentsAndEmployees();
-        if (employees && employees.length > 0) {
-          setEmployees(employees);
-          setFilteredEmployees(employees);
+        const response = await fetchPatentsAndEmployees();
+        
+        if (response && 'employees' in response && Array.isArray(response.employees)) {
+          const typedEmployees = response.employees.map(emp => ({
+            ...emp,
+            role: emp.role as 'admin' | 'drafter' | 'filer' | 'employee'
+          }));
+          
+          setEmployees(typedEmployees);
+          setFilteredEmployees(typedEmployees);
+        } else {
+          setEmployees([]);
+          setFilteredEmployees([]);
         }
         setIsDataLoaded(true);
       } catch (error) {
         console.error('Error fetching employees:', error);
         toast.error('Failed to load employees');
         setIsDataLoaded(true);
+        setEmployees([]);
+        setFilteredEmployees([]);
       } finally {
         setLoading(false);
       }
@@ -73,18 +80,15 @@ const Employees = () => {
     }
   }, [user, isDataLoaded]);
   
-  // Apply filters only when search button is clicked or role filter changes
   useEffect(() => {
     if (!employees.length) return;
     
     let filtered = [...employees];
     
-    // Apply role filter if selected
     if (roleFilter) {
       filtered = filtered.filter(emp => emp.role === roleFilter);
     }
     
-    // Apply search query only when search is activated
     if (searchQuery) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(
@@ -99,7 +103,6 @@ const Employees = () => {
     setFilteredEmployees(filtered);
   }, [searchQuery, roleFilter, employees]);
   
-  // Handle search execution (only on button click)
   const handleSearch = () => {
     setSearchQuery(pendingSearchQuery);
   };
@@ -108,7 +111,6 @@ const Employees = () => {
     try {
       const success = await deleteEmployee(id);
       if (success) {
-        // Update local state after successful delete
         const updatedEmployees = employees.filter(emp => emp.id !== id);
         setEmployees(updatedEmployees);
         setFilteredEmployees(updatedEmployees.filter(emp => 
@@ -132,7 +134,7 @@ const Employees = () => {
   };
   
   if (user?.role !== 'admin') {
-    return null; // Don't render anything if not admin
+    return null;
   }
   
   return (

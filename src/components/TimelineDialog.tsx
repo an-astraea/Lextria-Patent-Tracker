@@ -33,11 +33,15 @@ const TimelineDialog: React.FC<TimelineDialogProps> = ({ patent, children }) => 
         setLoading(true);
         try {
           const timelineData = await fetchPatentTimeline(patent.id);
-          if (timelineData && Array.isArray(timelineData)) {
+          
+          if (Array.isArray(timelineData)) {
+            // If it's already an array, use it directly
             setEvents(timelineData);
-          } else if (timelineData && 'timeline' in timelineData) {
+          } else if (timelineData && 'timeline' in timelineData && Array.isArray(timelineData.timeline)) {
+            // If it's an object with a timeline property that is an array
             setEvents(timelineData.timeline);
           } else {
+            // Default to empty array
             setEvents([]);
           }
         } catch (error) {

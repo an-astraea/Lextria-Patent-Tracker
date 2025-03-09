@@ -1,4 +1,3 @@
-
 export interface Inventor {
   id: string;
   tracking_id: string;
@@ -32,7 +31,6 @@ export interface FEREntry {
   fer_completion_status: number;
   created_at: string;
   updated_at: string;
-  // Add patent reference for joining
   patent?: Patent;
 }
 
@@ -63,7 +61,6 @@ export interface Patent {
   cs_filing_status: number;
   cs_filer_assgn: string;
   cs_filer_deadline: string;
-  // Make all form fields optional to match database structure
   form_01?: boolean | null;
   form_02_ps?: boolean | null;
   form_02_cs?: boolean | null;
@@ -119,14 +116,12 @@ export interface Patent {
   fer_history?: FERHistory[];
   fer_entries?: FEREntry[];
   notes?: string;
-  // New status fields
   withdrawn?: boolean;
   idf_sent?: boolean;
   idf_received?: boolean;
   cs_data?: boolean;
   cs_data_received?: boolean;
   completed?: boolean;
-  // Payment fields
   invoice_sent?: boolean;
   payment_status?: string;
   payment_amount?: number;
@@ -199,12 +194,11 @@ export interface TimelineEvent {
   deadline_date?: string;
 }
 
-// Enhanced enum types to better represent the workflow states
 export enum ApprovalStatus {
-  Pending = 0,      // Not yet reviewed
-  Submitted = 1,    // Submitted for review
-  Approved = 2,     // Approved by admin
-  Rejected = 3      // Rejected by admin (not used currently)
+  Pending = 0,
+  Submitted = 1,
+  Approved = 2,
+  Rejected = 3
 }
 
 export enum WorkflowStage {
@@ -217,13 +211,12 @@ export enum WorkflowStage {
 }
 
 export enum WorkflowStatus {
-  NotStarted = 0,   // Task not yet started
-  InProgress = 1,   // Task in progress
-  UnderReview = 2,  // Task submitted for review
-  Completed = 3     // Task approved and completed
+  NotStarted = 0,
+  InProgress = 1,
+  UnderReview = 2,
+  Completed = 3
 }
 
-// Add the necessary PatientFilters interface
 export interface PatentFilters {
   status?: string;
   drafter?: string;
@@ -231,7 +224,6 @@ export interface PatentFilters {
   searchTerm?: string;
 }
 
-// Update the PatentCardProps interface
 export interface PatentCardProps {
   patent: Patent;
   key?: string;
@@ -240,16 +232,14 @@ export interface PatentCardProps {
   showReviewBadge?: boolean;
 }
 
-// Update the PaymentStatusSectionProps interface
 export interface PaymentStatusSectionProps {
   patent: Patent;
-  onUpdate: () => void;
+  onUpdate?: () => void;
   isAdmin?: boolean;
   userRole?: string;
   refreshPatentData?: () => Promise<void>;
 }
 
-// Update EmptyStateProps
 export interface EmptyStateProps {
   title: string;
   description?: string;
@@ -259,12 +249,10 @@ export interface EmptyStateProps {
   icon?: string;
 }
 
-// Update LoadingStateProps
 export interface LoadingStateProps {
   message?: string;
 }
 
-// Update PageHeaderProps
 export interface PageHeaderProps {
   title: string;
   subtitle?: string;
@@ -272,16 +260,53 @@ export interface PageHeaderProps {
   icon?: string;
 }
 
-// Add createInventor function API response type
-export interface CreateInventorResponse {
-  success: boolean;
-  inventor?: Inventor;
-  error?: string;
-}
-
-// Add API response types for better error handling
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
+  error?: any;
+  patent?: T;
+  patents?: T[];
+  employees?: Employee[];
+  timeline?: any[];
+  fer?: any;
+}
+
+export type PatentResponse = Patent | { error: any; patent: any; } | { 
+  patent: Patent; 
+  error?: any; 
+  success?: boolean;
+};
+
+export type FEREntryResponse = FEREntry | { 
+  error: any; 
+  success: boolean; 
+  fer?: FEREntry;
+};
+
+export type EmployeeResponse = Employee | { 
+  error: any; 
+  employee: any; 
+  success?: boolean;
+};
+
+export function formatDateForDatabase(dateString: string | null): string | null {
+  if (!dateString) return null;
+  
+  if (dateString.includes('T')) {
+    return dateString;
+  }
+  
+  try {
+    const date = new Date(dateString);
+    return date.toISOString();
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateString;
+  }
+}
+
+export interface CreateInventorResponse {
+  success: boolean;
+  inventor?: Inventor;
   error?: string;
 }

@@ -1,272 +1,393 @@
-
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/use-toast";
 import { Patent } from '@/lib/types';
-import { Link } from 'react-router-dom';
-import { ChevronRight, FileText, FileCheck, Clock, AlertTriangle, Users, Briefcase, Building } from 'lucide-react';
+import { fetchPatentsAndEmployees } from '@/lib/api';
+import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { ArrowDown, ArrowUp, CalendarClock, CheckCircle2, Clock, FileEdit, FileText, User } from 'lucide-react';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Filter, Search } from 'lucide-react';
 import PatentCard from '@/components/PatentCard';
-import { fetchPatents, fetchEmployees, fetchPendingReviews } from '@/lib/api';
 import { toast } from 'sonner';
 
-const Dashboard = () => {
-  const [recentPatents, setRecentPatents] = useState<Patent[]>([]);
-  const [pendingReviews, setPendingReviews] = useState<Patent[]>([]);
-  const [metrics, setMetrics] = useState({
-    totalPatents: 0,
-    activePatents: 0,
-    completedPatents: 0,
-    pendingReviews: 0,
-    totalEmployees: 0,
-    totalClients: 0
-  });
-  const [loading, setLoading] = useState(true);
+interface DashboardCardProps {
+  title: string;
+  value: number | string;
+  loading: boolean;
+}
 
-  // Store the user role from localStorage
-  const userRole = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).role : '';
+const DashboardCard: React.FC<DashboardCardProps> = ({ title, value, loading }) => {
+  return (
+    <Card className="bg-white dark:bg-secondary">
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <Skeleton className="h-6 w-24" />
+        ) : (
+          <div className="text-2xl font-bold">{value}</div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+const Dashboard = () => {
+  const [allPatents, setAllPatents] = useState<Patent[]>([]);
+  const [filteredPatents, setFilteredPatents] = useState<Patent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortColumn, setSortColumn] = useState<keyof Patent | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+  const [employeeOptions, setEmployeeOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+
+  // Get user role from localStorage
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
+
+  // Filter patents based on user role
+  const filterPatentsByUserRole = (patents: Patent[]) => {
+    if (!user) return patents;
+
+    switch (user.role) {
+      case 'drafter':
+        return patents.filter(
+          (patent) =>
+            patent.ps_drafter_assgn === user.full_name ||
+            patent.cs_drafter_assgn === user.full_name ||
+            patent.fer_drafter_assgn === user.full_name
+        );
+      case 'filer':
+        return patents.filter(
+          (patent) =>
+            patent.ps_filer_assgn === user.full_name ||
+            patent.cs_filer_assgn === user.full_name ||
+            patent.fer_filer_assgn === user.full_name
+        );
+      default:
+        return patents;
+    }
+  };
+
+  // Update the useEffect for fetching patents to properly handle the API response
+
+useEffect(() => {
+  const fetchPatentData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetchPatentsAndEmployees();
+      
+      if (response && 'patents' in response) {
+        setAllPatents(response.patents || []);
+        setFilteredPatents(response.patents || []);
+      } else if (Array.isArray(response)) {
+        // Handle case where response is directly an array of patents
+        setAllPatents(response);
+        setFilteredPatents(response);
+      } else {
+        setAllPatents([]);
+        setFilteredPatents([]);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load dashboard data');
+      setAllPatents([]);
+      setFilteredPatents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchPatentData();
+}, []);
 
   useEffect(() => {
-    const loadDashboardData = async () => {
+    if (allPatents.length > 0) {
+      // Apply user role filter
+      let filtered = filterPatentsByUserRole(allPatents);
+
+      // Apply status filter
+      if (selectedStatus) {
+        filtered = filtered.filter((patent) => {
+          switch (selectedStatus) {
+            case 'withdrawn':
+              return patent.withdrawn === true;
+            case 'completed':
+              return patent.completed === true;
+            case 'idf_sent':
+              return patent.idf_sent === true;
+            case 'invoice_sent':
+              return patent.invoice_sent === true;
+            default:
+              return true;
+          }
+        });
+      }
+
+      // Apply employee filter
+      if (selectedEmployee) {
+        filtered = filtered.filter(
+          (patent) =>
+            patent.ps_drafter_assgn === selectedEmployee ||
+            patent.ps_filer_assgn === selectedEmployee ||
+            patent.cs_drafter_assgn === selectedEmployee ||
+            patent.cs_filer_assgn === selectedEmployee ||
+            patent.fer_drafter_assgn === selectedEmployee ||
+            patent.fer_filer_assgn === selectedEmployee
+        );
+      }
+
+      // Apply search filter
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        filtered = filtered.filter(
+          (patent) =>
+            patent.tracking_id.toLowerCase().includes(term) ||
+            patent.patent_title.toLowerCase().includes(term) ||
+            patent.patent_applicant.toLowerCase().includes(term)
+        );
+      }
+
+      setFilteredPatents(filtered);
+    }
+  }, [allPatents, searchTerm, user, selectedStatus, selectedEmployee]);
+
+  useEffect(() => {
+    const extractEmployeeOptions = async () => {
       try {
         setLoading(true);
-        
-        // Fetch patents for the recent patents card and metrics
-        const patentsResponse = await fetchPatents();
-        
-        if (patentsResponse.error) {
-          toast.error('Failed to load patents data');
+        const response = await fetchPatentsAndEmployees();
+
+        if (response && response.employees) {
+          const uniqueEmployeeOptions = [
+            ...new Set(response.employees.map((emp) => emp.full_name)),
+          ].map((name) => ({ value: name, label: name }));
+          setEmployeeOptions(uniqueEmployeeOptions);
         } else {
-          // Sort patents by updated_at date and take the most recent 5
-          const sortedPatents = [...patentsResponse.patents].sort(
-            (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-          ).slice(0, 5);
-          
-          setRecentPatents(sortedPatents);
-          
-          // Calculate metrics from patents
-          const totalPatents = patentsResponse.patents.length;
-          const completedPatents = patentsResponse.patents.filter(
-            p => p.cs_completion_status === 1
-          ).length;
-          const activePatents = patentsResponse.patents.filter(
-            p => !p.completed && !p.withdrawn
-          ).length;
-          
-          // Get unique client IDs
-          const clientIds = new Set(patentsResponse.patents.map(p => p.client_id));
-          
-          // Update metrics with patent-related data
-          setMetrics(prev => ({
-            ...prev,
-            totalPatents,
-            activePatents,
-            completedPatents,
-            totalClients: clientIds.size
-          }));
+          setEmployeeOptions([]);
         }
-        
-        // Fetch employee data for metrics
-        const employeesResponse = await fetchEmployees();
-        if (!employeesResponse.error) {
-          setMetrics(prev => ({
-            ...prev,
-            totalEmployees: employeesResponse.employees.length
-          }));
-        }
-        
-        // Fetch pending reviews for admin
-        if (userRole === 'admin') {
-          const reviewsResponse = await fetchPendingReviews();
-          if (!reviewsResponse.error) {
-            setPendingReviews(reviewsResponse.patents.slice(0, 5));
-            setMetrics(prev => ({
-              ...prev,
-              pendingReviews: reviewsResponse.patents.length
-            }));
-          }
-        }
-        
       } catch (error) {
-        console.error('Error loading dashboard data:', error);
-        toast.error('An error occurred while loading dashboard data');
+        console.error('Error fetching employees:', error);
+        toast.error('Failed to load employee options');
+        setEmployeeOptions([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadDashboardData();
-  }, [userRole]);
+    extractEmployeeOptions();
+  }, []);
+
+  const handleSort = (column: keyof Patent) => {
+    if (column === sortColumn) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedPatents = React.useMemo(() => {
+    if (!sortColumn) return filteredPatents;
+
+    return [...filteredPatents].sort((a, b) => {
+      const aValue = a[sortColumn];
+      const bValue = b[sortColumn];
+
+      if (aValue === null || aValue === undefined) return -1;
+      if (bValue === null || bValue === undefined) return 1;
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+
+      return 0;
+    });
+  }, [filteredPatents, sortColumn, sortDirection]);
+
+  const getEventIcon = (eventType: string) => {
+    if (eventType.includes('created')) {
+      return <User className="h-4 w-4 text-blue-500" />;
+    } else if (eventType.includes('assigned')) {
+      return <User className="h-4 w-4 text-purple-500" />;
+    } else if (eventType.includes('deadline')) {
+      return <CalendarClock className="h-4 w-4 text-orange-500" />;
+    } else if (eventType.includes('draft_completed') || eventType.includes('filing_completed')) {
+      return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+    } else if (eventType.includes('approved')) {
+      return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
+    } else if (eventType.includes('draft')) {
+      return <FileEdit className="h-4 w-4 text-amber-500" />;
+    } else if (eventType.includes('filing') || eventType.includes('file')) {
+      return <FileText className="h-4 w-4 text-sky-500" />;
+    } else {
+      return <Clock className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const formatEventDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy');
+    } catch (e) {
+      return 'Invalid date';
+    }
+  };
+
+  if (!user) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Overview of your patent tracking system
-          </p>
+    <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-4">
+      <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <DashboardCard
+          title="Total Patents"
+          value={allPatents.length}
+          loading={loading}
+        />
+        <DashboardCard
+          title="Patents Assigned to You"
+          value={filterPatentsByUserRole(allPatents).length}
+          loading={loading}
+        />
+        <DashboardCard
+          title="Completed Patents"
+          value={allPatents.filter((patent) => patent.completed).length}
+          loading={loading}
+        />
+        <DashboardCard
+          title="Withdrawn Patents"
+          value={allPatents.filter((patent) => patent.withdrawn).length}
+          loading={loading}
+        />
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h2 className="text-xl font-semibold tracking-tight">Recent Updates</h2>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-grow">
+          <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search patents..."
+            className="pl-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="sm:w-auto">
+              <Filter className="mr-2 h-4 w-4" />
+              Filter
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setSelectedStatus(null)}>
+              All Statuses
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSelectedStatus('withdrawn')}>
+              Withdrawn
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSelectedStatus('completed')}>
+              Completed
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSelectedStatus('idf_sent')}>
+              IDF Sent
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSelectedStatus('invoice_sent')}>
+              Invoice Sent
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Select
+          onValueChange={(value) => setSelectedEmployee(value)}
+          defaultValue={selectedEmployee || ''}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter Employee" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Employees</SelectItem>
+            {employeeOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Metric Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Patents</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.totalPatents}</div>
-            <p className="text-xs text-muted-foreground">
-              {metrics.activePatents} active patents
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed Patents</CardTitle>
-            <FileCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.completedPatents}</div>
-            <p className="text-xs text-muted-foreground">
-              {((metrics.completedPatents / metrics.totalPatents) * 100 || 0).toFixed(1)}% completion rate
-            </p>
-          </CardContent>
-        </Card>
-        
-        {userRole === 'admin' && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{metrics.pendingReviews}</div>
-              <p className="text-xs text-muted-foreground">
-                Items awaiting your approval
-              </p>
-            </CardContent>
-          </Card>
-        )}
-        
-        {userRole === 'admin' && (
-          <>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{metrics.totalEmployees}</div>
-                <p className="text-xs text-muted-foreground">
-                  Drafters and filers in the system
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
-                <Briefcase className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{metrics.totalClients}</div>
-                <p className="text-xs text-muted-foreground">
-                  Unique clients with patents
-                </p>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
-
-      {/* Recent Patents */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Patents</CardTitle>
-          <CardDescription>Latest patent activity in the system</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center p-6">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : recentPatents.length === 0 ? (
-            <div className="text-center p-6">
-              <FileText className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
-              <h3 className="mt-4 text-lg font-semibold">No patents found</h3>
-              <p className="text-sm text-muted-foreground">
-                There are no patents in the system yet
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {recentPatents.map(patent => (
-                <PatentCard key={patent.id} patent={patent} isCompact />
-              ))}
-              <div className="text-center mt-4">
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/patents">View all patents <ChevronRight className="h-4 w-4 ml-1" /></Link>
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Pending Reviews - Only show for admin */}
-      {userRole === 'admin' && pendingReviews.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Pending Reviews</CardTitle>
-                <CardDescription>Patents waiting for your approval</CardDescription>
-              </div>
-              {pendingReviews.length > 0 && (
-                <div className="bg-red-100 text-red-800 rounded-full px-3 py-1 text-sm font-medium">
-                  {pendingReviews.length} pending
-                </div>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {pendingReviews.map(patent => (
-                <PatentCard key={patent.id} patent={patent} isCompact showReviewBadge />
-              ))}
-              <div className="text-center mt-4">
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/approvals">View all approvals <ChevronRight className="h-4 w-4 ml-1" /></Link>
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sortedPatents.map((patent) => (
+            <PatentCard key={patent.id} patent={patent} isCompact={true} />
+          ))}
+        </div>
       )}
 
-      {/* Client Overview - Only show for admin */}
-      {userRole === 'admin' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Client Overview</CardTitle>
-            <CardDescription>Summary of client patents and status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center p-4">
-              <Building className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
-              <h3 className="mt-4 text-lg font-semibold">Client Dashboard</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                View detailed information about client patents
-              </p>
-              <Button asChild>
-                <Link to="/clients">View Client Dashboard</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h2 className="text-xl font-semibold tracking-tight">Recent Updates</h2>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sortedPatents.slice(0, 6).map((patent) => (
+            <PatentCard key={patent.id} patent={patent} isCompact={true} showReviewBadge={true} />
+          ))}
+        </div>
       )}
     </div>
   );

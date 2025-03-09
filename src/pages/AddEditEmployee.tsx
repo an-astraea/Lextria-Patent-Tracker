@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
-import { EmployeeFormData } from '@/lib/types';
+import { Employee, EmployeeFormData, EmployeeResponse } from '@/lib/types';
 import { toast } from 'sonner';
 import { createEmployee, updateEmployee, fetchEmployeeById } from '@/lib/api';
 
@@ -55,8 +55,11 @@ const AddEditEmployee = () => {
       if (isEditing && id) {
         try {
           setLoading(true);
-          const employee = await fetchEmployeeById(id);
-          if (employee && !('error' in employee)) {
+          const response = await fetchEmployeeById(id);
+          
+          if (response && !('error' in response)) {
+            // Cast the response to Employee type
+            const employee = response as Employee;
             setFormData({
               emp_id: employee.emp_id,
               full_name: employee.full_name,
@@ -87,7 +90,10 @@ const AddEditEmployee = () => {
   };
   
   const handleRoleChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, role: value as 'admin' | 'drafter' | 'filer' | 'employee' }));
+    setFormData((prev) => ({ 
+      ...prev, 
+      role: value as 'admin' | 'drafter' | 'filer' | 'employee' 
+    }));
   };
   
   const validateForm = (): boolean => {

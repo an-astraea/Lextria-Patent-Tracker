@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -62,7 +61,7 @@ import {
 const AddEditPatent = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const isEditMode = !!id;
+  const isEditing = !!id;
   
   // Get user from localStorage
   const userString = localStorage.getItem('user');
@@ -122,12 +121,12 @@ const AddEditPatent = () => {
   
   // Generate unique tracking ID
   useEffect(() => {
-    if (!isEditMode) {
+    if (!isEditing) {
       const timestamp = new Date().getTime();
       const randomNum = Math.floor(Math.random() * 1000);
       setFormData(prev => ({ ...prev, tracking_id: `PAT-${timestamp}-${randomNum}` }));
     }
-  }, [isEditMode]);
+  }, [isEditing]);
   
   // Fetch employees for dropdown menus
   useEffect(() => {
@@ -146,41 +145,45 @@ const AddEditPatent = () => {
   
   // Load patent data if in edit mode
   useEffect(() => {
-    const getPatent = async () => {
-      if (isEditMode && id) {
+    const fetchPatentData = async () => {
+      if (isEditing && id) {
         try {
           setLoading(true);
-          const patent = await fetchPatentById(id);
-          if (patent) {
+          const patentData = await fetchPatentById(id);
+          
+          if (patentData && 'patent' in patentData && patentData.patent) {
+            // Access properties from the patent object
+            const patent = patentData.patent;
             setFormData({
-              tracking_id: patent.tracking_id,
-              patent_applicant: patent.patent_applicant,
-              client_id: patent.client_id,
+              tracking_id: patent.tracking_id || '',
+              patent_applicant: patent.patent_applicant || '',
+              client_id: patent.client_id || '',
               application_no: patent.application_no || '',
-              date_of_filing: patent.date_of_filing ? patent.date_of_filing.split('T')[0] : '', // Format date for input
-              patent_title: patent.patent_title,
-              applicant_addr: patent.applicant_addr,
-              inventor_ph_no: patent.inventor_ph_no,
-              inventor_email: patent.inventor_email,
+              date_of_filing: patent.date_of_filing ? patent.date_of_filing.substring(0, 10) : '',
+              patent_title: patent.patent_title || '',
+              applicant_addr: patent.applicant_addr || '',
+              inventor_ph_no: patent.inventor_ph_no || '',
+              inventor_email: patent.inventor_email || '',
               ps_drafter_assgn: patent.ps_drafter_assgn || '',
-              ps_drafter_deadline: patent.ps_drafter_deadline ? patent.ps_drafter_deadline.split('T')[0] : '',
+              ps_drafter_deadline: patent.ps_drafter_deadline ? patent.ps_drafter_deadline.substring(0, 10) : '',
               ps_filer_assgn: patent.ps_filer_assgn || '',
-              ps_filer_deadline: patent.ps_filer_deadline ? patent.ps_filer_deadline.split('T')[0] : '',
+              ps_filer_deadline: patent.ps_filer_deadline ? patent.ps_filer_deadline.substring(0, 10) : '',
               cs_drafter_assgn: patent.cs_drafter_assgn || '',
-              cs_drafter_deadline: patent.cs_drafter_deadline ? patent.cs_drafter_deadline.split('T')[0] : '',
+              cs_drafter_deadline: patent.cs_drafter_deadline ? patent.cs_drafter_deadline.substring(0, 10) : '',
               cs_filer_assgn: patent.cs_filer_assgn || '',
-              cs_filer_deadline: patent.cs_filer_deadline ? patent.cs_filer_deadline.split('T')[0] : '',
+              cs_filer_deadline: patent.cs_filer_deadline ? patent.cs_filer_deadline.substring(0, 10) : '',
               fer_status: patent.fer_status,
               fer_drafter_assgn: patent.fer_drafter_assgn || '',
-              fer_drafter_deadline: patent.fer_drafter_deadline ? patent.fer_drafter_deadline.split('T')[0] : '',
+              fer_drafter_deadline: patent.fer_drafter_deadline ? patent.fer_drafter_deadline.substring(0, 10) : '',
               fer_filer_assgn: patent.fer_filer_assgn || '',
-              fer_filer_deadline: patent.fer_filer_deadline ? patent.fer_filer_deadline.split('T')[0] : '',
-              inventors: patent.inventors && patent.inventors.length > 0
-                ? patent.inventors.map(inv => ({ inventor_name: inv.inventor_name, inventor_addr: inv.inventor_addr }))
-                : [{ inventor_name: '', inventor_addr: '' }]
+              fer_filer_deadline: patent.fer_filer_deadline ? patent.fer_filer_deadline.substring(0, 10) : '',
+              inventors: patent.inventors ? patent.inventors.map(inv => ({
+                inventor_name: inv.inventor_name,
+                inventor_addr: inv.inventor_addr
+              })) : [{ inventor_name: '', inventor_addr: '' }]
             });
             
-            // Set FER entries if available
+            // Set FER entries
             if (patent.fer_entries && patent.fer_entries.length > 0) {
               setFerEntries(patent.fer_entries);
             }
@@ -189,7 +192,7 @@ const AddEditPatent = () => {
             navigate('/patents');
           }
         } catch (error) {
-          console.error('Error loading patent data:', error);
+          console.error('Error fetching patent data:', error);
           toast.error('Failed to load patent data');
         } finally {
           setLoading(false);
@@ -197,8 +200,8 @@ const AddEditPatent = () => {
       }
     };
     
-    getPatent();
-  }, [id, isEditMode, navigate]);
+    fetchPatentData();
+  }, [id, isEditing, navigate]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -366,7 +369,7 @@ const AddEditPatent = () => {
     try {
       setLoading(true);
       
-      if (isEditMode && id) {
+      if (isEditing && id) {
         // Update existing patent
         const success = await updatePatent(id, formData);
         if (success) {
@@ -404,7 +407,7 @@ const AddEditPatent = () => {
       }
     } catch (error) {
       console.error('Error saving patent:', error);
-      toast.error(`Failed to ${isEditMode ? 'update' : 'create'} patent`);
+      toast.error(`Failed to ${isEditing ? 'update' : 'create'} patent`);
     } finally {
       setLoading(false);
     }
@@ -420,7 +423,7 @@ const AddEditPatent = () => {
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-2xl font-bold">{isEditMode ? 'Edit Patent' : 'Add New Patent'}</h1>
+        <h1 className="text-2xl font-bold">{isEditing ? 'Edit Patent' : 'Add New Patent'}</h1>
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -439,7 +442,7 @@ const AddEditPatent = () => {
                   value={formData.tracking_id} 
                   onChange={handleChange} 
                   required
-                  readOnly={isEditMode}
+                  readOnly={isEditing}
                 />
               </div>
               
@@ -830,7 +833,7 @@ const AddEditPatent = () => {
         </Card>
         
         {/* FER Entries Card - Only show in edit mode when fer_status is enabled */}
-        {isEditMode && formData.fer_status === 1 && (
+        {isEditing && formData.fer_status === 1 && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
@@ -944,12 +947,12 @@ const AddEditPatent = () => {
             {loading ? (
               <>
                 <span className="animate-spin mr-2">⟳</span>
-                {isEditMode ? 'Updating...' : 'Creating...'}
+                {isEditing ? 'Updating...' : 'Creating...'}
               </>
             ) : (
               <>
                 <Save className="mr-2 h-4 w-4" />
-                {isEditMode ? 'Update Patent' : 'Create Patent'}
+                {isEditing ? 'Update Patent' : 'Create Patent'}
               </>
             )}
           </Button>
