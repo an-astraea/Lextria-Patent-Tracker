@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,17 +18,19 @@ import {
   SendHorizontal, 
   RadioTower, 
   CheckCircle2, 
-  Clock 
+  Clock,
+  Loader2
 } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Patent } from '@/lib/types';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface TimelineDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   milestones: any[];
-  children?: React.ReactNode; // Added children prop
-  patent?: Patent; // Added patent prop
+  children?: React.ReactNode;
+  patent?: Patent;
 }
 
 const TimelineDialog: React.FC<TimelineDialogProps> = ({ 
@@ -36,8 +38,44 @@ const TimelineDialog: React.FC<TimelineDialogProps> = ({
   onOpenChange, 
   milestones,
   children,
-  patent // Add the patent parameter
+  patent
 }) => {
+  const [loading, setLoading] = useState(false);
+  const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    // If dialog is open and we have a patent ID, fetch the timeline data
+    if (open && patent?.id) {
+      fetchTimelineData(patent.id);
+    }
+  }, [open, patent?.id]);
+
+  const fetchTimelineData = async (patentId: string) => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('patent_timeline')
+        .select('*')
+        .eq('patent_id', patentId)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      console.log('Timeline dialog data:', data);
+      
+      if (data) {
+        setTimelineEvents(data);
+      }
+    } catch (error) {
+      console.error('Error fetching timeline data for dialog:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getEventIcon = (eventType: string) => {
     if (eventType.includes('draft') || eventType.includes('drafting')) {
       return <FileEdit className="h-4 w-4 text-amber-500" />;
@@ -69,11 +107,14 @@ const TimelineDialog: React.FC<TimelineDialogProps> = ({
     return null;
   };
 
-  // Ensure milestones is an array
-  const milestonesArray = Array.isArray(milestones) ? milestones : [];
+  // Use direct timeline events data or fallback to milestones
+  const eventsToDisplay = timelineEvents.length > 0 ? timelineEvents : milestones;
+
+  // Ensure data is an array
+  const eventsArray = Array.isArray(eventsToDisplay) ? eventsToDisplay : [];
 
   // Sort newest first
-  const sortedMilestones = [...milestonesArray].sort(
+  const sortedEvents = [...eventsArray].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
@@ -87,60 +128,66 @@ const TimelineDialog: React.FC<TimelineDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="mt-4 h-[calc(90vh-160px)]">
-          <div className="space-y-4 p-1">
-            {sortedMilestones.length > 0 ? (
-              sortedMilestones.map((event, index) => (
-                <div 
-                  key={event.id || index} 
-                  className="flex gap-4 p-3 border rounded-lg hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex-shrink-0 flex items-start pt-1">
-                    {getEventIcon(event.event_type)}
-                  </div>
-                  
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-medium">
-                        {event.event_type.replace(/_/g, ' ')}
-                      </h4>
-                      {getStatusBadge(event.status)}
-                    </div>
-                    
-                    <p className="text-sm mt-1">{event.event_description}</p>
-                    
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
-                      {event.created_at && (
-                        <div className="flex items-center gap-1">
-                          <CalendarClock className="h-3 w-3" />
-                          <span>{format(new Date(event.created_at), 'PPpp')}</span>
-                        </div>
-                      )}
-                      
-                      {event.employee_name && (
-                        <div className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          <span>{event.employee_name}</span>
-                        </div>
-                      )}
-                      
-                      {event.deadline_date && (
-                        <div className="flex items-center gap-1 text-amber-600">
-                          <CalendarClock className="h-3 w-3" />
-                          <span>Due: {format(new Date(event.deadline_date), 'PPp')}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                No timeline events available
-              </div>
-            )}
+        {loading ? (
+          <div className="flex justify-center items-center h-[50vh]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        </ScrollArea>
+        ) : (
+          <ScrollArea className="mt-4 h-[calc(90vh-160px)]">
+            <div className="space-y-4 p-1">
+              {sortedEvents.length > 0 ? (
+                sortedEvents.map((event, index) => (
+                  <div 
+                    key={event.id || index} 
+                    className="flex gap-4 p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex-shrink-0 flex items-start pt-1">
+                      {getEventIcon(event.event_type)}
+                    </div>
+                    
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-medium">
+                          {event.event_type.replace(/_/g, ' ')}
+                        </h4>
+                        {getStatusBadge(event.status)}
+                      </div>
+                      
+                      <p className="text-sm mt-1">{event.event_description}</p>
+                      
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                        {event.created_at && (
+                          <div className="flex items-center gap-1">
+                            <CalendarClock className="h-3 w-3" />
+                            <span>{format(new Date(event.created_at), 'PPpp')}</span>
+                          </div>
+                        )}
+                        
+                        {event.employee_name && (
+                          <div className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            <span>{event.employee_name}</span>
+                          </div>
+                        )}
+                        
+                        {event.deadline_date && (
+                          <div className="flex items-center gap-1 text-amber-600">
+                            <CalendarClock className="h-3 w-3" />
+                            <span>Due: {format(new Date(event.deadline_date), 'PPp')}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No timeline events available
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        )}
       </DialogContent>
     </Dialog>
   );

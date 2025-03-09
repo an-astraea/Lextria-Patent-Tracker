@@ -28,6 +28,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TimelineEvent {
   id: string;
@@ -61,18 +62,31 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({
     const fetchTimelineData = async () => {
       try {
         setLoading(true);
-        // Mock API call - in a real app, you would fetch from your API
-        // const response = await fetchPatentTimeline(patentId);
-        // setTimelineData(response);
         
-        // For now, use any provided timeline data or empty array
-        if (timeline && timeline.length > 0) {
-          setTimelineData(timeline);
+        if (!patentId) {
+          console.error('Patent ID is required to fetch timeline data');
+          return;
         }
         
-        // If we have setTimelineMilestones as a prop, update it
-        if (setTimelineMilestones) {
-          setTimelineMilestones(timelineData);
+        // Fetch timeline data from Supabase
+        const { data, error } = await supabase
+          .from('patent_timeline')
+          .select('*')
+          .eq('patent_id', patentId)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          throw error;
+        }
+        
+        console.log('Timeline data fetched:', data);
+        
+        if (data) {
+          setTimelineData(data);
+          // If we have setTimelineMilestones as a prop, update it
+          if (setTimelineMilestones) {
+            setTimelineMilestones(data);
+          }
         }
       } catch (error) {
         console.error('Error fetching patent timeline:', error);
@@ -87,7 +101,7 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({
     };
 
     fetchTimelineData();
-  }, [patentId, timeline]);
+  }, [patentId]);
 
   // Sort timeline by date (newest first)
   const sortedTimeline = [...timelineData].sort(
