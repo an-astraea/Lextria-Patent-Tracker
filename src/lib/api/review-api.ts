@@ -1,169 +1,70 @@
 
-import { supabase } from './client';
-import { Patent } from '../types';
-import { approveFERReview } from './fer-api';
+import { supabase } from "@/integrations/supabase/client";
+import { Employee, Patent } from "../types";
+import { toast } from "sonner";
 
-// Function to fetch pending reviews for admin
-export const fetchPendingReviews = async () => {
-  const { data, error } = await supabase
-    .from('patents')
-    .select(`
-      *,
-      inventors (*),
-      fer_entries (*)
-    `)
-    .or('ps_review_draft_status.eq.1,ps_review_file_status.eq.1,cs_review_draft_status.eq.1,cs_review_file_status.eq.1,fer_review_draft_status.eq.1,fer_review_file_status.eq.1');
+// Function to fetch patents that need review by admins
+export const fetchPendingReviews = async (): Promise<Patent[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("patents")
+      .select(`
+        *,
+        inventors(*),
+        fer_history(*)
+      `)
+      .or('ps_review_draft_status.eq.1,ps_review_file_status.eq.1,cs_review_draft_status.eq.1,cs_review_file_status.eq.1,fer_review_draft_status.eq.1,fer_review_file_status.eq.1');
 
-  if (error) {
-    console.error('Error fetching pending reviews:', error);
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching pending reviews:", error);
+    toast.error("Failed to load pending reviews");
     return [];
   }
-
-  return data || [];
 };
 
-// Function to approve a patent review
-export const approvePatentReview = async (patent: Patent, reviewType: string) => {
+// Optimized function to fetch both patents and employees in a single function call
+export const fetchPatentsAndEmployees = async (): Promise<{patents: Patent[], employees: Employee[]}> => {
   try {
-    const updateData: any = {};
-    
-    // Set the appropriate review status field to 0 (marking it as approved)
-    switch (reviewType) {
-      case 'ps_draft':
-        updateData.ps_review_draft_status = 0;
-        break;
-      case 'ps_file':
-        updateData.ps_review_file_status = 0;
-        break;
-      case 'cs_draft':
-        updateData.cs_review_draft_status = 0;
-        break;
-      case 'cs_file':
-        updateData.cs_review_file_status = 0;
-        break;
-      case 'fer_draft':
-        // For FER drafts, we need to find the specific FER entry
-        if (patent.fer_entries && patent.fer_entries.length > 0) {
-          const ferEntry = patent.fer_entries.find(fer => fer.fer_review_draft_status === 1);
-          if (ferEntry) {
-            return await approveFERReview(ferEntry, 'draft');
-          }
-        }
-        break;
-      case 'fer_file':
-        // For FER filings, we need to find the specific FER entry
-        if (patent.fer_entries && patent.fer_entries.length > 0) {
-          const ferEntry = patent.fer_entries.find(fer => fer.fer_review_file_status === 1);
-          if (ferEntry) {
-            return await approveFERReview(ferEntry, 'file');
-          }
-        }
-        break;
-    }
-    
-    // Only update if we have fields to update (not FER)
-    if (Object.keys(updateData).length > 0) {
-      const { error } = await supabase
-        .from('patents')
-        .update(updateData)
-        .eq('id', patent.id);
-      
-      if (error) {
-        console.error('Error approving review:', error);
-        return false;
-      }
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error approving review:', error);
-    return false;
-  }
-};
+    // Make both requests in parallel using Promise.all
+    const [patentsResponse, employeesResponse] = await Promise.all([
+      supabase
+        .from("patents")
+        .select(`
+          *,
+          inventors(*),
+          fer_history(*)
+        `),
+      supabase
+        .from("employees")
+        .select("*")
+    ]);
 
-// Function to reject a patent review
-export const rejectPatentReview = async (patent: Patent, reviewType: string) => {
-  try {
-    const updateData: any = {};
-    
-    // Set the appropriate status fields based on which review is being rejected
-    switch (reviewType) {
-      case 'ps_draft':
-        updateData.ps_review_draft_status = 0;
-        updateData.ps_drafting_status = 0;
-        break;
-      case 'ps_file':
-        updateData.ps_review_file_status = 0;
-        updateData.ps_filing_status = 0;
-        break;
-      case 'cs_draft':
-        updateData.cs_review_draft_status = 0;
-        updateData.cs_drafting_status = 0;
-        break;
-      case 'cs_file':
-        updateData.cs_review_file_status = 0;
-        updateData.cs_filing_status = 0;
-        break;
-      case 'fer_draft':
-        // For FER drafts, we need to find the specific FER entry
-        if (patent.fer_entries && patent.fer_entries.length > 0) {
-          const ferEntry = patent.fer_entries.find(fer => fer.fer_review_draft_status === 1);
-          if (ferEntry) {
-            const { error } = await supabase
-              .from('fer_entries')
-              .update({
-                fer_review_draft_status: 0,
-                fer_drafter_status: 0
-              })
-              .eq('id', ferEntry.id);
-            
-            if (error) {
-              console.error('Error rejecting FER review:', error);
-              return false;
-            }
-            return true;
-          }
-        }
-        break;
-      case 'fer_file':
-        // For FER filings, we need to find the specific FER entry
-        if (patent.fer_entries && patent.fer_entries.length > 0) {
-          const ferEntry = patent.fer_entries.find(fer => fer.fer_review_file_status === 1);
-          if (ferEntry) {
-            const { error } = await supabase
-              .from('fer_entries')
-              .update({
-                fer_review_file_status: 0,
-                fer_filing_status: 0
-              })
-              .eq('id', ferEntry.id);
-            
-            if (error) {
-              console.error('Error rejecting FER review:', error);
-              return false;
-            }
-            return true;
-          }
-        }
-        break;
+    if (patentsResponse.error) {
+      throw patentsResponse.error;
     }
-    
-    // Only update if we have fields to update (not FER)
-    if (Object.keys(updateData).length > 0) {
-      const { error } = await supabase
-        .from('patents')
-        .update(updateData)
-        .eq('id', patent.id);
-      
-      if (error) {
-        console.error('Error rejecting review:', error);
-        return false;
-      }
+
+    if (employeesResponse.error) {
+      throw employeesResponse.error;
     }
-    
-    return true;
+
+    // Cast the roles to the expected type for employees
+    const employees = (employeesResponse.data || []).map(employee => ({
+      ...employee,
+      role: employee.role as 'admin' | 'drafter' | 'filer'
+    }));
+
+    return {
+      patents: patentsResponse.data || [],
+      employees: employees
+    };
   } catch (error) {
-    console.error('Error rejecting review:', error);
-    return false;
+    console.error("Error fetching data:", error);
+    toast.error("Failed to load data");
+    return { patents: [], employees: [] };
   }
 };
