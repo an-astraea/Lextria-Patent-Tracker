@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Patent, 
@@ -350,5 +349,26 @@ export const createFEREntry = async (
   } catch (error: any) {
     console.error("Exception creating FER entry:", error);
     return { error: error.message, success: false };
+  }
+};
+
+// Timeline functions
+export const fetchPatentTimeline = async (patentId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('patent_timeline')
+      .select('*')
+      .eq('patent_id', patentId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error("Error fetching patent timeline:", error);
+      return { error: error.message, timeline: [] };
+    }
+    
+    return data;
+  } catch (error: any) {
+    console.error("Exception fetching patent timeline:", error);
+    return { error: error.message, timeline: [] };
   }
 };
