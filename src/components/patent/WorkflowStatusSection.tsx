@@ -27,6 +27,7 @@ const WorkflowStatusSection = ({ patent, userRole, refreshPatentData }: Workflow
     
     setIsUpdating(field);
     try {
+      // Convert boolean to number (1/0) for API compatibility
       const success = await updatePatentStatus(patent.id, field, value ? 1 : 0);
       if (success) {
         toast.success(`Status updated successfully`);

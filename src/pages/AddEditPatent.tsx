@@ -133,8 +133,12 @@ const AddEditPatent = () => {
   useEffect(() => {
     const getEmployees = async () => {
       try {
-        const employeeData = await fetchEmployees();
-        setEmployees(employeeData);
+        const response = await fetchEmployees();
+        if (response && response.employees) {
+          setEmployees(response.employees);
+        } else {
+          toast.error('Failed to load employees data');
+        }
       } catch (error) {
         console.error('Error fetching employees:', error);
         toast.error('Failed to load employees data');
@@ -366,35 +370,38 @@ const AddEditPatent = () => {
     try {
       setLoading(true);
       
+      // Create a version of formData without inventors for type compatibility
+      const patentData = { ...formData };
+      delete patentData.inventors;
+      
       if (isEditMode && id) {
         // Update existing patent
-        const success = await updatePatent(id, formData);
-        if (success) {
+        const response = await updatePatent(id, patentData);
+        if (response && response.success) {
           toast.success('Patent updated successfully');
           navigate('/patents');
         }
       } else {
         // Create new patent
-        const newPatent = await createPatent(formData);
-        if (newPatent) {
+        const response = await createPatent(patentData);
+        if (response && response.success && response.patent) {
           // Add inventors
           for (const inventor of formData.inventors) {
-            await createInventor({
-              tracking_id: newPatent.tracking_id,
+            await createInventor(response.patent.id, {
               inventor_name: inventor.inventor_name,
               inventor_addr: inventor.inventor_addr
             });
           }
           
           // If FER status is enabled, create the first FER entry
-          if (newPatent.fer_status === 1 && newPatent.id) {
+          if (response.patent.fer_status === 1 && response.patent.id) {
             await createFEREntry(
-              newPatent.id, 
+              response.patent.id, 
               1, // First FER number
-              newPatent.fer_drafter_assgn || undefined,
-              newPatent.fer_drafter_deadline || undefined,
-              newPatent.fer_filer_assgn || undefined,
-              newPatent.fer_filer_deadline || undefined
+              response.patent.fer_drafter_assgn || undefined,
+              response.patent.fer_drafter_deadline || undefined,
+              response.patent.fer_filer_assgn || undefined,
+              response.patent.fer_filer_deadline || undefined
             );
           }
           

@@ -332,8 +332,8 @@ export const completeFilerTask = async (patentId: string, taskType: 'ps' | 'cs' 
         if (formData.form_26 !== undefined) updatedPatent.form_26 = formData.form_26;
         if (formData.form_18 !== undefined) updatedPatent.form_18 = formData.form_18;
         if (formData.form_18a !== undefined) updatedPatent.form_18a = formData.form_18a;
-        if (formData.form_9 !== undefined) updatedPatent.form_9 = formData.form_9;
-        if (formData.form_9a !== undefined) updatedPatent.form_9a = formData.form_9a;
+        if (formData.form_09 !== undefined) updatedPatent.form_09 = formData.form_09;  // Changed from form_9 to form_09
+        if (formData.form_09a !== undefined) updatedPatent.form_09a = formData.form_09a; // Changed from form_9a to form_09a
         if (formData.form_13 !== undefined) updatedPatent.form_13 = formData.form_13;
       }
     } else if (taskType === 'fer') {
@@ -449,8 +449,8 @@ export const rejectPatentReview = async (patentId: string, reviewType: 'ps_draft
         break;
     }
     
-    // Store feedback (in a real app, you'd likely store this in a separate table)
-    updatedPatent.feedback = feedback;
+    // Add feedback to notes instead of a non-existent feedback field
+    updatedPatent.notes = (updatedPatent.notes || '') + `\n[${new Date().toLocaleString()}] Review feedback: ${feedback}`;
     updatedPatent.updated_at = new Date().toISOString();
     MOCK_PATENTS[patentIndex] = updatedPatent;
     

@@ -33,6 +33,7 @@ const PaymentStatusSection = ({ patent, userRole, refreshPatentData }: PaymentSt
     
     setIsUpdating('invoice_sent');
     try {
+      // Convert boolean to number (1/0) for the API
       const success = await updatePatentStatus(patent.id, 'invoice_sent', checked ? 1 : 0);
       if (success) {
         toast.success(`Invoice status updated successfully`);
@@ -54,7 +55,7 @@ const PaymentStatusSection = ({ patent, userRole, refreshPatentData }: PaymentSt
     
     setIsUpdating('payment_status');
     try {
-      // Update the payment status in database
+      // Pass the status as a number - converts string to number
       const success = await updatePatentStatus(patent.id, 'payment_status', status);
       if (success) {
         setPaymentStatus(status);
