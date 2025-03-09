@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import StatusBadge from "@/components/StatusBadge";
@@ -35,14 +34,12 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
   
-  // For payment status
   const [paymentStatus, setPaymentStatus] = useState(patent.payment_status || 'not_sent');
   const [paymentAmount, setPaymentAmount] = useState(patent.payment_amount?.toString() || '0');
   const [paymentReceived, setPaymentReceived] = useState(patent.payment_received?.toString() || '0');
   const [invoiceSent, setInvoiceSent] = useState(patent.invoice_sent || false);
 
   useEffect(() => {
-    // Update state when patent prop changes
     setPaymentStatus(patent.payment_status || 'not_sent');
     setPaymentAmount(patent.payment_amount?.toString() || '0');
     setPaymentReceived(patent.payment_received?.toString() || '0');
@@ -54,43 +51,38 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
     
     setIsUpdating(true);
     try {
-      // Toggle the current status
       const currentValue = patent[field as keyof Patent];
       const newValue = typeof currentValue === 'boolean' ? !currentValue : 1;
       
-      // Special case handling for PS Drafting - requires IDF received
       if (field === 'ps_drafting_status' && newValue === 1 && !patent.idf_received) {
         toast.error('IDF must be received before PS Drafting can be completed');
         setIsUpdating(false);
         return;
       }
       
-      // Special case handling for CS Drafting - requires CS data received
       if (field === 'cs_drafting_status' && newValue === 1 && !patent.cs_data_received) {
         toast.error('CS Data must be received before CS Drafting can be completed');
         setIsUpdating(false);
         return;
       }
       
-      // Update status
+      if (field === 'cs_data_received' && newValue === true && !patent.cs_data) {
+        toast.error('CS Data must be sent before it can be marked as received');
+        setIsUpdating(false);
+        return;
+      }
+      
       await updatePatentStatus(patent.id, field, newValue ? 1 : 0);
       
-      // Additional updates for completion statuses
       if (field === 'ps_drafting_status' && newValue === 1) {
-        // When PS drafting is completed, set review draft status to 1
         await updatePatentStatus(patent.id, 'ps_review_draft_status', 1);
       } else if (field === 'ps_filing_status' && newValue === 1) {
-        // When PS filing is completed, set review file status to 1
         await updatePatentStatus(patent.id, 'ps_review_file_status', 1);
-        // Also update PS completion status
         await updatePatentStatus(patent.id, 'ps_completion_status', 1);
       } else if (field === 'cs_drafting_status' && newValue === 1) {
-        // When CS drafting is completed, set review draft status to 1
         await updatePatentStatus(patent.id, 'cs_review_draft_status', 1);
       } else if (field === 'cs_filing_status' && newValue === 1) {
-        // When CS filing is completed, set review file status to 1
         await updatePatentStatus(patent.id, 'cs_review_file_status', 1);
-        // Also update CS completion status
         await updatePatentStatus(patent.id, 'cs_completion_status', 1);
       }
       
@@ -109,34 +101,26 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
     
     setIsUpdating(true);
     try {
-      // Reset the status to 0
       await updatePatentStatus(patent.id, field, 0);
       
-      // Additional resets for related statuses
       if (field === 'ps_drafting_status') {
-        // When PS drafting is reset, also reset review draft status
         await updatePatentStatus(patent.id, 'ps_review_draft_status', 0);
-        // Also reset PS filing status and completion status if they were set
         if (patent.ps_filing_status === 1) {
           await updatePatentStatus(patent.id, 'ps_filing_status', 0);
           await updatePatentStatus(patent.id, 'ps_review_file_status', 0);
           await updatePatentStatus(patent.id, 'ps_completion_status', 0);
         }
       } else if (field === 'ps_filing_status') {
-        // When PS filing is reset, also reset review file status and completion status
         await updatePatentStatus(patent.id, 'ps_review_file_status', 0);
         await updatePatentStatus(patent.id, 'ps_completion_status', 0);
       } else if (field === 'cs_drafting_status') {
-        // When CS drafting is reset, also reset review draft status
         await updatePatentStatus(patent.id, 'cs_review_draft_status', 0);
-        // Also reset CS filing status and completion status if they were set
         if (patent.cs_filing_status === 1) {
           await updatePatentStatus(patent.id, 'cs_filing_status', 0);
           await updatePatentStatus(patent.id, 'cs_review_file_status', 0);
           await updatePatentStatus(patent.id, 'cs_completion_status', 0);
         }
       } else if (field === 'cs_filing_status') {
-        // When CS filing is reset, also reset review file status and completion status
         await updatePatentStatus(patent.id, 'cs_review_file_status', 0);
         await updatePatentStatus(patent.id, 'cs_completion_status', 0);
       }
@@ -174,7 +158,6 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
     }
   };
 
-  // Define status labels and their corresponding field names
   const patentStatuses = [
     { label: 'Withdrawn', field: 'withdrawn', value: patent.withdrawn },
     { label: 'IDF Sent', field: 'idf_sent', value: patent.idf_sent },
@@ -184,7 +167,6 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
     { label: 'Completed', field: 'completed', value: patent.completed }
   ];
 
-  // Generate payment status display
   const getPaymentStatusDisplay = () => {
     if (!patent.invoice_sent) {
       return 'notSent';
@@ -219,11 +201,9 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
 
   const canEditPayment = userRole === 'admin';
 
-  // Check workflow conditions
   const canStartPSDrafting = patent.idf_received === true;
-  const canStartCSDrafting = patent.cs_data_received === true;
+  const canStartCSDrafting = patent.cs_data_received === true && patent.cs_data === true;
 
-  // Button tooltip content based on workflow conditions
   const getPSDraftingTooltip = () => {
     if (!canStartPSDrafting) {
       return "IDF must be received before PS Drafting can be completed";
@@ -232,15 +212,19 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
   };
 
   const getCSDraftingTooltip = () => {
-    if (!canStartCSDrafting) {
+    if (!patent.cs_data) {
+      return "CS Data must be sent before CS Drafting can be completed";
+    }
+    
+    if (!patent.cs_data_received) {
       return "CS Data must be received before CS Drafting can be completed";
     }
+    
     return "";
   };
 
   return (
     <div className="space-y-6">
-      {/* Patent Status Boxes - New Section */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Patent Status</CardTitle>
@@ -248,7 +232,6 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* PS Drafting Status */}
             <div className="border rounded-lg p-4 space-y-3 bg-white">
               <div className="font-medium">PS Drafting Status</div>
               <div className="flex gap-2">
@@ -304,7 +287,6 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               )}
             </div>
 
-            {/* PS Filing Status */}
             <div className="border rounded-lg p-4 space-y-3 bg-white">
               <div className="font-medium">PS Filing Status</div>
               <div className="flex gap-2">
@@ -349,7 +331,6 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               )}
             </div>
 
-            {/* PS Completion Status */}
             <div className="border rounded-lg p-4 space-y-3 bg-white">
               <div className="font-medium">PS Completion Status</div>
               <div className="flex gap-2">
@@ -374,7 +355,6 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               </div>
             </div>
 
-            {/* CS Drafting Status */}
             <div className="border rounded-lg p-4 space-y-3 bg-white">
               <div className="font-medium">CS Drafting Status</div>
               <div className="flex gap-2">
@@ -430,7 +410,6 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               )}
             </div>
 
-            {/* CS Filing Status */}
             <div className="border rounded-lg p-4 space-y-3 bg-white">
               <div className="font-medium">CS Filing Status</div>
               <div className="flex gap-2">
@@ -475,7 +454,6 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               )}
             </div>
 
-            {/* CS Completion Status */}
             <div className="border rounded-lg p-4 space-y-3 bg-white">
               <div className="font-medium">CS Completion Status</div>
               <div className="flex gap-2">
@@ -500,7 +478,6 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               </div>
             </div>
 
-            {/* FER Status */}
             <div className="border rounded-lg p-4 space-y-3 bg-white">
               <div className="font-medium">FER Status</div>
               <div className="flex gap-2">
@@ -555,7 +532,6 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
         </CardContent>
       </Card>
 
-      {/* Original status boxes */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">General Status</CardTitle>
@@ -592,7 +568,6 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
         </CardContent>
       </Card>
 
-      {/* Payment status section */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Payment Status</CardTitle>
@@ -688,3 +663,4 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
 };
 
 export default PatentStatusSection;
+

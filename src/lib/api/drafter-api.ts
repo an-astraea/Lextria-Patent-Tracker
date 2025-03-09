@@ -1,11 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Patent } from "@/lib/types";
 import { toast } from "sonner";
-import { normalizePatents } from "../utils/type-converters";
 
 export const fetchDrafterAssignments = async (drafterName: string): Promise<Patent[]> => {
   try {
-    // Get patents where drafter is assigned with status 0 (pending)
     const { data, error } = await supabase
       .from("patents")
       .select(`
@@ -20,36 +18,27 @@ export const fetchDrafterAssignments = async (drafterName: string): Promise<Pate
       throw error;
     }
 
-    // Normalize data to ensure type compatibility
     const normalizedData = normalizePatents(data || []);
 
-    // Now we need to filter for proper queue order with approval dependencies
     return normalizedData.filter(patent => {
-      // If assigned to PS drafting and it's not completed
       if (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 0) {
         return true;
       }
       
-      // If assigned to CS drafting
       if (patent.cs_drafter_assgn === drafterName && patent.cs_drafting_status === 0) {
-        // Case 1: Patent starts from CS (no PS drafter assigned)
         if (!patent.ps_drafter_assgn) {
           return true;
         }
         
-        // Case 2: PS must be completed or admin has manually set CS as ready
         const psCompleted = patent.ps_completion_status === 1;
         return psCompleted;
       }
       
-      // If assigned to FER drafting and previous stages are completed or not required
       if (patent.fer_drafter_assgn === drafterName && patent.fer_drafter_status === 0 && patent.fer_status === 1) {
-        // Case 1: Patent starts from FER (no PS/CS assignees)
         if (!patent.ps_drafter_assgn && !patent.cs_drafter_assgn) {
           return true;
         }
         
-        // Case 2: PS and CS must be completed if they were assigned
         const psCompleted = !patent.ps_drafter_assgn || patent.ps_completion_status === 1;
         const csCompleted = !patent.cs_drafter_assgn || patent.cs_completion_status === 1;
         return psCompleted && csCompleted;
@@ -144,11 +133,11 @@ export const fetchDrafterPatents = async (drafterName: string) => {
       .eq('cs_drafter_assgn', drafterName)
       .eq('cs_drafting_status', 0)
       .is('withdrawn', false)
-      .filter('cs_data_received', 'eq', true); // Only show patents where CS Data has been received
+      .filter('cs_data_received', 'eq', true)
+      .filter('idf_received', 'eq', true); // Also ensure IDF has been received
 
     if (csError) throw csError;
 
-    // Fetch FER entries assigned to this drafter
     const { data: ferEntries, error: ferError } = await supabase
       .from('fer_entries')
       .select('*, patent:patents(*)')
@@ -158,13 +147,11 @@ export const fetchDrafterPatents = async (drafterName: string) => {
 
     if (ferError) throw ferError;
 
-    // Combine the patents, identifying their type for UI display
     const combinedPatents = [
       ...psPatents.map(patent => ({ ...patent, draftType: 'ps' })),
       ...csPatents.map(patent => ({ ...patent, draftType: 'cs' })),
     ];
 
-    // Transform FER entries into a compatible format
     const ferPatents = ferEntries.map(entry => ({
       ...entry.patent,
       fer_entry_id: entry.id,
@@ -172,7 +159,6 @@ export const fetchDrafterPatents = async (drafterName: string) => {
       draftType: 'fer'
     }));
 
-    // Combine all patents
     return [...combinedPatents, ...ferPatents];
   } catch (error) {
     console.error('Error fetching drafter patents:', error);

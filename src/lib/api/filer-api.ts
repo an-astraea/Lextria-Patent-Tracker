@@ -1,152 +1,124 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Patent } from "@/lib/types";
 import { toast } from "sonner";
-import { normalizePatents } from "../utils/type-converters";
 
-export const fetchFilerAssignments = async (filerName: string): Promise<Patent[]> => {
+export const fetchFilerPatents = async (filerName: string) => {
   try {
-    // Get patents where filer is assigned with status 0 (pending)
-    const { data, error } = await supabase
-      .from("patents")
-      .select(`
-        *,
-        inventors(*),
-        fer_history(*)
-      `)
-      .or(`ps_filer_assgn.eq.${filerName},cs_filer_assgn.eq.${filerName},fer_filer_assgn.eq.${filerName}`)
-      .or('ps_filing_status.eq.0,cs_filing_status.eq.0,fer_filing_status.eq.0');
+    // For PS filings - only show when PS drafting is completed AND IDF has been received
+    const { data: psPatents, error: psError } = await supabase
+      .from('patents')
+      .select('*')
+      .eq('ps_filer_assgn', filerName)
+      .eq('ps_filing_status', 0)
+      .eq('ps_drafting_status', 1)  // PS Drafting must be completed
+      .is('withdrawn', false)
+      .filter('idf_received', 'eq', true); // IDF must be received
 
-    if (error) {
-      throw error;
+    if (psError) throw psError;
+
+    // For CS filings - only show when CS drafting is completed AND CS data has been received
+    const { data: csPatents, error: csError } = await supabase
+      .from('patents')
+      .select('*')
+      .eq('cs_filer_assgn', filerName)
+      .eq('cs_filing_status', 0)
+      .eq('cs_drafting_status', 1)  // CS Drafting must be completed
+      .is('withdrawn', false)
+      .filter('cs_data_received', 'eq', true)
+      .filter('idf_received', 'eq', true); // Also ensure IDF has been received
+
+    if (csError) throw csError;
+
+    // Fetch FER entries assigned to this filer
+    const { data: ferEntries, error: ferError } = await supabase
+      .from('fer_entries')
+      .select('*, patent:patents(*)')
+      .eq('fer_filer_assgn', filerName)
+      .eq('fer_filing_status', 0)
+      .eq('fer_drafter_status', 1)  // FER Drafting must be completed
+      .is('patent.withdrawn', false);
+
+    if (ferError) throw ferError;
+
+    // Combine the patents, identifying their type for UI display
+    const combinedPatents = [
+      ...psPatents.map(patent => ({ ...patent, filingType: 'ps' })),
+      ...csPatents.map(patent => ({ ...patent, filingType: 'cs' })),
+    ];
+
+    // Transform FER entries into a compatible format
+    const ferPatents = ferEntries.map(entry => ({
+      ...entry.patent,
+      fer_entry_id: entry.id,
+      fer_number: entry.fer_number,
+      filingType: 'fer'
+    }));
+
+    // Combine all patents
+    return [...combinedPatents, ...ferPatents];
+  } catch (error) {
+    console.error('Error fetching filer patents:', error);
+    throw error;
+  }
+};
+
+export const completeFilerTask = async (patent: Patent, filerName: string, formValues: Record<string, boolean>) => {
+  try {
+    // Determine which task is being completed based on the patent's current status
+    let taskType: 'ps' | 'cs' | 'fer' | null = null;
+
+    if (patent.ps_filer_assgn === filerName && patent.ps_filing_status === 0 && patent.ps_drafting_status === 1) {
+      taskType = 'ps';
+    } else if (patent.cs_filer_assgn === filerName && patent.cs_filing_status === 0 && patent.cs_drafting_status === 1) {
+      taskType = 'cs';
+    } else if (patent.fer_filer_assgn === filerName && patent.fer_filing_status === 0 && patent.fer_drafter_status === 1) {
+      taskType = 'fer';
     }
 
-    // Normalize the data to ensure type compatibility
-    const normalizedData = normalizePatents(data || []);
-
-    // Filter for proper queue order and dependencies with approval requirements
-    return normalizedData.filter(patent => {
-      // If assigned to PS filing and it's not completed
-      if (patent.ps_filer_assgn === filerName && patent.ps_filing_status === 0) {
-        // PS drafting must be completed and approved
-        return patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0;
-      }
-      
-      // If assigned to CS filing
-      if (patent.cs_filer_assgn === filerName && patent.cs_filing_status === 0) {
-        // Case 1: Patent starts from CS (no PS filer assigned)
-        if (!patent.ps_filer_assgn) {
-          // CS drafting must be completed and approved
-          return patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0;
-        }
-        
-        // Case 2: Normal flow - PS must be completed
-        const psCompleted = patent.ps_completion_status === 1;
-        // CS drafting must be completed and approved
-        const csDraftApproved = patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0;
-        return psCompleted && csDraftApproved;
-      }
-      
-      // If assigned to FER filing
-      if (patent.fer_filer_assgn === filerName && patent.fer_filing_status === 0 && patent.fer_status === 1) {
-        // Case 1: Patent starts from FER (no PS/CS assignees)
-        if (!patent.ps_filer_assgn && !patent.cs_filer_assgn) {
-          // FER drafting must be completed and approved
-          return patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0;
-        }
-        
-        // Case 2: Normal flow - Previous stages must be completed if they were assigned
-        const psCompleted = !patent.ps_filer_assgn || patent.ps_completion_status === 1;
-        const csCompleted = !patent.cs_filer_assgn || patent.cs_completion_status === 1;
-        // FER drafting must be completed and approved
-        const ferDraftApproved = patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0;
-        return psCompleted && csCompleted && ferDraftApproved;
-      }
-      
+    if (!taskType) {
+      console.warn('No matching task found for this user and patent.');
       return false;
+    }
+
+    // Start the database update
+    const updates: { [key: string]: any } = {};
+
+    if (taskType === 'ps') {
+      updates.ps_filing_status = 1;
+      updates.ps_review_file_status = 1;
+      updates.ps_completion_status = 1;
+    } else if (taskType === 'cs') {
+      updates.cs_filing_status = 1;
+      updates.cs_review_file_status = 1;
+      updates.cs_completion_status = 1;
+    } else if (taskType === 'fer') {
+      updates.fer_filing_status = 1;
+      updates.fer_review_file_status = 1;
+      updates.fer_completion_status = 1;
+    }
+
+    // Update form values
+    Object.keys(formValues).forEach(key => {
+      updates[key] = formValues[key];
     });
-  } catch (error) {
-    console.error("Error fetching filer assignments:", error);
-    toast.error("Failed to load filing assignments");
-    return [];
-  }
-};
 
-export const fetchFilerCompletedAssignments = async (filerName: string): Promise<Patent[]> => {
-  try {
     const { data, error } = await supabase
-      .from("patents")
-      .select(`
-        *,
-        inventors(*),
-        fer_history(*)
-      `)
-      .or(`ps_filer_assgn.eq.${filerName},cs_filer_assgn.eq.${filerName},fer_filer_assgn.eq.${filerName}`)
-      .or('ps_filing_status.eq.1,cs_filing_status.eq.1,fer_filing_status.eq.1');
+      .from('patents')
+      .update(updates)
+      .eq('id', patent.id)
+      .select()
+      .single();
 
     if (error) {
-      throw error;
-    }
-
-    return normalizePatents(data || []);
-  } catch (error) {
-    console.error("Error fetching completed filing assignments:", error);
-    toast.error("Failed to load completed assignments");
-    return [];
-  }
-};
-
-export const completeFilerTask = async (
-  patent: Patent,
-  filerName: string,
-  formData?: Record<string, boolean>
-): Promise<boolean> => {
-  try {
-    const updateData: Record<string, any> = {};
-    
-    if (patent.ps_filer_assgn === filerName && patent.ps_filing_status === 0) {
-      updateData.ps_filing_status = 1;
-      updateData.ps_review_file_status = 1; // Set for review
-      // Update PS completion status if both drafting and filing are done
-      if (patent.ps_drafting_status === 1) {
-        updateData.ps_completion_status = 1;
-      }
-    } else if (patent.cs_filer_assgn === filerName && patent.cs_filing_status === 0) {
-      updateData.cs_filing_status = 1;
-      updateData.cs_review_file_status = 1; // Set for review
-      // Add form data for CS filing
-      if (formData) {
-        Object.assign(updateData, formData);
-      }
-      // Update CS completion status if both drafting and filing are done
-      if (patent.cs_drafting_status === 1) {
-        updateData.cs_completion_status = 1;
-      }
-    } else if (patent.fer_filer_assgn === filerName && patent.fer_filing_status === 0) {
-      updateData.fer_filing_status = 1;
-      updateData.fer_review_file_status = 1; // Set for review
-      // Update FER completion status if both drafting and filing are done
-      if (patent.fer_drafter_status === 1) {
-        updateData.fer_completion_status = 1;
-      }
-    } else {
-      toast.error("No valid filing task found");
+      console.error('Error completing filer task:', error);
+      toast.error('Failed to complete filing task');
       return false;
-    }
-
-    const { error } = await supabase
-      .from("patents")
-      .update(updateData)
-      .eq("id", patent.id);
-
-    if (error) {
-      throw error;
     }
 
     return true;
   } catch (error) {
-    console.error("Error completing filing task:", error);
-    toast.error("Failed to complete filing task");
+    console.error('Error completing filer task:', error);
+    toast.error('An error occurred while completing the filing task');
     return false;
   }
 };
