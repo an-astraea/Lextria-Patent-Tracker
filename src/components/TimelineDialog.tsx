@@ -14,7 +14,15 @@ import {
   AlertCircle,
   File,
   User,
-  Calendar
+  Calendar,
+  Loader2,
+  SendHorizontal,
+  Download,
+  CornerDownRight,
+  RadioTower,
+  BadgeCheck,
+  X,
+  Ban
 } from 'lucide-react';
 
 interface TimelineEvent {
@@ -44,7 +52,11 @@ const TimelineDialog: React.FC<TimelineDialogProps> = ({ patent, children }) => 
         setLoading(true);
         try {
           const timelineData = await fetchPatentTimeline(patent.id);
-          setEvents(timelineData);
+          // Sort events by created_at in reverse order (newest first)
+          const sortedEvents = timelineData.sort((a: TimelineEvent, b: TimelineEvent) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+          setEvents(sortedEvents);
         } catch (error) {
           console.error("Error loading timeline:", error);
         } finally {
@@ -57,20 +69,34 @@ const TimelineDialog: React.FC<TimelineDialogProps> = ({ patent, children }) => 
   }, [open, patent.id]);
 
   const getEventIcon = (eventType: string) => {
-    if (eventType.includes('created')) {
+    if (eventType.includes('patent_created')) {
       return <File className="h-5 w-5 text-blue-500" />;
     } else if (eventType.includes('assigned')) {
       return <User className="h-5 w-5 text-purple-500" />;
     } else if (eventType.includes('deadline')) {
       return <Calendar className="h-5 w-5 text-orange-500" />;
-    } else if (eventType.includes('draft_completed') || eventType.includes('filing_completed')) {
+    } else if (eventType.includes('completed') || eventType.includes('approved')) {
       return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-    } else if (eventType.includes('approved')) {
-      return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
     } else if (eventType.includes('draft')) {
       return <FileEdit className="h-5 w-5 text-amber-500" />;
     } else if (eventType.includes('filing') || eventType.includes('file')) {
       return <FileText className="h-5 w-5 text-sky-500" />;
+    } else if (eventType.includes('idf_status_change')) {
+      if (eventType.includes('received')) {
+        return <Download className="h-5 w-5 text-emerald-500" />;
+      } else {
+        return <SendHorizontal className="h-5 w-5 text-indigo-500" />;
+      }
+    } else if (eventType.includes('cs_data_status_change')) {
+      return <CornerDownRight className="h-5 w-5 text-fuchsia-500" />;
+    } else if (eventType.includes('status_change') && eventType.includes('completed')) {
+      return <BadgeCheck className="h-5 w-5 text-teal-500" />;
+    } else if (eventType.includes('withdrawn')) {
+      return <Ban className="h-5 w-5 text-red-500" />;
+    } else if (eventType.includes('reset')) {
+      return <X className="h-5 w-5 text-gray-500" />;
+    } else if (eventType.includes('fer')) {
+      return <RadioTower className="h-5 w-5 text-blue-600" />;
     } else {
       return <Clock className="h-5 w-5 text-gray-500" />;
     }
@@ -96,7 +122,7 @@ const TimelineDialog: React.FC<TimelineDialogProps> = ({ patent, children }) => 
         <ScrollArea className="h-[400px] mt-4 pr-4">
           {loading ? (
             <div className="flex justify-center items-center h-40">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : events.length > 0 ? (
             <div className="space-y-4">
@@ -127,13 +153,24 @@ const TimelineDialog: React.FC<TimelineDialogProps> = ({ patent, children }) => 
                       </div>
                     )}
                     
+                    {event.employee_name && (
+                      <div className="text-sm mt-1 flex items-center gap-1 text-blue-600">
+                        <User className="h-3.5 w-3.5" />
+                        {event.employee_name}
+                      </div>
+                    )}
+                    
                     {event.status === 1 ? (
                       <div className="text-xs mt-1 px-1.5 py-0.5 rounded-full bg-green-100 text-green-800 w-fit">
                         Completed
                       </div>
-                    ) : (
+                    ) : event.status === 0 ? (
                       <div className="text-xs mt-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 w-fit">
                         Pending
+                      </div>
+                    ) : (
+                      <div className="text-xs mt-1 px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-800 w-fit">
+                        Status: {event.status}
                       </div>
                     )}
                   </div>

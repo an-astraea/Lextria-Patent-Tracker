@@ -6,7 +6,7 @@ import { Patent } from "@/lib/types";
 import { updatePatentStatus, updatePatentPayment } from "@/lib/api";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Check, User, Calendar, AlertCircle } from "lucide-react";
+import { Loader2, Check, User, Calendar, AlertCircle, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -56,10 +56,43 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
     try {
       // Toggle the current status
       const currentValue = patent[field as keyof Patent];
-      const newValue = typeof currentValue === 'boolean' ? !currentValue : true;
+      const newValue = typeof currentValue === 'boolean' ? !currentValue : 1;
       
-      // We need to pass 3 arguments: patentId, field, and value
+      // Special case handling for PS Drafting - requires IDF received
+      if (field === 'ps_drafting_status' && newValue === 1 && !patent.idf_received) {
+        toast.error('IDF must be received before PS Drafting can be completed');
+        setIsUpdating(false);
+        return;
+      }
+      
+      // Special case handling for CS Drafting - requires CS data received
+      if (field === 'cs_drafting_status' && newValue === 1 && !patent.cs_data_received) {
+        toast.error('CS Data must be received before CS Drafting can be completed');
+        setIsUpdating(false);
+        return;
+      }
+      
+      // Update status
       await updatePatentStatus(patent.id, field, newValue ? 1 : 0);
+      
+      // Additional updates for completion statuses
+      if (field === 'ps_drafting_status' && newValue === 1) {
+        // When PS drafting is completed, set review draft status to 1
+        await updatePatentStatus(patent.id, 'ps_review_draft_status', 1);
+      } else if (field === 'ps_filing_status' && newValue === 1) {
+        // When PS filing is completed, set review file status to 1
+        await updatePatentStatus(patent.id, 'ps_review_file_status', 1);
+        // Also update PS completion status
+        await updatePatentStatus(patent.id, 'ps_completion_status', 1);
+      } else if (field === 'cs_drafting_status' && newValue === 1) {
+        // When CS drafting is completed, set review draft status to 1
+        await updatePatentStatus(patent.id, 'cs_review_draft_status', 1);
+      } else if (field === 'cs_filing_status' && newValue === 1) {
+        // When CS filing is completed, set review file status to 1
+        await updatePatentStatus(patent.id, 'cs_review_file_status', 1);
+        // Also update CS completion status
+        await updatePatentStatus(patent.id, 'cs_completion_status', 1);
+      }
       
       toast.success(`Status updated successfully`);
       await refreshPatentData();
@@ -78,6 +111,35 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
     try {
       // Reset the status to 0
       await updatePatentStatus(patent.id, field, 0);
+      
+      // Additional resets for related statuses
+      if (field === 'ps_drafting_status') {
+        // When PS drafting is reset, also reset review draft status
+        await updatePatentStatus(patent.id, 'ps_review_draft_status', 0);
+        // Also reset PS filing status and completion status if they were set
+        if (patent.ps_filing_status === 1) {
+          await updatePatentStatus(patent.id, 'ps_filing_status', 0);
+          await updatePatentStatus(patent.id, 'ps_review_file_status', 0);
+          await updatePatentStatus(patent.id, 'ps_completion_status', 0);
+        }
+      } else if (field === 'ps_filing_status') {
+        // When PS filing is reset, also reset review file status and completion status
+        await updatePatentStatus(patent.id, 'ps_review_file_status', 0);
+        await updatePatentStatus(patent.id, 'ps_completion_status', 0);
+      } else if (field === 'cs_drafting_status') {
+        // When CS drafting is reset, also reset review draft status
+        await updatePatentStatus(patent.id, 'cs_review_draft_status', 0);
+        // Also reset CS filing status and completion status if they were set
+        if (patent.cs_filing_status === 1) {
+          await updatePatentStatus(patent.id, 'cs_filing_status', 0);
+          await updatePatentStatus(patent.id, 'cs_review_file_status', 0);
+          await updatePatentStatus(patent.id, 'cs_completion_status', 0);
+        }
+      } else if (field === 'cs_filing_status') {
+        // When CS filing is reset, also reset review file status and completion status
+        await updatePatentStatus(patent.id, 'cs_review_file_status', 0);
+        await updatePatentStatus(patent.id, 'cs_completion_status', 0);
+      }
       
       toast.success(`Status reset successfully`);
       await refreshPatentData();
@@ -164,14 +226,14 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
   // Button tooltip content based on workflow conditions
   const getPSDraftingTooltip = () => {
     if (!canStartPSDrafting) {
-      return "IDF must be received before PS Drafting can start";
+      return "IDF must be received before PS Drafting can be completed";
     }
     return "";
   };
 
   const getCSFilingTooltip = () => {
     if (!canStartCSFiling) {
-      return "CS Data must be received before CS Drafting can start";
+      return "CS Data must be received before CS Drafting can be completed";
     }
     return "";
   };
@@ -200,7 +262,11 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                         disabled={isUpdating || userRole !== 'admin' || !canStartPSDrafting}
                         className="text-xs px-3 py-1 h-7"
                       >
-                        Completed
+                        {patent.ps_drafting_status === 1 ? (
+                          <><Check className="h-3.5 w-3.5 mr-1" /> Completed</>
+                        ) : (
+                          'Mark Complete'
+                        )}
                       </Button>
                     </span>
                   </TooltipTrigger>
@@ -210,15 +276,15 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                     </TooltipContent>
                   )}
                 </Tooltip>
-                {userRole === 'admin' && (
+                {userRole === 'admin' && patent.ps_drafting_status === 1 && (
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => handleResetStatus('ps_drafting_status')}
-                    disabled={isUpdating || patent.ps_drafting_status !== 1}
+                    disabled={isUpdating}
                     className="text-xs px-3 py-1 h-7"
                   >
-                    Reset
+                    <X className="h-3.5 w-3.5 mr-1" /> Reset
                   </Button>
                 )}
                 {!canStartPSDrafting && (
@@ -231,6 +297,11 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <Calendar className="h-3 w-3" /> Deadline: {patent.ps_drafter_deadline || 'No deadline'}
               </div>
+              {patent.ps_review_draft_status === 1 && (
+                <div className="text-xs px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 w-fit">
+                  Under Review
+                </div>
+              )}
             </div>
 
             {/* PS Filing Status */}
@@ -244,17 +315,21 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                   disabled={isUpdating || userRole !== 'admin' || patent.ps_drafting_status !== 1}
                   className="text-xs px-3 py-1 h-7"
                 >
-                  {patent.ps_filing_status === 1 ? 'Completed' : 'Pending'}
+                  {patent.ps_filing_status === 1 ? (
+                    <><Check className="h-3.5 w-3.5 mr-1" /> Completed</>
+                  ) : (
+                    'Mark Complete'
+                  )}
                 </Button>
-                {userRole === 'admin' && (
+                {userRole === 'admin' && patent.ps_filing_status === 1 && (
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => handleResetStatus('ps_filing_status')}
-                    disabled={isUpdating || patent.ps_filing_status !== 1}
+                    disabled={isUpdating}
                     className="text-xs px-3 py-1 h-7"
                   >
-                    Reset
+                    <X className="h-3.5 w-3.5 mr-1" /> Reset
                   </Button>
                 )}
                 {patent.ps_filing_status === 1 && (
@@ -267,6 +342,11 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <Calendar className="h-3 w-3" /> Deadline: {patent.ps_filer_deadline || 'No deadline'}
               </div>
+              {patent.ps_review_file_status === 1 && (
+                <div className="text-xs px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 w-fit">
+                  Under Review
+                </div>
+              )}
             </div>
 
             {/* PS Completion Status */}
@@ -279,11 +359,18 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                   disabled={true}
                   className="text-xs px-3 py-1 h-7"
                 >
-                  {patent.ps_completion_status === 1 ? 'Completed' : 'Pending'}
+                  {patent.ps_completion_status === 1 ? (
+                    <><Check className="h-3.5 w-3.5 mr-1" /> Completed</>
+                  ) : (
+                    'Pending'
+                  )}
                 </Button>
                 {patent.ps_completion_status === 1 && (
                   <Check className="h-5 w-5 text-green-600" />
                 )}
+              </div>
+              <div className="text-xs text-gray-600 italic mt-1">
+                Automatically updated when PS Filing is completed and approved
               </div>
             </div>
 
@@ -301,7 +388,11 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                         disabled={isUpdating || userRole !== 'admin' || !canStartCSFiling}
                         className="text-xs px-3 py-1 h-7"
                       >
-                        {patent.cs_drafting_status === 1 ? 'Completed' : 'Pending'}
+                        {patent.cs_drafting_status === 1 ? (
+                          <><Check className="h-3.5 w-3.5 mr-1" /> Completed</>
+                        ) : (
+                          'Mark Complete'
+                        )}
                       </Button>
                     </span>
                   </TooltipTrigger>
@@ -311,15 +402,15 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                     </TooltipContent>
                   )}
                 </Tooltip>
-                {userRole === 'admin' && (
+                {userRole === 'admin' && patent.cs_drafting_status === 1 && (
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => handleResetStatus('cs_drafting_status')}
-                    disabled={isUpdating || patent.cs_drafting_status !== 1}
+                    disabled={isUpdating}
                     className="text-xs px-3 py-1 h-7"
                   >
-                    Reset
+                    <X className="h-3.5 w-3.5 mr-1" /> Reset
                   </Button>
                 )}
                 {!canStartCSFiling && (
@@ -332,6 +423,11 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <Calendar className="h-3 w-3" /> Deadline: {patent.cs_drafter_deadline || 'No deadline'}
               </div>
+              {patent.cs_review_draft_status === 1 && (
+                <div className="text-xs px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 w-fit">
+                  Under Review
+                </div>
+              )}
             </div>
 
             {/* CS Filing Status */}
@@ -345,17 +441,21 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                   disabled={isUpdating || userRole !== 'admin' || patent.cs_drafting_status !== 1}
                   className="text-xs px-3 py-1 h-7"
                 >
-                  {patent.cs_filing_status === 1 ? 'Completed' : 'Pending'}
+                  {patent.cs_filing_status === 1 ? (
+                    <><Check className="h-3.5 w-3.5 mr-1" /> Completed</>
+                  ) : (
+                    'Mark Complete'
+                  )}
                 </Button>
-                {userRole === 'admin' && (
+                {userRole === 'admin' && patent.cs_filing_status === 1 && (
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => handleResetStatus('cs_filing_status')}
-                    disabled={isUpdating || patent.cs_filing_status !== 1}
+                    disabled={isUpdating}
                     className="text-xs px-3 py-1 h-7"
                   >
-                    Reset
+                    <X className="h-3.5 w-3.5 mr-1" /> Reset
                   </Button>
                 )}
                 {patent.cs_filing_status === 1 && (
@@ -368,6 +468,11 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <Calendar className="h-3 w-3" /> Deadline: {patent.cs_filer_deadline || 'No deadline'}
               </div>
+              {patent.cs_review_file_status === 1 && (
+                <div className="text-xs px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 w-fit">
+                  Under Review
+                </div>
+              )}
             </div>
 
             {/* CS Completion Status */}
@@ -380,11 +485,18 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                   disabled={true}
                   className="text-xs px-3 py-1 h-7"
                 >
-                  {patent.cs_completion_status === 1 ? 'Completed' : 'Pending'}
+                  {patent.cs_completion_status === 1 ? (
+                    <><Check className="h-3.5 w-3.5 mr-1" /> Completed</>
+                  ) : (
+                    'Pending'
+                  )}
                 </Button>
                 {patent.cs_completion_status === 1 && (
                   <Check className="h-5 w-5 text-green-600" />
                 )}
+              </div>
+              <div className="text-xs text-gray-600 italic mt-1">
+                Automatically updated when CS Filing is completed and approved
               </div>
             </div>
 
@@ -399,17 +511,21 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                   disabled={isUpdating || userRole !== 'admin'}
                   className="text-xs px-3 py-1 h-7"
                 >
-                  {patent.fer_status === 1 ? 'Active' : 'Inactive'}
+                  {patent.fer_status === 1 ? (
+                    <><Check className="h-3.5 w-3.5 mr-1" /> Active</>
+                  ) : (
+                    'Activate'
+                  )}
                 </Button>
-                {userRole === 'admin' && (
+                {userRole === 'admin' && patent.fer_status === 1 && (
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => handleResetStatus('fer_status')}
-                    disabled={isUpdating || patent.fer_status !== 1}
+                    disabled={isUpdating}
                     className="text-xs px-3 py-1 h-7"
                   >
-                    Reset
+                    <X className="h-3.5 w-3.5 mr-1" /> Reset
                   </Button>
                 )}
                 {patent.fer_status === 1 && (
@@ -432,6 +548,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                 <li>CS Drafting requires CS Data to be received</li>
                 <li>CS Filing requires CS Drafting to be completed</li>
                 <li>The patent is considered completed only when Admin marks it as Completed</li>
+                <li>If a patent is marked as Withdrawn, it will be moved to the Withdrawn tab</li>
               </ul>
             </div>
           )}
@@ -460,7 +577,13 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                     onClick={() => handleStatusToggle(status.field)}
                     disabled={isUpdating}
                   >
-                    {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : (status.value ? 'Unmark' : 'Mark')}
+                    {isUpdating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : status.value ? (
+                      <><X className="h-3.5 w-3.5 mr-1" /> Unmark</>
+                    ) : (
+                      <><Check className="h-3.5 w-3.5 mr-1" /> Mark</>
+                    )}
                   </Button>
                 )}
               </div>
