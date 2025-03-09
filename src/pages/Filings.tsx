@@ -75,7 +75,6 @@ const Filings = () => {
       setFerEntries(ferData);
       setInitialLoadComplete(true);
       
-      // Reset to first page when refreshing data
       if (isRefresh) {
         setActivePage(1);
         setCompletedPage(1);
@@ -102,7 +101,6 @@ const Filings = () => {
       if (success) {
         toast.success('Filing task completed');
         
-        // Update local state to reflect changes without needing to reload
         const updatedPatent = { ...patent };
         
         if (patent.ps_filer_assgn === user.full_name) {
@@ -113,10 +111,7 @@ const Filings = () => {
           updatedPatent.cs_review_file_status = 1;
         }
         
-        // Remove from active patents
         setActivePatents(prevPatents => prevPatents.filter(p => p.id !== patent.id));
-        
-        // Add to completed patents
         setCompletedPatents(prevPatents => [updatedPatent, ...prevPatents]);
       }
     } catch (error) {
@@ -129,21 +124,17 @@ const Filings = () => {
     if (!user) return;
     
     try {
-      const success = await completeFERFiling(ferId);
-      if (success) {
+      const response = await completeFERFiling(ferId);
+      if (response.success) {
         toast.success('FER Filing task completed');
         
-        // Update local state to reflect changes without needing to reload
         setFerEntries(prevEntries => {
-          return prevEntries.map(entry => {
-            if (entry.id === ferId) {
-              return { ...entry, fer_filing_status: 1, fer_review_file_status: 1 };
-            }
-            return entry;
-          });
+          return prevEntries.filter(entry => entry.id !== ferId);
         });
+      } else {
+        toast.error(response.error || 'Failed to complete FER filing task');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error completing FER filing task:', error);
       toast.error('Failed to complete FER filing task');
     }
@@ -184,7 +175,6 @@ const Filings = () => {
     return false;
   };
 
-  // Pagination logic
   const paginateData = (data: any[], pageNumber: number) => {
     const startIndex = (pageNumber - 1) * ITEMS_PER_PAGE;
     return data.slice(startIndex, startIndex + ITEMS_PER_PAGE);

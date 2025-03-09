@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Patent, Inventor, Employee, FEREntry, PatentFormData, PatentFilters, TimelineEvent } from "./types";
 import { formatDateForDatabase } from "./utils";
@@ -846,6 +845,28 @@ export const completeFERFilerTask = async (ferEntry: FEREntry) => {
   }
 };
 
+export const completeFERFiling = async (ferId: string) => {
+  try {
+    const { error } = await supabase
+      .from('fer_entries')
+      .update({ 
+        fer_filing_status: 1,
+        fer_review_file_status: 1
+      })
+      .eq('id', ferId);
+    
+    if (error) {
+      console.error("Error completing FER filing task:", error);
+      return { error: error.message, success: false };
+    }
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error("Exception completing FER filing task:", error);
+    return { error: error.message, success: false };
+  }
+};
+
 // Approval functions for Admin
 export const fetchPendingReviews = async () => {
   try {
@@ -1171,3 +1192,4 @@ export const fetchPatentsAndEmployees = async () => {
     return { patents: [], employees: [], error: error.message };
   }
 };
+

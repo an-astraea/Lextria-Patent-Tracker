@@ -1,6 +1,6 @@
 
 // Re-export all API functions
-import { loginUser, registerUser } from './auth-api';
+import { loginUser, logoutUser } from './auth-api';
 import {
   fetchPatents,
   fetchPatentById,
@@ -8,41 +8,61 @@ import {
   updatePatent,
   deletePatent,
   fetchPatentTimeline,
-  fetchFEREntries,
   createFEREntry,
   updateFEREntry
-} from './patent-api';
+} from '../api'; // Import from the main API file since these functions are defined there
+
 import {
   fetchEmployees,
   fetchEmployeeById,
   createEmployee,
   updateEmployee,
-  deleteEmployee,
-  getDrafterTasks,
-  completePSDrafting,
-  completeCSDrawfting,
-  completeFERDrafting
-} from './drafter-api';
+  deleteEmployee
+} from '../api'; // Import employee functions from the main API
+
 import {
-  fetchFilingTasks,
-  completePSFiling,
-  completeCSFiling,
-  completeFERFiling
-} from './filer-api';
+  fetchDrafterAssignments,
+  fetchDrafterCompletedAssignments,
+  fetchDrafterFERAssignments,
+  completeDrafterTask,
+  completeFERDrafterTask
+} from '../api';
+
 import {
-  getReviewTasks,
-  approvePSDrafting,
-  approveCSDrawfting,
-  approveFERDrafting,
-  approvePSFiling,
-  approveCSFiling,
-  approveFERFiling
-} from './review-api';
+  fetchFilerAssignments,
+  fetchFilerCompletedAssignments,
+  fetchFilerFERAssignments,
+  completeFilerTask,
+  completeFERFilerTask
+} from '../api';
+
+import {
+  fetchPendingReviews,
+  approveReview,
+  approveFERReview
+} from '../api';
+
+// Define completeFERFiling function that was missing
+export const completeFERFiling = async (ferId: string) => {
+  try {
+    const { error } = await fetch(`/api/fer/${ferId}/complete-filing`, {
+      method: 'POST',
+    }).then(res => res.json());
+
+    if (error) {
+      return { error, success: false };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message, success: false };
+  }
+}
 
 export {
   // Auth
   loginUser,
-  registerUser,
+  logoutUser,
 
   // Patents
   fetchPatents,
@@ -51,7 +71,6 @@ export {
   updatePatent,
   deletePatent,
   fetchPatentTimeline,
-  fetchFEREntries,
   createFEREntry,
   updateFEREntry,
 
@@ -63,23 +82,21 @@ export {
   deleteEmployee,
 
   // Drafter
-  getDrafterTasks,
-  completePSDrafting,
-  completeCSDrawfting,
-  completeFERDrafting,
+  fetchDrafterAssignments,
+  fetchDrafterCompletedAssignments,
+  fetchDrafterFERAssignments,
+  completeDrafterTask,
+  completeFERDrafterTask,
 
   // Filer
-  fetchFilingTasks,
-  completePSFiling,
-  completeCSFiling,
-  completeFERFiling,
+  fetchFilerAssignments,
+  fetchFilerCompletedAssignments,
+  fetchFilerFERAssignments,
+  completeFilerTask,
+  completeFERFilerTask,
 
   // Review
-  getReviewTasks,
-  approvePSDrafting,
-  approveCSDrawfting,
-  approveFERDrafting,
-  approvePSFiling,
-  approveCSFiling,
-  approveFERFiling
+  fetchPendingReviews,
+  approveReview,
+  approveFERReview
 };

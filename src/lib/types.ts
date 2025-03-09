@@ -334,7 +334,10 @@ export function handleEmployeesResponse(response: ApiEmployeesResponse): Employe
   if (Array.isArray(response)) {
     return response;
   } else if (response && 'employees' in response && Array.isArray(response.employees)) {
-    return response.employees;
+    return response.employees.map(emp => ({
+      ...emp,
+      role: emp.role as 'admin' | 'drafter' | 'filer' | 'employee'
+    }));
   }
   return [];
 }
