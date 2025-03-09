@@ -2,7 +2,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { FEREntry } from "../types";
 
-// Workflow functions for Filers
 export const fetchFilerAssignments = async (filerId: string) => {
   try {
     const { data, error } = await supabase
