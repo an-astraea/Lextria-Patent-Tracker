@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Patent } from '@/lib/types';
@@ -5,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight, FileText, FileCheck, Clock, AlertTriangle, Users, Briefcase, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PatentCard from '@/components/PatentCard';
-import { fetchPatents, fetchEmployees } from '@/lib/api';
+import { fetchPatents, fetchEmployees, fetchPendingReviews } from '@/lib/api';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
