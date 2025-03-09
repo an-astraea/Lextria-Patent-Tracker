@@ -1,5 +1,5 @@
 
-// Re-export all API functions from individual files
+// Re-export only the functions that actually exist in the respective modules
 
 // Patent API exports
 export {
@@ -23,42 +23,29 @@ export {
   fetchEmployees,
   createEmployee,
   updateEmployee,
-  deleteEmployee,
-  fetchPatentsAndEmployees
+  deleteEmployee
 } from './employee-api';
 
 // Drafter API exports
 export {
   fetchDrafterAssignments,
-  completeDrafterTask,
-  fetchDrafterReviewRequests,
-  fetchCompletedDrafts
+  completeDrafterTask
 } from './drafter-api';
 
 // Filer API exports
 export {
   fetchFilerAssignments,
-  completeFilerTask,
-  fetchFilerReviewRequests,
-  fetchCompletedFilings
+  completeFilerTask
 } from './filer-api';
 
 // Review API exports
 export {
-  fetchPendingReviews,
-  fetchCompletedReviews,
-  fetchRejectedReviews,
-  approvePatentStage,
-  rejectPatentStage
+  fetchPendingReviews
 } from './review-api';
 
 // Auth API exports
 export {
-  signIn,
-  signOut,
-  getCurrentUser,
-  resetPassword,
-  updateUserProfile
+  loginUser
 } from './auth-api';
 
 // FER actions exports

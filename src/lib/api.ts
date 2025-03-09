@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 import { EmployeeFormData, FEREntry, PatentFormData, Patent, Employee } from './types';
@@ -83,7 +82,7 @@ export const fetchPatentsAndEmployees = async () => {
   const patents = await fetchPatents();
   const employees = await fetchEmployees();
   
-  return { patents, employees, error: null };
+  return { patents, employees };
 };
 
 // Function to fetch pending reviews for admin
@@ -1124,4 +1123,25 @@ export const updatePatentFERCompletionStatus = async (patentId: string) => {
     console.error('Error updating patent FER completion status:', error);
     return false;
   }
+};
+
+// Function to update patent payment information
+export const updatePatentPayment = async (patentId: string, paymentData: { 
+  payment_status?: string;
+  payment_amount?: number;
+  payment_received?: number;
+  invoice_sent?: boolean;
+}) => {
+  const { data, error } = await supabase
+    .from('patents')
+    .update(paymentData)
+    .eq('id', patentId)
+    .select();
+  
+  if (error) {
+    console.error('Error updating patent payment:', error);
+    return false;
+  }
+  
+  return true;
 };
