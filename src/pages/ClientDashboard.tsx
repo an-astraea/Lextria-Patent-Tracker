@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { fetchPatents } from '@/lib/api';
 import { Patent } from '@/lib/types';
@@ -140,15 +141,15 @@ const ClientDashboard = () => {
 
   const getFormCompletionPercentage = (patent: Patent) => {
     const formFields = [
-      patent.form_1, patent.form_2, patent.form_3, 
+      patent.form_1, patent.form_2_ps, patent.form_2_cs, patent.form_3, 
       patent.form_4, patent.form_5, patent.form_6, patent.form_7, 
-      patent.form_8, patent.form_9, patent.form_9a, patent.form_10, 
-      patent.form_11, patent.form_12, patent.form_13,
-      patent.form_14, patent.form_15, patent.form_16, patent.form_17,
-      patent.form_18, patent.form_18a, patent.form_19, patent.form_20,
-      patent.form_21, patent.form_22, patent.form_23, patent.form_24,
-      patent.form_25, patent.form_26, patent.form_27, patent.form_28,
-      patent.form_29, patent.form_30, patent.form_31
+      patent.form_7a, patent.form_8, patent.form_8a, patent.form_9, 
+      patent.form_9a, patent.form_10, patent.form_11, patent.form_12, 
+      patent.form_13, patent.form_14, patent.form_15, patent.form_16, 
+      patent.form_17, patent.form_18, patent.form_18a, patent.form_19, 
+      patent.form_20, patent.form_21, patent.form_22, patent.form_23, 
+      patent.form_24, patent.form_25, patent.form_26, patent.form_27, 
+      patent.form_28, patent.form_29, patent.form_30, patent.form_31
     ];
     
     const totalForms = formFields.length;

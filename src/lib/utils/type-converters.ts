@@ -10,6 +10,7 @@ export function standardizePatentFormFields(patent: any): Patent {
   
   // Map form_01 to form_1, etc.
   if (standardizedPatent.form_01 !== undefined) standardizedPatent.form_1 = standardizedPatent.form_01;
+  if (standardizedPatent.form_02 !== undefined) standardizedPatent.form_2 = standardizedPatent.form_02;
   if (standardizedPatent.form_02_ps !== undefined) standardizedPatent.form_2_ps = standardizedPatent.form_02_ps;
   if (standardizedPatent.form_02_cs !== undefined) standardizedPatent.form_2_cs = standardizedPatent.form_02_cs;
   if (standardizedPatent.form_03 !== undefined) standardizedPatent.form_3 = standardizedPatent.form_03;

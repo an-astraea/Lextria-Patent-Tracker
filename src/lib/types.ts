@@ -1,3 +1,4 @@
+
 export interface Patent {
   id: string;
   tracking_id: string;
@@ -39,6 +40,7 @@ export interface Patent {
   fer_completion_status?: number;
   // Form fields
   form_1?: boolean;
+  form_2?: boolean; // Adding the missing form_2 field
   form_2_ps?: boolean;
   form_2_cs?: boolean;
   form_3?: boolean;
