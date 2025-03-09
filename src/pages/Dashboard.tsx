@@ -6,6 +6,7 @@ import { ChevronRight, FileText, FileCheck, Clock, AlertTriangle, Users, Briefca
 import { Button } from '@/components/ui/button';
 import PatentCard from '@/components/PatentCard';
 import EmployeePatentTable from '@/components/dashboard/EmployeePatentTable';
+import PatentStageChart from '@/components/dashboard/PatentStageChart';
 import { fetchPatents, fetchDrafterAssignments, fetchFilerAssignments, fetchPendingReviews, fetchEmployees } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -17,7 +18,6 @@ const Dashboard = () => {
   const [employees, setEmployees] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   
-  // Get user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
@@ -28,13 +28,11 @@ const Dashboard = () => {
         const patentsData = await fetchPatents();
         setPatents(patentsData);
         
-        // Fetch employee data for admin dashboard
         if (user?.role === 'admin') {
           const employeeData = await fetchEmployees();
           setEmployees(employeeData);
         }
         
-        // Fetch user-specific assignments
         if (user?.role === 'drafter') {
           const drafterAssignments = await fetchDrafterAssignments(user.full_name);
           setUserAssignedPatents(drafterAssignments);
@@ -42,7 +40,6 @@ const Dashboard = () => {
           const filerAssignments = await fetchFilerAssignments(user.full_name);
           setUserAssignedPatents(filerAssignments);
         } else if (user?.role === 'admin') {
-          // Fetch pending approvals for admin
           const approvals = await fetchPendingReviews();
           setPendingApprovals(approvals);
         }
@@ -57,7 +54,6 @@ const Dashboard = () => {
     fetchData();
   }, [user?.full_name, user?.role]);
   
-  // Add a function to refresh pending approvals specifically for admins
   const refreshPendingApprovals = async () => {
     if (user?.role === 'admin') {
       try {
@@ -69,23 +65,18 @@ const Dashboard = () => {
     }
   };
 
-  // Listen for approval events
   React.useEffect(() => {
-    // Create a custom event listener for approval completions
     const handleApprovalComplete = () => {
       refreshPendingApprovals();
     };
 
-    // Add event listener
     window.addEventListener('approval-complete', handleApprovalComplete);
 
-    // Cleanup
     return () => {
       window.removeEventListener('approval-complete', handleApprovalComplete);
     };
   }, []);
   
-  // Calculate statistics
   const totalPatents = patents.length;
   const completedPatents = patents.filter(p => 
     p.ps_completion_status === 1 && 
@@ -95,7 +86,6 @@ const Dashboard = () => {
   
   const inProgressPatents = totalPatents - completedPatents;
   
-  // New statistics for PS to CS conversion
   const getPStoCSStats = () => {
     if (!patents.length) return { total: 0, percentage: 0 };
     
@@ -114,15 +104,9 @@ const Dashboard = () => {
     };
   };
   
-  // Count withdrawn patents
   const getWithdrawnPatentsCount = () => {
     return patents.filter(p => p.withdrawn === true).length;
   };
-  
-  // Calculate deadline approaching patents (with deadline in next 7 days)
-  const today = new Date();
-  const nextWeek = new Date();
-  nextWeek.setDate(today.getDate() + 7);
   
   const getDeadlineApproachingPatents = (): Patent[] => {
     return patents.filter(patent => {
@@ -144,22 +128,18 @@ const Dashboard = () => {
   
   const deadlineApproachingPatents = getDeadlineApproachingPatents();
   
-  // Get patents pending approval (admin only)
   const getPendingApprovalCount = (): number => {
     return pendingApprovals.length;
   };
   
   const pendingApprovalCount = getPendingApprovalCount();
 
-  // New statistics for admin dashboard
   const getEmployeeStatistics = () => {
     if (user?.role !== 'admin' || !patents.length) return null;
 
-    // Count assignments by employee
     const employeeStats = new Map();
     
     patents.forEach(patent => {
-      // PS drafting assignments
       if (patent.ps_drafter_assgn) {
         const key = patent.ps_drafter_assgn;
         if (!employeeStats.has(key)) {
@@ -179,7 +159,6 @@ const Dashboard = () => {
         }
       }
       
-      // PS filing assignments
       if (patent.ps_filer_assgn) {
         const key = patent.ps_filer_assgn;
         if (!employeeStats.has(key)) {
@@ -199,7 +178,6 @@ const Dashboard = () => {
         }
       }
       
-      // CS drafting assignments
       if (patent.cs_drafter_assgn) {
         const key = patent.cs_drafter_assgn;
         if (!employeeStats.has(key)) {
@@ -219,7 +197,6 @@ const Dashboard = () => {
         }
       }
       
-      // CS filing assignments
       if (patent.cs_filer_assgn) {
         const key = patent.cs_filer_assgn;
         if (!employeeStats.has(key)) {
@@ -239,7 +216,6 @@ const Dashboard = () => {
         }
       }
       
-      // FER drafting assignments
       if (patent.fer_drafter_assgn) {
         const key = patent.fer_drafter_assgn;
         if (!employeeStats.has(key)) {
@@ -259,7 +235,6 @@ const Dashboard = () => {
         }
       }
       
-      // FER filing assignments
       if (patent.fer_filer_assgn) {
         const key = patent.fer_filer_assgn;
         if (!employeeStats.has(key)) {
@@ -286,7 +261,6 @@ const Dashboard = () => {
   const getClientStatistics = () => {
     if (user?.role !== 'admin' || !patents.length) return null;
 
-    // Count patents by client
     const clientStats = new Map();
     
     patents.forEach(patent => {
@@ -302,7 +276,6 @@ const Dashboard = () => {
       
       clientStats.get(clientId).total += 1;
       
-      // Count as completed if PS and CS are completed and FER is either not required or completed
       if (patent.ps_completion_status === 1 && 
           patent.cs_completion_status === 1 && 
           (patent.fer_status === 0 || patent.fer_completion_status === 1)) {
@@ -311,7 +284,6 @@ const Dashboard = () => {
         clientStats.get(clientId).inProgress += 1;
       }
       
-      // Track employees working on this client's patents
       [
         patent.ps_drafter_assgn, 
         patent.ps_filer_assgn,
@@ -324,7 +296,6 @@ const Dashboard = () => {
       });
     });
     
-    // Convert employee Sets to counts
     for (const [clientId, stats] of clientStats.entries()) {
       clientStats.set(clientId, {
         ...stats,
@@ -363,7 +334,6 @@ const Dashboard = () => {
   const clientStats = getClientStatistics();
   const statusStats = getPatentStatusStats();
   
-  // Get top employees by assignments completed
   const getTopEmployees = () => {
     if (!employeeStats) return [];
     
@@ -373,7 +343,6 @@ const Dashboard = () => {
       .slice(0, 5);
   };
   
-  // Get top clients by patent count
   const getTopClients = () => {
     if (!clientStats) return [];
     
@@ -470,10 +439,8 @@ const Dashboard = () => {
         )}
       </div>
       
-      {/* Admin specific statistics */}
       {user?.role === 'admin' && (
         <>
-          {/* PS to CS conversion and Withdrawn statistics */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -501,6 +468,10 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </div>
+          
+          {patents.length > 0 && (
+            <PatentStageChart patents={patents} />
+          )}
         
           {statusStats && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -579,7 +550,6 @@ const Dashboard = () => {
             </div>
           )}
           
-          {/* Employee vs Patent Status Table */}
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
@@ -595,7 +565,6 @@ const Dashboard = () => {
         </>
       )}
       
-      {/* Employee Statistics */}
       {user?.role === 'admin' && topEmployees.length > 0 && (
         <Card>
           <CardHeader>
@@ -633,7 +602,6 @@ const Dashboard = () => {
         </Card>
       )}
       
-      {/* Client Statistics */}
       {user?.role === 'admin' && topClients.length > 0 && (
         <Card>
           <CardHeader>
