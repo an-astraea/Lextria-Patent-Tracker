@@ -14,12 +14,21 @@ const Index = () => {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+  const [role, setRole] = React.useState('admin'); // Default role for testing
 
   // Check if user is already logged in
   React.useEffect(() => {
     const userString = localStorage.getItem('user');
     if (userString) {
-      navigate('/dashboard');
+      const user = JSON.parse(userString);
+      // Redirect based on role
+      if (user.role === 'drafter') {
+        navigate('/drafts');
+      } else if (user.role === 'filer') {
+        navigate('/filings');
+      } else {
+        navigate('/dashboard');
+      }
     }
   }, [navigate]);
 
@@ -32,26 +41,40 @@ const Index = () => {
     try {
       setLoading(true);
       
-      // Simplified login for testing
+      // Simplified login for testing with role selection
       const mockUser = {
         id: '123',
         emp_id: 'EMP001',
-        full_name: 'Admin User',
+        full_name: 'Test User',
         email: email,
-        role: 'admin'
+        role: role
       };
       
       // Store user in localStorage
       localStorage.setItem('user', JSON.stringify(mockUser));
       
       toast.success('Login successful');
-      navigate('/dashboard');
+      
+      // Redirect based on role
+      if (role === 'drafter') {
+        navigate('/drafts');
+      } else if (role === 'filer') {
+        navigate('/filings');
+      } else {
+        navigate('/dashboard');
+      }
+      
     } catch (error) {
       console.error('Login error:', error);
       toast.error('Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Function to handle role selection
+  const handleRoleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setRole(event.target.value);
   };
 
   return (
@@ -116,6 +139,23 @@ const Index = () => {
                 className="border-gray-300 focus:border-primary focus:ring-primary"
               />
             </div>
+            
+            {/* Role selector for testing */}
+            <div className="space-y-2">
+              <label htmlFor="role" className="text-sm font-medium text-gray-700">Role (for testing)</label>
+              <select
+                id="role"
+                value={role}
+                onChange={handleRoleChange}
+                disabled={loading}
+                className="w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="admin">Admin</option>
+                <option value="drafter">Drafter</option>
+                <option value="filer">Filer</option>
+              </select>
+            </div>
+            
             <Button 
               type="submit" 
               className="w-full bg-primary hover:bg-primary/90 transition-all duration-200 mt-2" 

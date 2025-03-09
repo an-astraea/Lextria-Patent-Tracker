@@ -4,7 +4,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import MainLayout from './MainLayout';
 import AdminSidebar from '../AdminSidebar';
 import Sidebar from '../Sidebar';
-import { LayoutDashboard, FileText, Edit } from 'lucide-react';
+import { LayoutDashboard, FileText, Edit, CheckSquare } from 'lucide-react';
+import { toast } from 'sonner';
 
 const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<any>(null);
@@ -18,7 +19,38 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
       const storedUser = localStorage.getItem('user');
       console.log('Stored user:', storedUser);
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        
+        // Check if the user is trying to access a page they shouldn't have access to
+        const currentPath = location.pathname;
+        
+        // Admin-only pages
+        const adminOnlyPages = ['/employees', '/approvals', '/clients'];
+        
+        // Prevent non-admins from accessing admin-only pages
+        if (!parsedUser.role.includes('admin') && adminOnlyPages.some(page => currentPath.startsWith(page))) {
+          console.log('Non-admin trying to access admin page:', currentPath);
+          toast.error('You do not have permission to access this page');
+          navigate('/dashboard');
+          return;
+        }
+        
+        // Drafter-only pages
+        if (parsedUser.role === 'drafter' && currentPath.startsWith('/filings')) {
+          console.log('Drafter trying to access filer page:', currentPath);
+          toast.error('You do not have permission to access this page');
+          navigate('/drafts');
+          return;
+        }
+        
+        // Filer-only pages
+        if (parsedUser.role === 'filer' && currentPath.startsWith('/drafts')) {
+          console.log('Filer trying to access drafter page:', currentPath);
+          toast.error('You do not have permission to access this page');
+          navigate('/filings');
+          return;
+        }
       } else if (!isIndexPage) {
         navigate('/');
       }
@@ -28,7 +60,7 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
         navigate('/');
       }
     }
-  }, [navigate, isIndexPage]);
+  }, [navigate, isIndexPage, location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -114,7 +146,7 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
       },
       {
         label: 'My Filings',
-        icon: FileText,
+        icon: CheckSquare,
         href: '/filings',
       }
     ];
