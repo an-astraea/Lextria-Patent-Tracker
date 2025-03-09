@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, User } from 'lucide-react';
 import { Patent } from '@/lib/types';
 import { updatePatentStatus } from '@/lib/api';
 import { toast } from 'sonner';
@@ -39,15 +39,19 @@ const PatentStatusSection = ({ patent, userRole, refreshPatentData }: PatentStat
   const StatusBadge = ({ 
     label, 
     status, 
-    statusField 
+    statusField,
+    assignee = null,
+    deadline = null
   }: { 
     label: string; 
     status: number; 
     statusField: string;
+    assignee?: string | null;
+    deadline?: string | null;
   }) => {
     return (
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-        <div className="text-sm font-medium text-gray-500">{label}</div>
+      <div className="flex flex-col gap-2 p-3 border rounded-md">
+        <div className="text-sm font-medium">{label}</div>
         <div className="flex gap-2 items-center">
           <Badge variant={status === 1 ? "success" : "secondary"}>
             {status === 1 ? "Completed" : "Pending"}
@@ -81,9 +85,31 @@ const PatentStatusSection = ({ patent, userRole, refreshPatentData }: PatentStat
             </Button>
           )}
         </div>
+        
+        {assignee && (
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <User className="h-3 w-3" />
+            <span>Assigned to: {assignee}</span>
+          </div>
+        )}
+        
+        {deadline && (
+          <div className="text-xs text-gray-500">
+            <span>Deadline: {new Date(deadline).toLocaleDateString()}</span>
+          </div>
+        )}
       </div>
     );
   };
+  
+  // Dynamically check if any FER entries exist and at least one is incomplete
+  const anyFERPending = patent.fer_entries && patent.fer_entries.some(
+    entry => entry.fer_drafter_status === 0 || entry.fer_filing_status === 0
+  );
+
+  // If FER is enabled but no entries exist, the status should reflect pending
+  const ferPendingStatus = (patent.fer_status === 1 && (!patent.fer_entries || patent.fer_entries.length === 0)) ||
+                           anyFERPending;
   
   return (
     <div className="space-y-4">
@@ -92,11 +118,15 @@ const PatentStatusSection = ({ patent, userRole, refreshPatentData }: PatentStat
           label="PS Drafting Status" 
           status={patent.ps_drafting_status} 
           statusField="ps_drafting_status"
+          assignee={patent.ps_drafter_assgn}
+          deadline={patent.ps_drafter_deadline}
         />
         <StatusBadge 
           label="PS Filing Status" 
           status={patent.ps_filing_status} 
           statusField="ps_filing_status"
+          assignee={patent.ps_filer_assgn}
+          deadline={patent.ps_filer_deadline}
         />
         <StatusBadge 
           label="PS Completion Status" 
@@ -107,11 +137,15 @@ const PatentStatusSection = ({ patent, userRole, refreshPatentData }: PatentStat
           label="CS Drafting Status" 
           status={patent.cs_drafting_status} 
           statusField="cs_drafting_status"
+          assignee={patent.cs_drafter_assgn}
+          deadline={patent.cs_drafter_deadline}
         />
         <StatusBadge 
           label="CS Filing Status" 
           status={patent.cs_filing_status} 
           statusField="cs_filing_status"
+          assignee={patent.cs_filer_assgn}
+          deadline={patent.cs_filer_deadline}
         />
         <StatusBadge 
           label="CS Completion Status" 
@@ -123,6 +157,14 @@ const PatentStatusSection = ({ patent, userRole, refreshPatentData }: PatentStat
           status={patent.fer_status} 
           statusField="fer_status"
         />
+        
+        {patent.fer_status === 1 && (
+          <StatusBadge 
+            label="FER Overall Completion" 
+            status={ferPendingStatus ? 0 : 1} 
+            statusField="fer_completion_status"
+          />
+        )}
       </div>
       
       {isAdmin && (
@@ -130,6 +172,7 @@ const PatentStatusSection = ({ patent, userRole, refreshPatentData }: PatentStat
           <p className="text-sm text-gray-600">
             <strong>Admin Note:</strong> You can manually update any status by clicking the buttons next to each status.
             This allows you to override the workflow when necessary, such as when a patent starts from CS drafting instead of PS.
+            If a new FER entry is created, the patent status will be updated automatically.
           </p>
         </div>
       )}

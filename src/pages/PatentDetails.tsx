@@ -283,7 +283,7 @@ const PatentDetails = () => {
           });
         }
       } else {
-        // Create new FER
+        // Create new FER - When a new FER is created, ensure patent.fer_status is set to 1
         const nextFERNumber = patent.fer_entries && patent.fer_entries.length > 0 
           ? Math.max(...patent.fer_entries.map(fer => fer.fer_number)) + 1 
           : 1;
@@ -308,7 +308,8 @@ const PatentDetails = () => {
             return {
               ...prev,
               fer_entries: [...(prev.fer_entries || []), newFER],
-              fer_status: 1 // Make sure FER status is enabled when creating a FER entry
+              fer_status: 1, // Make sure FER status is enabled when creating a FER entry
+              fer_completion_status: 0 // Reset completion status when a new FER is added
             };
           });
         }
@@ -393,7 +394,7 @@ const PatentDetails = () => {
       const success = await approveFERReview(ferEntry, 'file');
       if (success) {
         toast.success('FER filing approved');
-        // Update local state
+        // Update local state and check if all FERs are now complete
         refreshPatentData();
       }
     } catch (error) {
