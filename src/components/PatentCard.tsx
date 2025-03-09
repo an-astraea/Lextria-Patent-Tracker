@@ -12,7 +12,9 @@ import {
   CalendarClock, 
   User, 
   Building,
-  History
+  History,
+  AlertTriangle,
+  IndianRupee
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -30,6 +32,21 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
   const user = userString ? JSON.parse(userString) : null;
 
   const determineStatus = (patent: Patent) => {
+    // First check if patent is withdrawn
+    if (patent.withdrawn) {
+      return 'withdrawn';
+    }
+    
+    // Then check if patent is completed
+    if (patent.completed) {
+      return 'completed';
+    }
+    
+    // Check if IDF is received (prerequisite for most work)
+    if (!patent.idf_received) {
+      return 'pending';
+    }
+    
     if (patent.ps_completion_status === 1 && patent.cs_completion_status === 1) {
       return 'completed';
     } else if ((patent.ps_drafting_status === 1 || patent.cs_drafting_status === 1 || patent.fer_drafter_status === 1) && 
@@ -77,10 +94,36 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString();
   };
+  
+  // Get payment status info
+  const getPaymentStatusInfo = () => {
+    if (!patent.invoice_sent) {
+      return { label: 'Invoice Not Sent', color: 'bg-gray-100 text-gray-800' };
+    }
+    
+    if (patent.payment_status === 'fully_paid') {
+      return { label: 'Fully Paid', color: 'bg-green-100 text-green-800' };
+    }
+    
+    if (patent.payment_status === 'partially_paid') {
+      return { label: 'Partially Paid', color: 'bg-amber-100 text-amber-800' };
+    }
+    
+    return { label: 'Invoice Sent', color: 'bg-blue-100 text-blue-800' };
+  };
 
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md border border-border">
       <div className="relative p-6">
+        {patent.withdrawn && (
+          <div className="absolute top-0 right-0 m-2">
+            <Badge variant="destructive" className="flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              Withdrawn
+            </Badge>
+          </div>
+        )}
+        
         <div className="flex justify-between items-start mb-4">
           <div>
             <h3 className="text-lg font-semibold line-clamp-1">{patent.patent_title}</h3>
@@ -103,6 +146,15 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
             <span className="text-sm">Filed: {formatDate(patent.date_of_filing)}</span>
           </div>
           
+          {patent.payment_amount > 0 && (
+            <div className="flex items-center gap-2">
+              <IndianRupee className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">
+                Payment: ₹{patent.payment_received || 0} / ₹{patent.payment_amount}
+              </span>
+            </div>
+          )}
+          
           {closestDeadline && (
             <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md text-sm">
               <span className="font-medium">{closestDeadline.label} Deadline:</span> {formatDate(closestDeadline.date)}
@@ -111,6 +163,24 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
         </div>
 
         <div className="flex flex-wrap gap-2 mt-3">
+          {patent.idf_sent && (
+            <Badge variant="outline" className={`text-xs ${patent.idf_received ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+              {patent.idf_received ? "IDF Received" : "IDF Sent"}
+            </Badge>
+          )}
+          
+          {patent.cs_data && (
+            <Badge variant="outline" className={`text-xs ${patent.cs_data_received ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+              {patent.cs_data_received ? "CS Data Received" : "CS Data Sent"}
+            </Badge>
+          )}
+          
+          {patent.invoice_sent && (
+            <Badge variant="outline" className={`text-xs ${getPaymentStatusInfo().color}`}>
+              {getPaymentStatusInfo().label}
+            </Badge>
+          )}
+          
           {patent.ps_drafting_status === 1 && (
             <Badge variant="secondary" className="text-xs">PS Draft Complete</Badge>
           )}
@@ -128,6 +198,10 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
           )}
           {patent.fer_filing_status === 1 && (
             <Badge variant="secondary" className="text-xs">FER File Complete</Badge>
+          )}
+          
+          {patent.completed && (
+            <Badge variant="outline" className="bg-green-100 text-green-800 text-xs">Completed</Badge>
           )}
         </div>
       </div>
