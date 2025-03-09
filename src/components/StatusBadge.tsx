@@ -2,9 +2,9 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Badge, BadgeProps } from '@/components/ui/badge';
-import { CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react';
+import { CheckCircle, Clock, AlertCircle, XCircle, AlertTriangle } from 'lucide-react';
 
-type Status = 'completed' | 'pending' | 'inProgress' | 'notStarted';
+type Status = 'completed' | 'pending' | 'inProgress' | 'notStarted' | 'withdrawn';
 
 interface StatusBadgeProps {
   status: Status | string;
@@ -47,6 +47,11 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
       defaultLabel = 'Not Started';
       icon = XCircle;
       color = 'bg-gray-100 text-gray-800 border-gray-200';
+      break;
+    case 'withdrawn':
+      defaultLabel = 'Withdrawn';
+      icon = AlertTriangle;
+      color = 'bg-red-100 text-red-800 border-red-200';
       break;
     case 'PS Draft':
     case 'PS Filing':
