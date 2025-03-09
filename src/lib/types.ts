@@ -1,4 +1,3 @@
-
 export interface Inventor {
   id: string;
   tracking_id: string;
@@ -119,6 +118,17 @@ export interface Patent {
   fer_history?: FERHistory[];
   fer_entries?: FEREntry[];
   notes?: string;
+  // Add the new status fields
+  payment_status?: string;
+  payment_amount?: number;
+  payment_received?: number;
+  invoice_sent?: boolean;
+  withdrawn?: boolean;
+  idf_sent?: boolean;
+  idf_received?: boolean;
+  cs_data?: boolean;
+  cs_data_received?: boolean;
+  completed?: boolean;
 }
 
 export interface Employee {

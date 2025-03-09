@@ -1,61 +1,69 @@
 
-// Re-export all API functions
+// Re-export all API functions from individual files
 
-// Patent API functions
+// Patent API exports
 export {
-  fetchPatentById,
   fetchPatents,
+  fetchPatentById,
+  fetchPatentTimeline,
   createPatent,
   updatePatent,
   deletePatent,
   updatePatentStatus,
   updatePatentForms,
   updatePatentNotes,
-  fetchPatentTimeline,
-  updatePatentPayment,
   createFEREntry,
   updateFEREntry,
-  deleteFEREntry
-} from "./patent-api";
+  deleteFEREntry,
+  updatePatentPayment
+} from './patent-api';
 
-// Employee API functions
+// Employee API exports
 export {
   fetchEmployees,
   createEmployee,
   updateEmployee,
   deleteEmployee,
   fetchPatentsAndEmployees
-} from "./employee-api";
+} from './employee-api';
 
-// Drafter API functions
+// Drafter API exports
 export {
   fetchDrafterAssignments,
-  fetchDrafterCompletedAssignments,
-  fetchDrafterFERAssignments,
   completeDrafterTask,
-  completeFERDrafterTask
-} from "./drafter-api";
+  fetchDrafterReviewRequests,
+  fetchCompletedDrafts
+} from './drafter-api';
 
-// Filer API functions
+// Filer API exports
 export {
   fetchFilerAssignments,
-  fetchFilerCompletedAssignments,
-  fetchFilerFERAssignments,
   completeFilerTask,
-  completeFERFilerTask
-} from "./filer-api";
+  fetchFilerReviewRequests,
+  fetchCompletedFilings
+} from './filer-api';
 
-// Review API functions
+// Review API exports
 export {
   fetchPendingReviews,
-  approveFERReview,
-  approvePatentReview,
-  rejectPatentReview
-} from "./review-api";
+  fetchCompletedReviews,
+  fetchRejectedReviews,
+  approvePatentStage,
+  rejectPatentStage
+} from './review-api';
 
-// Auth API functions
+// Auth API exports
 export {
-  login,
-  logout,
-  checkAuth
-} from "./auth-api";
+  signIn,
+  signOut,
+  getCurrentUser,
+  resetPassword,
+  updateUserProfile
+} from './auth-api';
+
+// FER actions exports
+export {
+  completeFERDrafterTask,
+  completeFERFilerTask,
+  approveFERReview
+} from './fer-actions';

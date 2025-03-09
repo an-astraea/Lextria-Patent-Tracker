@@ -6,7 +6,6 @@ import { Patent } from "@/lib/types";
 import { updatePatentStatus, updatePatentPayment } from "@/lib/api";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import {
   Select,

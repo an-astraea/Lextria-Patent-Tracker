@@ -1,11 +1,5 @@
-
-import { supabase } from "@/integrations/supabase/client";
-import { 
-  Patent, 
-  PatentFormData,
-  Inventor,
-  FEREntry
-} from "../types";
+import { supabase } from '@/integrations/supabase/client';
+import { Patent, PatentFormData, FEREntry } from '../types';
 
 // Export all functions used by the app
 export const fetchPatentById = async (id: string): Promise<Patent | null> => {
@@ -293,23 +287,23 @@ export const updatePatentNotes = async (
   }
 };
 
-export const updatePatentPayment = async (
-  id: string,
-  paymentData: {
-    payment_status: string;
-    payment_amount: number;
-    payment_received: number;
-    invoice_sent: boolean;
-  }
-): Promise<boolean> => {
+export const updatePatentPayment = async (patentId: string, paymentData: {
+  payment_status?: string,
+  payment_amount?: number,
+  payment_received?: number,
+  invoice_sent?: boolean
+}) => {
   try {
     const { error } = await supabase
       .from('patents')
       .update(paymentData)
-      .eq('id', id);
+      .eq('id', patentId);
 
-    if (error) throw error;
-    
+    if (error) {
+      console.error('Error updating payment information:', error);
+      return false;
+    }
+
     return true;
   } catch (error) {
     console.error('Error updating payment information:', error);
