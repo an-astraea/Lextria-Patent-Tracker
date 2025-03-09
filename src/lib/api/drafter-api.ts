@@ -1,116 +1,79 @@
+import { createClient } from '@supabase/supabase-js';
+import { Database } from '../database.types';
+import { Patent } from '../types';
 
-import { supabase } from "@/integrations/supabase/client";
-import { Patent } from "../types";
-import { toast } from "sonner";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-supabase-url.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-supabase-anon-key';
+const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 
-// Fetch active drafting tasks assigned to a drafter
-export const fetchDrafterAssignments = async (drafterName: string): Promise<Patent[]> => {
+// Function to fetch drafter assignments
+export const fetchDrafterAssignments = async (drafterName: string) => {
   try {
     const { data, error } = await supabase
-      .from("patents")
+      .from('patents')
       .select(`
         *,
-        inventors(*),
-        fer_history(*)
+        inventors (*),
+        fer_history (*),
+        fer_entries (*)
       `)
-      .or(`ps_drafter_assgn.eq.${drafterName},cs_drafter_assgn.eq.${drafterName},fer_drafter_assgn.eq.${drafterName}`)
-      .or('ps_drafting_status.eq.0,cs_drafting_status.eq.0,fer_drafter_status.eq.0');
-
+      .or(`ps_drafter_assgn.eq.${drafterName},cs_drafter_assgn.eq.${drafterName},fer_drafter_assgn.eq.${drafterName}`);
+    
     if (error) {
-      throw error;
+      console.error('Error fetching drafter assignments:', error);
+      return [];
     }
     
-    // Fetch FER entries separately for each patent
-    for (const patent of (data || [])) {
-      const { data: ferEntries, error: ferError } = await supabase
-        .from("fer_entries")
-        .select("*")
-        .eq("patent_id", patent.id);
-        
-      if (!ferError && ferEntries) {
-        patent.fer_entries = ferEntries;
-      }
-    }
-
-    return data || [];
+    // Filter only patents where the drafter has pending tasks
+    const filteredPatents = data.filter(patent => 
+      (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 0) ||
+      (patent.cs_drafter_assgn === drafterName && patent.cs_drafting_status === 0) ||
+      (patent.fer_drafter_assgn === drafterName && patent.fer_drafter_status === 0) ||
+      // Also check FER entries
+      (patent.fer_entries && patent.fer_entries.some(
+        entry => entry.fer_drafter_assgn === drafterName && entry.fer_drafter_status === 0
+      ))
+    );
+    
+    return filteredPatents;
   } catch (error) {
-    console.error("Error fetching drafter assignments:", error);
-    toast.error("Failed to load assignments");
+    console.error('Error fetching drafter assignments:', error);
     return [];
   }
 };
 
-// Complete a drafting task
-export const completeDrafterTask = async (patent: Patent, drafterName: string): Promise<boolean> => {
-  try {
-    const updates: Record<string, any> = {};
-    
-    // Determine which status to update based on which role is assigned to this drafter
-    if (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 0) {
-      updates.ps_drafting_status = 1;
-      updates.ps_review_draft_status = 1; // Mark for review
-    } else if (patent.cs_drafter_assgn === drafterName && patent.cs_drafting_status === 0) {
-      updates.cs_drafting_status = 1;
-      updates.cs_review_draft_status = 1; // Mark for review
-    } else if (patent.fer_drafter_assgn === drafterName && patent.fer_drafter_status === 0) {
-      updates.fer_drafter_status = 1;
-      updates.fer_review_draft_status = 1; // Mark for review
-    } else {
-      // No matching assignment found
-      toast.error("No active drafting task found for this patent");
-      return false;
-    }
-    
-    const { error } = await supabase
-      .from("patents")
-      .update(updates)
-      .eq("id", patent.id);
-      
-    if (error) {
-      throw error;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Error completing drafting task:", error);
-    toast.error("Failed to complete task");
-    return false;
-  }
-};
-
-// Fetch completed drafting tasks
-export const fetchDrafterCompletedAssignments = async (drafterName: string): Promise<Patent[]> => {
+// Function to fetch drafter completed assignments
+export const fetchDrafterCompletedAssignments = async (drafterName: string) => {
   try {
     const { data, error } = await supabase
-      .from("patents")
+      .from('patents')
       .select(`
         *,
-        inventors(*),
-        fer_history(*)
+        inventors (*),
+        fer_history (*),
+        fer_entries (*)
       `)
-      .or(`ps_drafter_assgn.eq.${drafterName},cs_drafter_assgn.eq.${drafterName},fer_drafter_assgn.eq.${drafterName}`)
-      .or('ps_drafting_status.eq.1,cs_drafting_status.eq.1,fer_drafter_status.eq.1');
-      
+      .or(`ps_drafter_assgn.eq.${drafterName},cs_drafter_assgn.eq.${drafterName},fer_drafter_assgn.eq.${drafterName}`);
+    
     if (error) {
-      throw error;
+      console.error('Error fetching drafter completed assignments:', error);
+      return [];
     }
     
-    // Fetch FER entries separately for each patent
-    for (const patent of (data || [])) {
-      const { data: ferEntries, error: ferError } = await supabase
-        .from("fer_entries")
-        .select("*")
-        .eq("patent_id", patent.id);
-        
-      if (!ferError && ferEntries) {
-        patent.fer_entries = ferEntries;
-      }
-    }
-
-    return data || [];
+    // Filter only patents where the drafter has completed tasks
+    const filteredPatents = data.filter(patent => 
+      (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 1) ||
+      (patent.cs_drafter_assgn === drafterName && patent.cs_drafting_status === 1) ||
+      (patent.fer_drafter_assgn === drafterName && patent.fer_drafter_status === 1) ||
+      // Also check FER entries
+      (patent.fer_entries && patent.fer_entries.some(
+        entry => entry.fer_drafter_assgn === drafterName && entry.fer_drafter_status === 1
+      ))
+    );
+    
+    return filteredPatents;
   } catch (error) {
-    console.error("Error fetching completed drafter assignments:", error);
-    toast.error("Failed to load completed assignments");
+    console.error('Error fetching drafter completed assignments:', error);
     return [];
   }
 };

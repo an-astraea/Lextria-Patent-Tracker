@@ -1,186 +1,84 @@
+import { createClient } from '@supabase/supabase-js';
+import { Database } from '../database.types';
+import { Patent } from '../types';
 
-import { supabase } from "@/integrations/supabase/client";
-import { Patent, FEREntry, Task } from "../types";
-import { toast } from "sonner";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-supabase-url.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-supabase-anon-key';
+const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 
-// Fetch active filing tasks assigned to a filer
-export const fetchFilerAssignments = async (filerName: string): Promise<Patent[]> => {
+// Function to fetch filer assignments
+export const fetchFilerAssignments = async (filerName: string) => {
   try {
     const { data, error } = await supabase
-      .from("patents")
+      .from('patents')
       .select(`
         *,
-        inventors(*),
-        fer_history(*)
+        inventors (*),
+        fer_history (*),
+        fer_entries (*)
       `)
-      .or(`ps_filer_assgn.eq.${filerName},cs_filer_assgn.eq.${filerName},fer_filer_assgn.eq.${filerName}`)
-      .or('ps_filing_status.eq.0,cs_filing_status.eq.0,fer_filing_status.eq.0');
-
+      .or(`ps_filer_assgn.eq.${filerName},cs_filer_assgn.eq.${filerName},fer_filer_assgn.eq.${filerName}`);
+    
     if (error) {
-      throw error;
+      console.error('Error fetching filer assignments:', error);
+      return [];
     }
     
-    // Fetch FER entries separately for each patent
-    for (const patent of (data || [])) {
-      const { data: ferEntries, error: ferError } = await supabase
-        .from("fer_entries")
-        .select("*")
-        .eq("patent_id", patent.id);
-        
-      if (!ferError && ferEntries) {
-        patent.fer_entries = ferEntries;
-      }
-    }
-
-    return data || [];
+    // Filter only patents where the filer has pending tasks
+    const filteredPatents = data.filter(patent => 
+      // PS filer task is ready when PS drafting is complete
+      (patent.ps_filer_assgn === filerName && patent.ps_filing_status === 0 && patent.ps_drafting_status === 1) ||
+      // CS filer task is ready when CS drafting is complete
+      (patent.cs_filer_assgn === filerName && patent.cs_filing_status === 0 && patent.cs_drafting_status === 1) ||
+      // FER filer task is ready when FER drafting is complete
+      (patent.fer_filer_assgn === filerName && patent.fer_filing_status === 0 && patent.fer_drafter_status === 1) ||
+      // Also check FER entries
+      (patent.fer_entries && patent.fer_entries.some(
+        entry => entry.fer_filer_assgn === filerName && 
+                entry.fer_filing_status === 0 && 
+                entry.fer_drafter_status === 1
+      ))
+    );
+    
+    return filteredPatents;
   } catch (error) {
-    console.error("Error fetching filer assignments:", error);
-    toast.error("Failed to load assignments");
+    console.error('Error fetching filer assignments:', error);
     return [];
   }
 };
 
-// Complete a filing task
-export const completeFilerTask = async (task: Task): Promise<boolean> => {
-  try {
-    const { patent, ferEntry, type } = task;
-    
-    if (type === "fer_filing" && ferEntry) {
-      // Handle FER entry filing status update
-      const { error } = await supabase
-        .from("fer_entries")
-        .update({
-          fer_filing_status: 1,
-          fer_review_file_status: 1 // Mark for review
-        })
-        .eq("id", ferEntry.id);
-        
-      if (error) {
-        throw error;
-      }
-    } else {
-      // Handle patent filing status update
-      const updates: Record<string, any> = {};
-      
-      if (type === "filing") {
-        // Determine which status to update
-        if (patent.ps_filing_status === 0) {
-          updates.ps_filing_status = 1;
-          updates.ps_review_file_status = 1; // Mark for review
-        } else if (patent.cs_filing_status === 0) {
-          updates.cs_filing_status = 1;
-          updates.cs_review_file_status = 1; // Mark for review
-        } else {
-          // No matching assignment found
-          toast.error("No active filing task found for this patent");
-          return false;
-        }
-      }
-      
-      const { error } = await supabase
-        .from("patents")
-        .update(updates)
-        .eq("id", patent.id);
-        
-      if (error) {
-        throw error;
-      }
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Error completing filing task:", error);
-    toast.error("Failed to complete task");
-    return false;
-  }
-};
-
-// Fetch completed filing tasks
-export const fetchFilerCompletedAssignments = async (filerName: string): Promise<Patent[]> => {
+// Function to fetch filer completed assignments
+export const fetchFilerCompletedAssignments = async (filerName: string) => {
   try {
     const { data, error } = await supabase
-      .from("patents")
+      .from('patents')
       .select(`
         *,
-        inventors(*),
-        fer_history(*)
+        inventors (*),
+        fer_history (*),
+        fer_entries (*)
       `)
-      .or(`ps_filer_assgn.eq.${filerName},cs_filer_assgn.eq.${filerName},fer_filer_assgn.eq.${filerName}`)
-      .or('ps_filing_status.eq.1,cs_filing_status.eq.1,fer_filing_status.eq.1');
-      
+      .or(`ps_filer_assgn.eq.${filerName},cs_filer_assgn.eq.${filerName},fer_filer_assgn.eq.${filerName}`);
+    
     if (error) {
-      throw error;
+      console.error('Error fetching filer completed assignments:', error);
+      return [];
     }
     
-    // Fetch FER entries separately for each patent
-    for (const patent of (data || [])) {
-      const { data: ferEntries, error: ferError } = await supabase
-        .from("fer_entries")
-        .select("*")
-        .eq("patent_id", patent.id);
-        
-      if (!ferError && ferEntries) {
-        patent.fer_entries = ferEntries;
-      }
-    }
-
-    return data || [];
+    // Filter only patents where the filer has completed tasks
+    const filteredPatents = data.filter(patent => 
+      (patent.ps_filer_assgn === filerName && patent.ps_filing_status === 1) ||
+      (patent.cs_filer_assgn === filerName && patent.cs_filing_status === 1) ||
+      (patent.fer_filer_assgn === filerName && patent.fer_filing_status === 1) ||
+      // Also check FER entries
+      (patent.fer_entries && patent.fer_entries.some(
+        entry => entry.fer_filer_assgn === filerName && entry.fer_filing_status === 1
+      ))
+    );
+    
+    return filteredPatents;
   } catch (error) {
-    console.error("Error fetching completed filer assignments:", error);
-    toast.error("Failed to load completed assignments");
+    console.error('Error fetching filer completed assignments:', error);
     return [];
   }
-};
-
-// Create list of tasks for the filer dashboard
-export const createFilerTasks = (patents: Patent[]): Task[] => {
-  const tasks: Task[] = [];
-
-  patents.forEach(patent => {
-    // Check for PS filing tasks
-    if (patent.ps_drafting_status === 1 && patent.ps_filing_status === 0) {
-      tasks.push({
-        id: `ps-${patent.id}`,
-        title: `File PS for ${patent.patent_title}`,
-        assignedTo: patent.ps_filer_assgn,
-        deadline: patent.ps_filer_deadline,
-        status: "active",
-        type: "filing",
-        patent
-      });
-    }
-
-    // Check for CS filing tasks
-    if (patent.cs_drafting_status === 1 && patent.cs_filing_status === 0) {
-      tasks.push({
-        id: `cs-${patent.id}`,
-        title: `File CS for ${patent.patent_title}`,
-        assignedTo: patent.cs_filer_assgn,
-        deadline: patent.cs_filer_deadline,
-        status: "active",
-        type: "filing",
-        patent
-      });
-    }
-
-    // Check for FER filing tasks from FER entries
-    if (patent.fer_entries && patent.fer_entries.length > 0) {
-      patent.fer_entries.forEach(ferEntry => {
-        if (ferEntry.fer_drafter_status === 1 && ferEntry.fer_filing_status === 0) {
-          tasks.push({
-            id: `fer-${ferEntry.id}`,
-            title: `File FER #${ferEntry.fer_number} for ${patent.patent_title}`,
-            assignedTo: ferEntry.fer_filer_assgn || "",
-            deadline: ferEntry.fer_filer_deadline || "",
-            status: "active",
-            type: "fer_filing",
-            patent,
-            ferEntry
-          });
-        }
-      });
-    }
-  });
-
-  return tasks;
 };
