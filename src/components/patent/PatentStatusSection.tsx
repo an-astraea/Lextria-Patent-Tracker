@@ -45,7 +45,9 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
       const currentValue = patent[field as keyof Patent];
       const newValue = typeof currentValue === 'boolean' ? !currentValue : true;
       
-      await updatePatentStatus(patent.id, { [field]: newValue });
+      const statusData: Record<string, any> = { [field]: newValue };
+      await updatePatentStatus(patent.id, statusData);
+      
       toast.success(`Status updated successfully`);
       await refreshPatentData();
     } catch (error) {

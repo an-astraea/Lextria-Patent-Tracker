@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,10 +7,6 @@ import {
   fetchPatentById, 
   fetchPatentTimeline,
   fetchEmployees,
-  completeFERDrafterTask,
-  completeFERFilerTask,
-  approveFERReview,
-  updatePatentForms
 } from '@/lib/api';
 import { FEREntry, Patent } from '@/lib/types';
 import { toast } from 'sonner';
@@ -27,18 +24,11 @@ const PatentDetails = () => {
   const navigate = useNavigate();
   const [patent, setPatent] = useState<Patent | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [timeline, setTimeline] = useState([]);
   const [userRole, setUserRole] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
-  const [employees, setEmployees] = useState<any[]>([]);
+  const [employeesList, setEmployeesList] = useState<any[]>([]); // Fixed: renamed to employeesList
   
-  // FER status update states
-  const [isCompletingDraft, setIsCompletingDraft] = useState(false);
-  const [isCompletingFiling, setIsCompletingFiling] = useState(false);
-  const [isApprovingDraft, setIsApprovingDraft] = useState(false);
-  const [isApprovingFiling, setIsApprovingFiling] = useState(false);
-
   useEffect(() => {
     // Get user role from localStorage
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -79,7 +69,7 @@ const PatentDetails = () => {
     const fetchAllEmployees = async () => {
       try {
         const employeesData = await fetchEmployees();
-        setEmployees(employeesData || []);
+        setEmployeesList(employeesData || []); // Fixed: use employeesList instead of employees
       } catch (error) {
         console.error('Error fetching employees:', error);
       }
@@ -89,112 +79,6 @@ const PatentDetails = () => {
     fetchTimelineData();
     fetchAllEmployees();
   }, [id, navigate]);
-
-  const handleFormUpdate = async (formName: string, value: boolean) => {
-    if (!patent || !id) return;
-    
-    setIsSaving(true);
-    try {
-      // Create an object with just the updated form field
-      const formData: Record<string, boolean> = {
-        [formName]: value
-      };
-      
-      const success = await updatePatentForms(id, formData);
-      if (success) {
-        // Update local state to reflect the change
-        setPatent(prev => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            [formName]: value
-          };
-        });
-        toast.success(`${formName.toUpperCase()} updated successfully`);
-      }
-    } catch (error) {
-      console.error('Error updating form:', error);
-      toast.error('Failed to update form');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleCompleteFERDraft = async (ferEntry: FEREntry) => {
-    if (!ferEntry) return;
-    
-    setIsCompletingDraft(true);
-    try {
-      const success = await completeFERDrafterTask(ferEntry, userName);
-      if (success) {
-        toast.success('FER drafting completed and submitted for review');
-        // Update local state
-        refreshPatentData();
-      }
-    } catch (error) {
-      console.error('Error completing FER draft:', error);
-      toast.error('Failed to complete FER draft');
-    } finally {
-      setIsCompletingDraft(false);
-    }
-  };
-
-  const handleCompleteFERFiling = async (ferEntry: FEREntry) => {
-    if (!ferEntry) return;
-    
-    setIsCompletingFiling(true);
-    try {
-      const success = await completeFERFilerTask(ferEntry, userName);
-      if (success) {
-        toast.success('FER filing completed and submitted for review');
-        // Update local state
-        refreshPatentData();
-      }
-    } catch (error) {
-      console.error('Error completing FER filing:', error);
-      toast.error('Failed to complete FER filing');
-    } finally {
-      setIsCompletingFiling(false);
-    }
-  };
-
-  const handleApproveFERDraft = async (ferEntry: FEREntry) => {
-    if (!ferEntry) return;
-    
-    setIsApprovingDraft(true);
-    try {
-      const success = await approveFERReview(ferEntry, 'draft');
-      if (success) {
-        toast.success('FER draft approved');
-        // Update local state
-        refreshPatentData();
-      }
-    } catch (error) {
-      console.error('Error approving FER draft:', error);
-      toast.error('Failed to approve FER draft');
-    } finally {
-      setIsApprovingDraft(false);
-    }
-  };
-
-  const handleApproveFERFiling = async (ferEntry: FEREntry) => {
-    if (!ferEntry) return;
-    
-    setIsApprovingFiling(true);
-    try {
-      const success = await approveFERReview(ferEntry, 'file');
-      if (success) {
-        toast.success('FER filing approved');
-        // Update local state and check if all FERs are now complete
-        refreshPatentData();
-      }
-    } catch (error) {
-      console.error('Error approving FER filing:', error);
-      toast.error('Failed to approve FER filing');
-    } finally {
-      setIsApprovingFiling(false);
-    }
-  };
 
   const refreshPatentData = async () => {
     if (!id) return;
@@ -255,19 +139,15 @@ const PatentDetails = () => {
         patent={patent}
         userRole={userRole}
         userName={userName}
-        employees={employees}
+        employees={employeesList} // Fixed: passing employeesList instead of employees
         refreshPatentData={refreshPatentData}
-        onApproveDraft={handleApproveFERDraft}
-        onApproveFiling={handleApproveFERFiling}
-        onCompleteDraft={handleCompleteFERDraft}
-        onCompleteFiling={handleCompleteFERFiling}
       />
 
       {/* Form Requirements */}
       <FormRequirementsList 
         patent={patent} 
         userRole={userRole} 
-        onUpdate={canEditForms ? handleFormUpdate : undefined} 
+        onUpdate={canEditForms ? updatePatentForms : undefined} 
       />
 
       {/* Patent Notes */}

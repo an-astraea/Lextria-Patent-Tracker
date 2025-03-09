@@ -1,56 +1,44 @@
 
-// Re-export only the functions that actually exist in the respective modules
-
-// Patent API exports
-export {
+// Import API functions from separate modules
+import {
   fetchPatents,
   fetchPatentById,
-  fetchPatentTimeline,
   createPatent,
   updatePatent,
   deletePatent,
   updatePatentStatus,
-  updatePatentForms,
   updatePatentNotes,
-  createFEREntry,
-  updateFEREntry,
-  deleteFEREntry,
-  updatePatentPayment
-} from './patent-api';
+  updatePatentForms,
+  updatePatentPayment,
+  fetchPatentTimeline
+} from "./patent-api";
 
-// Employee API exports
-export {
+import {
   fetchEmployees,
+  fetchEmployeeById,
   createEmployee,
   updateEmployee,
   deleteEmployee
-} from './employee-api';
+} from "./employee-api";
 
-// Drafter API exports
+// Export all API functions
 export {
-  fetchDrafterAssignments,
-  completeDrafterTask
-} from './drafter-api';
+  // Patent API functions
+  fetchPatents,
+  fetchPatentById,
+  createPatent,
+  updatePatent,
+  deletePatent,
+  updatePatentStatus,
+  updatePatentNotes,
+  updatePatentForms,
+  updatePatentPayment,
+  fetchPatentTimeline,
 
-// Filer API exports
-export {
-  fetchFilerAssignments,
-  completeFilerTask
-} from './filer-api';
-
-// Review API exports
-export {
-  fetchPendingReviews
-} from './review-api';
-
-// Auth API exports
-export {
-  loginUser
-} from './auth-api';
-
-// FER actions exports
-export {
-  completeFERDrafterTask,
-  completeFERFilerTask,
-  approveFERReview
-} from './fer-actions';
+  // Employee API functions
+  fetchEmployees,
+  fetchEmployeeById,
+  createEmployee,
+  updateEmployee,
+  deleteEmployee,
+};
