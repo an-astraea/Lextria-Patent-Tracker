@@ -507,7 +507,10 @@ export const completeFilerTask = async (patent: Patent, userName: string, formDa
       
       // If form data is provided for CS filing, include it
       if (formData) {
-        Object.assign(updateData, formData);
+        // Include all form data in the update
+        Object.entries(formData).forEach(([key, value]) => {
+          updateData[key] = value;
+        });
       }
     } else if (patent.fer_filer_assgn === userName && patent.fer_filing_status === 0) {
       updateData.fer_filing_status = 1;
@@ -522,8 +525,20 @@ export const completeFilerTask = async (patent: Patent, userName: string, formDa
       }
     }
     
+    // Include form data in all cases if provided, not just for CS
+    if (formData && Object.keys(updateData).length > 0) {
+      Object.entries(formData).forEach(([key, value]) => {
+        // Don't overwrite status fields we already set
+        if (!updateData[key]) {
+          updateData[key] = value;
+        }
+      });
+    }
+    
     // Only update if we have fields to update
     if (Object.keys(updateData).length > 0) {
+      console.log('Updating patent with data:', updateData);
+      
       const { error } = await supabase
         .from('patents')
         .update(updateData)
@@ -814,6 +829,8 @@ export const fetchPatentTimeline = async (patentId: string) => {
 // Function to update patent forms
 export async function updatePatentForms(patentId: string, formData: Record<string, boolean>) {
   try {
+    console.log('Updating patent forms with data:', formData);
+    
     // Convert form field names to database naming convention if needed
     const dbFormData: Record<string, boolean> = {};
     
@@ -834,12 +851,17 @@ export async function updatePatentForms(patentId: string, formData: Record<strin
       }
     });
 
+    console.log('Transformed form data for database:', dbFormData);
+
     const { data, error } = await supabase
       .from('patents')
       .update(dbFormData)
       .eq('id', patentId);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating patent forms:', error);
+      throw error;
+    }
     
     return true;
   } catch (error) {
