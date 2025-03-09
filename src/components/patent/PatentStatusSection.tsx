@@ -1,11 +1,21 @@
 
 import React, { useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Check, Loader2, User } from 'lucide-react';
-import { Patent } from '@/lib/types';
-import { updatePatentStatus } from '@/lib/api';
-import { toast } from 'sonner';
+import { Button } from "@/components/ui/button";
+import StatusBadge from "@/components/StatusBadge";
+import { Patent } from "@/lib/types";
+import { updatePatentStatus, updatePatentPayment } from "@/lib/api";
+import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 interface PatentStatusSectionProps {
   patent: Patent;
@@ -13,169 +23,230 @@ interface PatentStatusSectionProps {
   refreshPatentData: () => Promise<void>;
 }
 
-const PatentStatusSection = ({ patent, userRole, refreshPatentData }: PatentStatusSectionProps) => {
-  const [isUpdating, setIsUpdating] = useState<string | null>(null);
+const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
+  patent,
+  userRole,
+  refreshPatentData
+}) => {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
   
-  const isAdmin = userRole === 'admin';
-  
-  const handleStatusUpdate = async (statusField: string, newValue: number) => {
-    if (!isAdmin) return;
+  // For payment status
+  const [paymentStatus, setPaymentStatus] = useState(patent.payment_status || 'not_sent');
+  const [paymentAmount, setPaymentAmount] = useState(patent.payment_amount?.toString() || '0');
+  const [paymentReceived, setPaymentReceived] = useState(patent.payment_received?.toString() || '0');
+  const [invoiceSent, setInvoiceSent] = useState(patent.invoice_sent || false);
+
+  const handleStatusToggle = async (field: string) => {
+    if (!patent) return;
     
-    setIsUpdating(statusField);
+    setIsUpdating(true);
     try {
-      const success = await updatePatentStatus(patent.id, statusField, newValue);
-      if (success) {
-        toast.success(`Status updated successfully`);
-        refreshPatentData();
-      }
+      // Toggle the current status
+      const currentValue = patent[field as keyof Patent];
+      const newValue = typeof currentValue === 'boolean' ? !currentValue : true;
+      
+      await updatePatentStatus(patent.id, { [field]: newValue });
+      toast.success(`Status updated successfully`);
+      await refreshPatentData();
     } catch (error) {
-      console.error('Error updating status:', error);
-      toast.error('Failed to update status');
+      console.error(`Error updating ${field}:`, error);
+      toast.error(`Failed to update status`);
     } finally {
-      setIsUpdating(null);
+      setIsUpdating(false);
     }
   };
-  
-  const StatusBadge = ({ 
-    label, 
-    status, 
-    statusField,
-    assignee = null,
-    deadline = null
-  }: { 
-    label: string; 
-    status: number; 
-    statusField: string;
-    assignee?: string | null;
-    deadline?: string | null;
-  }) => {
-    return (
-      <div className="flex flex-col gap-2 p-3 border rounded-md">
-        <div className="text-sm font-medium">{label}</div>
-        <div className="flex gap-2 items-center">
-          <Badge variant={status === 1 ? "success" : "secondary"}>
-            {status === 1 ? "Completed" : "Pending"}
-          </Badge>
-          
-          {isAdmin && status !== 1 && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="h-6 px-2 py-0"
-              onClick={() => handleStatusUpdate(statusField, 1)}
-              disabled={!!isUpdating}
-            >
-              {isUpdating === statusField ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Check className="h-3 w-3" />
-              )}
-            </Button>
-          )}
-          
-          {isAdmin && status === 1 && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="h-6 px-2 py-0"
-              onClick={() => handleStatusUpdate(statusField, 0)}
-              disabled={!!isUpdating}
-            >
-              <span className="text-xs">Reset</span>
-            </Button>
-          )}
-        </div>
-        
-        {assignee && (
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <User className="h-3 w-3" />
-            <span>Assigned to: {assignee}</span>
-          </div>
-        )}
-        
-        {deadline && (
-          <div className="text-xs text-gray-500">
-            <span>Deadline: {new Date(deadline).toLocaleDateString()}</span>
-          </div>
-        )}
-      </div>
-    );
-  };
-  
-  // Dynamically check if any FER entries exist and at least one is incomplete
-  const anyFERPending = patent.fer_entries && patent.fer_entries.some(
-    entry => entry.fer_drafter_status === 0 || entry.fer_filing_status === 0
-  );
 
-  // If FER is enabled but no entries exist, the status should reflect pending
-  const ferPendingStatus = (patent.fer_status === 1 && (!patent.fer_entries || patent.fer_entries.length === 0)) ||
-                           anyFERPending;
-  
+  const handlePaymentUpdate = async () => {
+    if (!patent) return;
+    
+    setIsUpdatingPayment(true);
+    try {
+      const paymentData = {
+        payment_status: paymentStatus,
+        payment_amount: parseFloat(paymentAmount) || 0,
+        payment_received: parseFloat(paymentReceived) || 0,
+        invoice_sent: invoiceSent
+      };
+
+      await updatePatentPayment(patent.id, paymentData);
+      toast.success('Payment information updated successfully');
+      await refreshPatentData();
+    } catch (error) {
+      console.error('Error updating payment info:', error);
+      toast.error('Failed to update payment information');
+    } finally {
+      setIsUpdatingPayment(false);
+    }
+  };
+
+  // Define status labels and their corresponding field names
+  const patentStatuses = [
+    { label: 'Withdrawn', field: 'withdrawn', value: patent.withdrawn },
+    { label: 'IDF Sent', field: 'idf_sent', value: patent.idf_sent },
+    { label: 'IDF Received', field: 'idf_received', value: patent.idf_received },
+    { label: 'CS Data Sent', field: 'cs_data', value: patent.cs_data },
+    { label: 'CS Data Received', field: 'cs_data_received', value: patent.cs_data_received },
+    { label: 'Completed', field: 'completed', value: patent.completed }
+  ];
+
+  // Generate payment status display
+  const getPaymentStatusDisplay = () => {
+    if (!patent.invoice_sent) {
+      return 'notSent';
+    }
+    
+    if (patent.payment_received && patent.payment_amount) {
+      if (parseFloat(patent.payment_received.toString()) >= parseFloat(patent.payment_amount.toString())) {
+        return 'fullPayment';
+      } else if (parseFloat(patent.payment_received.toString()) > 0) {
+        return 'partialPayment';
+      }
+    }
+    
+    return 'sent';
+  };
+
+  const getPaymentStatusLabel = () => {
+    if (!patent.invoice_sent) {
+      return 'Invoice Not Sent';
+    }
+    
+    if (patent.payment_received && patent.payment_amount) {
+      if (parseFloat(patent.payment_received.toString()) >= parseFloat(patent.payment_amount.toString())) {
+        return 'Payment Fully Received';
+      } else if (parseFloat(patent.payment_received.toString()) > 0) {
+        return `Payment Partially Received (${patent.payment_received}/${patent.payment_amount})`;
+      }
+    }
+    
+    return 'Invoice Sent, Payment Not Received';
+  };
+
+  const canEditPayment = userRole === 'admin';
+
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatusBadge 
-          label="PS Drafting Status" 
-          status={patent.ps_drafting_status} 
-          statusField="ps_drafting_status"
-          assignee={patent.ps_drafter_assgn}
-          deadline={patent.ps_drafter_deadline}
-        />
-        <StatusBadge 
-          label="PS Filing Status" 
-          status={patent.ps_filing_status} 
-          statusField="ps_filing_status"
-          assignee={patent.ps_filer_assgn}
-          deadline={patent.ps_filer_deadline}
-        />
-        <StatusBadge 
-          label="PS Completion Status" 
-          status={patent.ps_completion_status} 
-          statusField="ps_completion_status"
-        />
-        <StatusBadge 
-          label="CS Drafting Status" 
-          status={patent.cs_drafting_status} 
-          statusField="cs_drafting_status"
-          assignee={patent.cs_drafter_assgn}
-          deadline={patent.cs_drafter_deadline}
-        />
-        <StatusBadge 
-          label="CS Filing Status" 
-          status={patent.cs_filing_status} 
-          statusField="cs_filing_status"
-          assignee={patent.cs_filer_assgn}
-          deadline={patent.cs_filer_deadline}
-        />
-        <StatusBadge 
-          label="CS Completion Status" 
-          status={patent.cs_completion_status} 
-          statusField="cs_completion_status"
-        />
-        <StatusBadge 
-          label="FER Status" 
-          status={patent.fer_status} 
-          statusField="fer_status"
-        />
-        
-        {patent.fer_status === 1 && (
-          <StatusBadge 
-            label="FER Overall Completion" 
-            status={ferPendingStatus ? 0 : 1} 
-            statusField="fer_completion_status"
-          />
-        )}
-      </div>
-      
-      {isAdmin && (
-        <div className="p-4 bg-gray-50 rounded-md mt-4">
-          <p className="text-sm text-gray-600">
-            <strong>Admin Note:</strong> You can manually update any status by clicking the buttons next to each status.
-            This allows you to override the workflow when necessary, such as when a patent starts from CS drafting instead of PS.
-            If a new FER entry is created, the patent status will be updated automatically.
-          </p>
-        </div>
-      )}
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Patent Status</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {patentStatuses.map((status) => (
+              <div key={status.field} className="flex items-center justify-between gap-2 p-2 border rounded-md">
+                <div className="flex items-center">
+                  <StatusBadge 
+                    status={status.value ? 'completed' : 'notStarted'} 
+                    label={status.label}
+                  />
+                </div>
+                {userRole === 'admin' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleStatusToggle(status.field)}
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : (status.value ? 'Unmark' : 'Mark')}
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Payment Status</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center justify-between gap-2 p-2 border rounded-md">
+              <StatusBadge 
+                status={getPaymentStatusDisplay()} 
+                label={getPaymentStatusLabel()}
+              />
+            </div>
+
+            {canEditPayment && (
+              <div className="space-y-4 border p-4 rounded-md">
+                <h3 className="text-sm font-medium">Update Payment Information</h3>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Invoice Status</label>
+                    <Select 
+                      value={invoiceSent ? 'sent' : 'not_sent'} 
+                      onValueChange={(value) => setInvoiceSent(value === 'sent')}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="not_sent">Not Sent</SelectItem>
+                        <SelectItem value="sent">Sent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Payment Status</label>
+                    <Select 
+                      value={paymentStatus} 
+                      onValueChange={setPaymentStatus}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="not_sent">Not Sent</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="partial">Partial</SelectItem>
+                        <SelectItem value="complete">Complete</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Total Amount</label>
+                    <Input 
+                      type="number" 
+                      value={paymentAmount} 
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                      placeholder="Total payment amount"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Amount Received</label>
+                    <Input 
+                      type="number" 
+                      value={paymentReceived} 
+                      onChange={(e) => setPaymentReceived(e.target.value)}
+                      placeholder="Payment received"
+                    />
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handlePaymentUpdate} 
+                  disabled={isUpdatingPayment}
+                  className="mt-4"
+                >
+                  {isUpdatingPayment ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : 'Update Payment Information'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
