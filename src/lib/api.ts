@@ -812,20 +812,41 @@ export const fetchPatentTimeline = async (patentId: string) => {
 };
 
 // Function to update patent forms
-export const updatePatentForms = async (patentId: string, formData: Record<string, boolean>) => {
-  const { data, error } = await supabase
-    .from('patents')
-    .update(formData)
-    .eq('id', patentId)
-    .select();
-  
-  if (error) {
+export async function updatePatentForms(patentId: string, formData: Record<string, boolean>) {
+  try {
+    // Convert form field names to database naming convention if needed
+    const dbFormData: Record<string, boolean> = {};
+    
+    // Map standardized form names to database field names if necessary
+    Object.entries(formData).forEach(([key, value]) => {
+      // Check if this is a standardized form name (e.g., form_1)
+      if (key.match(/^form_\d+$/)) {
+        // For single-digit forms, we may need to pad with 0 (form_1 -> form_01)
+        const match = key.match(/^form_(\d+)$/);
+        if (match && match[1].length === 1) {
+          dbFormData[`form_0${match[1]}`] = value;
+        } else {
+          dbFormData[key] = value;
+        }
+      } else {
+        // For other form fields (e.g., form_2_ps, form_18a) keep as is
+        dbFormData[key] = value;
+      }
+    });
+
+    const { data, error } = await supabase
+      .from('patents')
+      .update(dbFormData)
+      .eq('id', patentId);
+
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
     console.error('Error updating patent forms:', error);
-    return false;
+    throw error;
   }
-  
-  return true;
-};
+}
 
 // Function to update FER entry
 export const updateFEREntry = async (ferEntryId: string, ferData: Partial<FEREntry>) => {
@@ -1173,3 +1194,4 @@ export const updatePatentPayment = async (patentId: string, paymentData: {
   
   return true;
 };
+

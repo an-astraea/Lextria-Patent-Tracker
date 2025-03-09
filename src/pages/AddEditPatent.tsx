@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -24,7 +23,8 @@ import {
   createInventor,
   createFEREntry,
   updateFEREntry,
-  deleteFEREntry
+  deleteFEREntry,
+  updatePatentForms
 } from '@/lib/api';
 import { Patent, PatentFormData, Employee, FEREntry } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -58,6 +58,7 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
+import { FormRequirementsList } from '@/components/FormRequirementsList';
 
 const AddEditPatent = () => {
   const { id } = useParams<{ id: string }>();
@@ -108,7 +109,6 @@ const AddEditPatent = () => {
     cs_data_received: false
   });
   
-  // Additional state for FER entries management
   const [ferEntries, setFerEntries] = useState<FEREntry[]>([]);
   const [isFERDialogOpen, setIsFERDialogOpen] = useState(false);
   const [isEditingFER, setIsEditingFER] = useState(false);
@@ -120,11 +120,8 @@ const AddEditPatent = () => {
   const [ferDate, setFERDate] = useState('');
   const [isProcessingFER, setIsProcessingFER] = useState(false);
   
-  // FER delete confirmation dialog
-  const [deleteFERDialogOpen, setDeleteFERDialogOpen] = useState(false);
-  const [ferToDelete, setFERToDelete] = useState<FEREntry | null>(null);
+  const [formValues, setFormValues] = useState<Record<string, boolean>>({});
   
-  // Generate unique tracking ID
   useEffect(() => {
     if (!isEditMode) {
       const timestamp = new Date().getTime();
@@ -133,7 +130,6 @@ const AddEditPatent = () => {
     }
   }, [isEditMode]);
   
-  // Fetch employees for dropdown menus
   useEffect(() => {
     const getEmployees = async () => {
       try {
@@ -148,7 +144,6 @@ const AddEditPatent = () => {
     getEmployees();
   }, []);
   
-  // Load patent data if in edit mode
   useEffect(() => {
     const getPatent = async () => {
       if (isEditMode && id) {
@@ -161,7 +156,7 @@ const AddEditPatent = () => {
               patent_applicant: patent.patent_applicant,
               client_id: patent.client_id,
               application_no: patent.application_no || '',
-              date_of_filing: patent.date_of_filing ? patent.date_of_filing.split('T')[0] : '', // Format date for input
+              date_of_filing: patent.date_of_filing ? patent.date_of_filing.split('T')[0] : '',
               patent_title: patent.patent_title,
               applicant_addr: patent.applicant_addr,
               inventor_ph_no: patent.inventor_ph_no,
@@ -188,7 +183,14 @@ const AddEditPatent = () => {
               cs_data_received: patent.cs_data_received || false
             });
             
-            // Set FER entries if available
+            const initialFormValues: Record<string, boolean> = {};
+            Object.keys(patent).forEach(key => {
+              if (key.startsWith('form_') && typeof patent[key as keyof Patent] === 'boolean') {
+                initialFormValues[key] = !!patent[key as keyof Patent];
+              }
+            });
+            setFormValues(initialFormValues);
+            
             if (patent.fer_entries && patent.fer_entries.length > 0) {
               setFerEntries(patent.fer_entries);
             }
@@ -240,7 +242,6 @@ const AddEditPatent = () => {
     }
   };
   
-  // FER management functions
   const handleAddFER = () => {
     setIsEditingFER(false);
     setSelectedFER(null);
@@ -274,7 +275,6 @@ const AddEditPatent = () => {
     try {
       const success = await deleteFEREntry(ferToDelete.id);
       if (success) {
-        // Update local state to remove the deleted FER
         setFerEntries(prev => prev.filter(fer => fer.id !== ferToDelete.id));
         toast.success('FER entry deleted successfully');
       }
@@ -297,7 +297,6 @@ const AddEditPatent = () => {
     
     try {
       if (isEditingFER && selectedFER) {
-        // Update existing FER
         const ferData: Partial<FEREntry> = {
           fer_drafter_assgn: ferDrafter || null,
           fer_drafter_deadline: ferDrafterDeadline || null,
@@ -308,14 +307,12 @@ const AddEditPatent = () => {
         
         const success = await updateFEREntry(selectedFER.id, ferData);
         if (success) {
-          // Update local state
           setFerEntries(prev => 
             prev.map(fer => fer.id === selectedFER.id ? { ...fer, ...ferData } : fer)
           );
           toast.success('FER updated successfully');
         }
       } else {
-        // Create new FER
         const nextFERNumber = ferEntries.length > 0 
           ? Math.max(...ferEntries.map(fer => fer.fer_number)) + 1 
           : 1;
@@ -335,7 +332,6 @@ const AddEditPatent = () => {
         }
       }
       
-      // Close dialog
       setIsFERDialogOpen(false);
     } catch (error) {
       console.error('Error saving FER:', error);
@@ -346,14 +342,12 @@ const AddEditPatent = () => {
   };
   
   const validateForm = () => {
-    // Basic validation
     if (!formData.patent_applicant || !formData.client_id || 
         !formData.patent_title || !formData.applicant_addr) {
       toast.error('Please fill in all required fields');
       return false;
     }
     
-    // Validate inventors
     for (const inventor of formData.inventors) {
       if (!inventor.inventor_name || !inventor.inventor_addr) {
         toast.error('Please fill in all inventor details');
@@ -365,10 +359,8 @@ const AddEditPatent = () => {
   };
   
   const cleanFormData = (data: PatentFormData): PatentFormData => {
-    // Create a deep copy of the data
     const cleanedData = { ...data, inventors: [...data.inventors] };
     
-    // Replace empty date strings with null
     if (!cleanedData.date_of_filing) cleanedData.date_of_filing = null;
     if (!cleanedData.ps_drafter_deadline) cleanedData.ps_drafter_deadline = null;
     if (!cleanedData.ps_filer_deadline) cleanedData.ps_filer_deadline = null;
@@ -378,6 +370,13 @@ const AddEditPatent = () => {
     if (!cleanedData.fer_filer_deadline) cleanedData.fer_filer_deadline = null;
     
     return cleanedData;
+  };
+  
+  const handleFormValueChange = (formName: string, value: boolean) => {
+    setFormValues(prev => ({
+      ...prev,
+      [formName]: value
+    }));
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -390,21 +389,22 @@ const AddEditPatent = () => {
     try {
       setLoading(true);
       
-      // Clean the form data to prevent empty date strings
       const cleanedFormData = cleanFormData(formData);
       
       if (isEditMode && id) {
-        // Update existing patent
         const success = await updatePatent(id, cleanedFormData);
+        
+        if (success && Object.keys(formValues).length > 0) {
+          await updatePatentForms(id, formValues);
+        }
+        
         if (success) {
           toast.success('Patent updated successfully');
           navigate('/patents');
         }
       } else {
-        // Create new patent
         const newPatent = await createPatent(cleanedFormData);
         if (newPatent) {
-          // Add inventors
           for (const inventor of formData.inventors) {
             await createInventor({
               tracking_id: newPatent.tracking_id,
@@ -413,11 +413,10 @@ const AddEditPatent = () => {
             });
           }
           
-          // If FER status is enabled, create the first FER entry
           if (newPatent.fer_status === 1 && newPatent.id) {
             await createFEREntry(
               newPatent.id, 
-              1, // First FER number
+              1, 
               newPatent.fer_drafter_assgn || undefined,
               newPatent.fer_drafter_deadline || undefined,
               newPatent.fer_filer_assgn || undefined,
@@ -437,7 +436,6 @@ const AddEditPatent = () => {
     }
   };
   
-  // Filter employees by role for dropdowns
   const drafters = employees.filter(emp => emp.role === 'drafter').map(emp => emp.full_name);
   const filers = employees.filter(emp => emp.role === 'filer').map(emp => emp.full_name);
   
@@ -451,7 +449,6 @@ const AddEditPatent = () => {
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Patent Information Card */}
         <Card>
           <CardHeader>
             <CardTitle>Patent Information</CardTitle>
@@ -569,7 +566,6 @@ const AddEditPatent = () => {
           </CardContent>
         </Card>
         
-        {/* IDF and CS Data Status Card */}
         <Card>
           <CardHeader>
             <CardTitle>Document Status</CardTitle>
@@ -695,7 +691,6 @@ const AddEditPatent = () => {
           </CardContent>
         </Card>
         
-        {/* Provisional Specification Card */}
         <Card>
           <CardHeader>
             <CardTitle>Provisional Specification</CardTitle>
@@ -770,7 +765,6 @@ const AddEditPatent = () => {
           </CardContent>
         </Card>
         
-        {/* Complete Specification Card */}
         <Card>
           <CardHeader>
             <CardTitle>Complete Specification</CardTitle>
@@ -845,7 +839,6 @@ const AddEditPatent = () => {
           </CardContent>
         </Card>
         
-        {/* FER Card */}
         <Card>
           <CardHeader>
             <CardTitle>First Examination Report (FER)</CardTitle>
@@ -993,6 +986,21 @@ const AddEditPatent = () => {
           </CardContent>
         </Card>
         
+        <Card>
+          <CardHeader>
+            <CardTitle>Form Requirements</CardTitle>
+            <CardDescription>Required forms for this patent application</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormRequirementsList 
+              patent={patent || {} as Patent} 
+              userRole={user?.role || ''} 
+              onUpdate={handleFormValueChange}
+              formValues={formValues}
+            />
+          </CardContent>
+        </Card>
+        
         <div className="flex justify-end gap-4 mt-8">
           <Button type="button" variant="outline" onClick={() => navigate('/patents')}>
             Cancel
@@ -1013,7 +1021,6 @@ const AddEditPatent = () => {
         </div>
       </form>
       
-      {/* FER Dialog */}
       <Dialog open={isFERDialogOpen} onOpenChange={setIsFERDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -1111,7 +1118,6 @@ const AddEditPatent = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Delete FER Confirmation */}
       <AlertDialog open={deleteFERDialogOpen} onOpenChange={setDeleteFERDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

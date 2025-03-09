@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -154,8 +153,6 @@ const PatentDetails = () => {
     }
   };
 
-  const canEditForms = userRole === 'admin' || userRole === 'filer';
-
   // Add the handleUpdateForms function to update patent forms
   const handleUpdateForms = async (formName: string, value: boolean) => {
     if (!id) return;
@@ -185,6 +182,8 @@ const PatentDetails = () => {
   if (!patent) {
     return <div className="text-red-500">Patent not found.</div>;
   }
+
+  const canEditForms = userRole === 'admin' || userRole === 'filer';
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
