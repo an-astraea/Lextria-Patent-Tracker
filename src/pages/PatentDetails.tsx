@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -34,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format } from 'date-fns';
 import FormRequirementsList from '@/components/patent/FormRequirementsList';
+import PatentStatusSection from '@/components/patent/PatentStatusSection';
 import { 
   AlertDialog,
   AlertDialogAction, 
@@ -544,50 +544,11 @@ const PatentDetails = () => {
           <CardDescription>Current status of each stage in the patent process</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <div className="text-sm font-medium text-gray-500">PS Drafting Status</div>
-              <Badge variant={patent.ps_drafting_status === 1 ? "success" : "secondary"}>
-                {patent.ps_drafting_status === 1 ? "Completed" : "Pending"}
-              </Badge>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-500">PS Filing Status</div>
-              <Badge variant={patent.ps_filing_status === 1 ? "success" : "secondary"}>
-                {patent.ps_filing_status === 1 ? "Completed" : "Pending"}
-              </Badge>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-500">PS Completion Status</div>
-              <Badge variant={patent.ps_completion_status === 1 ? "success" : "secondary"}>
-                {patent.ps_completion_status === 1 ? "Completed" : "Pending"}
-              </Badge>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-500">CS Drafting Status</div>
-              <Badge variant={patent.cs_drafting_status === 1 ? "success" : "secondary"}>
-                {patent.cs_drafting_status === 1 ? "Completed" : "Pending"}
-              </Badge>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-500">CS Filing Status</div>
-              <Badge variant={patent.cs_filing_status === 1 ? "success" : "secondary"}>
-                {patent.cs_filing_status === 1 ? "Completed" : "Pending"}
-              </Badge>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-500">CS Completion Status</div>
-              <Badge variant={patent.cs_completion_status === 1 ? "success" : "secondary"}>
-                {patent.cs_completion_status === 1 ? "Completed" : "Pending"}
-              </Badge>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-500">FER Status</div>
-              <Badge variant={patent.fer_status === 1 ? "success" : "secondary"}>
-                {patent.fer_status === 1 ? "Enabled" : "Disabled"}
-              </Badge>
-            </div>
-          </div>
+          <PatentStatusSection 
+            patent={patent} 
+            userRole={userRole} 
+            refreshPatentData={refreshPatentData}
+          />
         </CardContent>
       </Card>
       

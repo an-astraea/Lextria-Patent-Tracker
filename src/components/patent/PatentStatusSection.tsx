@@ -1,98 +1,139 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Check, Loader2 } from 'lucide-react';
 import { Patent } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import StatusBadge from '@/components/StatusBadge';
+import { updatePatentStatus } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface PatentStatusSectionProps {
   patent: Patent;
+  userRole: string;
+  refreshPatentData: () => Promise<void>;
 }
 
-const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({ patent }) => {
-  // Determine overall status
-  const determineStatus = (patent: Patent) => {
-    if (patent.ps_completion_status === 1 && patent.cs_completion_status === 1) {
-      return 'completed';
-    } else if ((patent.ps_drafting_status === 1 || patent.cs_drafting_status === 1 || patent.fer_drafter_status === 1) && 
-               (patent.ps_filing_status === 0 || patent.cs_filing_status === 0 || patent.fer_filing_status === 0)) {
-      return 'inProgress';
-    } else if (patent.ps_drafting_status === 0 && patent.cs_drafting_status === 0) {
-      return 'notStarted';
-    } else {
-      return 'pending';
+const PatentStatusSection = ({ patent, userRole, refreshPatentData }: PatentStatusSectionProps) => {
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  
+  const isAdmin = userRole === 'admin';
+  
+  const handleStatusUpdate = async (statusField: string, newValue: number) => {
+    if (!isAdmin) return;
+    
+    setIsUpdating(statusField);
+    try {
+      const success = await updatePatentStatus(patent.id, statusField, newValue);
+      if (success) {
+        toast.success(`Status updated successfully`);
+        refreshPatentData();
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Failed to update status');
+    } finally {
+      setIsUpdating(null);
     }
   };
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Patent Status</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium">Overall Status</h3>
-            <StatusBadge status={determineStatus(patent)} />
-          </div>
+  
+  const StatusBadge = ({ 
+    label, 
+    status, 
+    statusField 
+  }: { 
+    label: string; 
+    status: number; 
+    statusField: string;
+  }) => {
+    return (
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div className="text-sm font-medium text-gray-500">{label}</div>
+        <div className="flex gap-2 items-center">
+          <Badge variant={status === 1 ? "success" : "secondary"}>
+            {status === 1 ? "Completed" : "Pending"}
+          </Badge>
           
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium">Provisional Specification</h3>
-            <div className="flex flex-wrap gap-2">
-              <StatusBadge 
-                status={patent.ps_drafting_status === 1 ? 'completed' : 'pending'} 
-                label="PS Draft" 
-                showIcon={false} 
-                className="text-xs" 
-              />
-              <StatusBadge 
-                status={patent.ps_filing_status === 1 ? 'completed' : 'pending'} 
-                label="PS Filing" 
-                showIcon={false} 
-                className="text-xs" 
-              />
-            </div>
-          </div>
+          {isAdmin && status !== 1 && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="h-6 px-2 py-0"
+              onClick={() => handleStatusUpdate(statusField, 1)}
+              disabled={!!isUpdating}
+            >
+              {isUpdating === statusField ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Check className="h-3 w-3" />
+              )}
+            </Button>
+          )}
           
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium">Complete Specification</h3>
-            <div className="flex flex-wrap gap-2">
-              <StatusBadge 
-                status={patent.cs_drafting_status === 1 ? 'completed' : 'pending'} 
-                label="CS Draft" 
-                showIcon={false} 
-                className="text-xs" 
-              />
-              <StatusBadge 
-                status={patent.cs_filing_status === 1 ? 'completed' : 'pending'} 
-                label="CS Filing" 
-                showIcon={false} 
-                className="text-xs" 
-              />
-            </div>
-          </div>
-          
-          {patent.fer_status === 1 && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium">First Examination Report</h3>
-              <div className="flex flex-wrap gap-2">
-                <StatusBadge 
-                  status={patent.fer_drafter_status === 1 ? 'completed' : 'pending'} 
-                  label="FER Draft" 
-                  showIcon={false} 
-                  className="text-xs" 
-                />
-                <StatusBadge 
-                  status={patent.fer_filing_status === 1 ? 'completed' : 'pending'} 
-                  label="FER Filing" 
-                  showIcon={false} 
-                  className="text-xs" 
-                />
-              </div>
-            </div>
+          {isAdmin && status === 1 && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="h-6 px-2 py-0"
+              onClick={() => handleStatusUpdate(statusField, 0)}
+              disabled={!!isUpdating}
+            >
+              <span className="text-xs">Reset</span>
+            </Button>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    );
+  };
+  
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatusBadge 
+          label="PS Drafting Status" 
+          status={patent.ps_drafting_status} 
+          statusField="ps_drafting_status"
+        />
+        <StatusBadge 
+          label="PS Filing Status" 
+          status={patent.ps_filing_status} 
+          statusField="ps_filing_status"
+        />
+        <StatusBadge 
+          label="PS Completion Status" 
+          status={patent.ps_completion_status} 
+          statusField="ps_completion_status"
+        />
+        <StatusBadge 
+          label="CS Drafting Status" 
+          status={patent.cs_drafting_status} 
+          statusField="cs_drafting_status"
+        />
+        <StatusBadge 
+          label="CS Filing Status" 
+          status={patent.cs_filing_status} 
+          statusField="cs_filing_status"
+        />
+        <StatusBadge 
+          label="CS Completion Status" 
+          status={patent.cs_completion_status} 
+          statusField="cs_completion_status"
+        />
+        <StatusBadge 
+          label="FER Status" 
+          status={patent.fer_status} 
+          statusField="fer_status"
+        />
+      </div>
+      
+      {isAdmin && (
+        <div className="p-4 bg-gray-50 rounded-md mt-4">
+          <p className="text-sm text-gray-600">
+            <strong>Admin Note:</strong> You can manually update any status by clicking the buttons next to each status.
+            This allows you to override the workflow when necessary, such as when a patent starts from CS drafting instead of PS.
+          </p>
+        </div>
+      )}
+    </div>
   );
 };
 
