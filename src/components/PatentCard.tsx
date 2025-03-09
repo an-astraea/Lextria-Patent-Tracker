@@ -117,10 +117,7 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
       <div className="relative p-6">
         {patent.withdrawn && (
           <div className="absolute top-0 right-0 m-2">
-            <Badge variant="destructive" className="flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" />
-              Withdrawn
-            </Badge>
+            <StatusBadge status="withdrawn" />
           </div>
         )}
         
@@ -164,44 +161,34 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
 
         <div className="flex flex-wrap gap-2 mt-3">
           {patent.idf_sent && (
-            <Badge variant="outline" className={`text-xs ${patent.idf_received ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+            <StatusBadge 
+              status={patent.idf_received ? "completed" : "pending"} 
+              size="sm"
+            >
               {patent.idf_received ? "IDF Received" : "IDF Sent"}
-            </Badge>
+            </StatusBadge>
           )}
           
           {patent.cs_data && (
-            <Badge variant="outline" className={`text-xs ${patent.cs_data_received ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+            <StatusBadge 
+              status={patent.cs_data_received ? "completed" : "pending"} 
+              size="sm"
+            >
               {patent.cs_data_received ? "CS Data Received" : "CS Data Sent"}
-            </Badge>
+            </StatusBadge>
           )}
           
           {patent.invoice_sent && (
-            <Badge variant="outline" className={`text-xs ${getPaymentStatusInfo().color}`}>
+            <StatusBadge 
+              status={patent.payment_status || "pending"} 
+              size="sm"
+            >
               {getPaymentStatusInfo().label}
-            </Badge>
-          )}
-          
-          {patent.ps_drafting_status === 1 && (
-            <Badge variant="secondary" className="text-xs">PS Draft Complete</Badge>
-          )}
-          {patent.ps_filing_status === 1 && (
-            <Badge variant="secondary" className="text-xs">PS File Complete</Badge>
-          )}
-          {patent.cs_drafting_status === 1 && (
-            <Badge variant="secondary" className="text-xs">CS Draft Complete</Badge>
-          )}
-          {patent.cs_filing_status === 1 && (
-            <Badge variant="secondary" className="text-xs">CS File Complete</Badge>
-          )}
-          {patent.fer_drafter_status === 1 && (
-            <Badge variant="secondary" className="text-xs">FER Draft Complete</Badge>
-          )}
-          {patent.fer_filing_status === 1 && (
-            <Badge variant="secondary" className="text-xs">FER File Complete</Badge>
+            </StatusBadge>
           )}
           
           {patent.completed && (
-            <Badge variant="outline" className="bg-green-100 text-green-800 text-xs">Completed</Badge>
+            <StatusBadge status="completed" size="sm">Completed</StatusBadge>
           )}
         </div>
       </div>

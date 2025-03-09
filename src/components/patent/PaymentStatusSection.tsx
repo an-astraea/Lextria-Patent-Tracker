@@ -26,22 +26,38 @@ const PaymentStatusSection: React.FC<PaymentStatusSectionProps> = ({
   const [received, setReceived] = useState<string>(String(patent.payment_received || '0'));
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const getStatusLabel = (status: number) => {
+  const getStatusLabel = (status: string | number) => {
     switch (status) {
-      case 0: return 'Not Started';
-      case 1: return 'Pending';
-      case 2: return 'Partial';
-      case 3: return 'Completed';
+      case 0:
+      case '0':
+      case 'not_sent': return 'Invoice Not Sent';
+      case 1:
+      case '1':
+      case 'sent': return 'Invoice Sent';
+      case 2:
+      case '2':
+      case 'partially_paid': return 'Partially Paid';
+      case 3:
+      case '3':
+      case 'fully_paid': return 'Fully Paid';
       default: return 'Unknown';
     }
   };
   
-  const getStatusVariant = (status: number) => {
+  const getStatusVariant = (status: string | number) => {
     switch (status) {
-      case 0: return 'outline';
-      case 1: return 'secondary';
-      case 2: return 'warning';
-      case 3: return 'success';
+      case 0:
+      case '0':
+      case 'not_sent': return 'outline';
+      case 1:
+      case '1':
+      case 'sent': return 'secondary';
+      case 2:
+      case '2':
+      case 'partially_paid': return 'warning';
+      case 3:
+      case '3':
+      case 'fully_paid': return 'success';
       default: return 'outline';
     }
   };
@@ -58,12 +74,12 @@ const PaymentStatusSection: React.FC<PaymentStatusSectionProps> = ({
     
     try {
       // Convert string values to numbers for the API
-      const statusNum = parseInt(status, 10);
+      const statusStr = status;
       const amountNum = parseFloat(amount);
       const receivedNum = parseFloat(received);
       
       // First update the payment status
-      const statusResult = await updatePatentStatus(patent.id, 'payment_status', statusNum);
+      const statusResult = await updatePatentStatus(patent.id, 'payment_status', statusStr);
       
       if (!statusResult.success) {
         toast.error('Failed to update payment status');
@@ -72,7 +88,7 @@ const PaymentStatusSection: React.FC<PaymentStatusSectionProps> = ({
       
       // Then update the payment details
       const paymentResult = await updatePatentPayment(patent.id, {
-        payment_status: statusNum,
+        payment_status: statusStr,
         payment_amount: amountNum,
         payment_received: receivedNum
       });
@@ -125,10 +141,10 @@ const PaymentStatusSection: React.FC<PaymentStatusSectionProps> = ({
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">Not Started</SelectItem>
-                  <SelectItem value="1">Pending</SelectItem>
-                  <SelectItem value="2">Partial</SelectItem>
-                  <SelectItem value="3">Completed</SelectItem>
+                  <SelectItem value="not_sent">Invoice Not Sent</SelectItem>
+                  <SelectItem value="sent">Invoice Sent</SelectItem>
+                  <SelectItem value="partially_paid">Partially Paid</SelectItem>
+                  <SelectItem value="fully_paid">Fully Paid</SelectItem>
                 </SelectContent>
               </Select>
             </div>
