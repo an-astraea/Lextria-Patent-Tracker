@@ -1,11 +1,11 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Patent } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, FileText, FileCheck, Clock, AlertTriangle, Users, Briefcase, Building } from 'lucide-react';
+import { ChevronRight, FileText, FileCheck, Clock, AlertTriangle, Users, Briefcase, Building, FileMinus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PatentCard from '@/components/PatentCard';
+import EmployeePatentTable from '@/components/dashboard/EmployeePatentTable';
 import { fetchPatents, fetchDrafterAssignments, fetchFilerAssignments, fetchPendingReviews, fetchEmployees } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -94,6 +94,30 @@ const Dashboard = () => {
   ).length;
   
   const inProgressPatents = totalPatents - completedPatents;
+  
+  // New statistics for PS to CS conversion
+  const getPStoCSStats = () => {
+    if (!patents.length) return { total: 0, percentage: 0 };
+    
+    const psCompleted = patents.filter(p => p.ps_completion_status === 1).length;
+    const csCompleted = patents.filter(p => 
+      p.ps_completion_status === 1 && p.cs_completion_status === 1
+    ).length;
+    
+    const conversionPercentage = psCompleted > 0 
+      ? Math.round((csCompleted / psCompleted) * 100) 
+      : 0;
+    
+    return {
+      total: csCompleted,
+      percentage: conversionPercentage
+    };
+  };
+  
+  // Count withdrawn patents
+  const getWithdrawnPatentsCount = () => {
+    return patents.filter(p => p.withdrawn === true).length;
+  };
   
   // Calculate deadline approaching patents (with deadline in next 7 days)
   const today = new Date();
@@ -362,6 +386,9 @@ const Dashboard = () => {
   const topEmployees = getTopEmployees();
   const topClients = getTopClients();
   
+  const psToCSStats = getPStoCSStats();
+  const withdrawnCount = getWithdrawnPatentsCount();
+  
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -444,81 +471,128 @@ const Dashboard = () => {
       </div>
       
       {/* Admin specific statistics */}
-      {user?.role === 'admin' && statusStats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Provisional Specification</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-2 py-2">
-                <div className="text-center">
-                  <div className="text-xl font-bold">{statusStats.ps.drafted}</div>
-                  <p className="text-xs text-muted-foreground">Drafted</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-xl font-bold">{statusStats.ps.filed}</div>
-                  <p className="text-xs text-muted-foreground">Filed</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-xl font-bold">{statusStats.ps.completed}</div>
-                  <p className="text-xs text-muted-foreground">Completed</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {user?.role === 'admin' && (
+        <>
+          {/* PS to CS conversion and Withdrawn statistics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">PS to CS Conversion</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{psToCSStats.percentage}%</div>
+                <p className="text-xs text-muted-foreground">
+                  {psToCSStats.total} patents progressed from PS to CS
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Withdrawn Patents</CardTitle>
+                <FileMinus className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{withdrawnCount}</div>
+                <p className="text-xs text-muted-foreground">
+                  {withdrawnCount > 0 ? ((withdrawnCount / totalPatents) * 100).toFixed(0) + '%' : '0%'} of patents withdrawn
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        
+          {statusStats && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Provisional Specification</CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-2 py-2">
+                    <div className="text-center">
+                      <div className="text-xl font-bold">{statusStats.ps.drafted}</div>
+                      <p className="text-xs text-muted-foreground">Drafted</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold">{statusStats.ps.filed}</div>
+                      <p className="text-xs text-muted-foreground">Filed</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold">{statusStats.ps.completed}</div>
+                      <p className="text-xs text-muted-foreground">Completed</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Complete Specification</CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-2 py-2">
+                    <div className="text-center">
+                      <div className="text-xl font-bold">{statusStats.cs.drafted}</div>
+                      <p className="text-xs text-muted-foreground">Drafted</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold">{statusStats.cs.filed}</div>
+                      <p className="text-xs text-muted-foreground">Filed</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold">{statusStats.cs.completed}</div>
+                      <p className="text-xs text-muted-foreground">Completed</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">First Examination Report</CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-4 gap-2 py-2">
+                    <div className="text-center">
+                      <div className="text-xl font-bold">{statusStats.fer.required}</div>
+                      <p className="text-xs text-muted-foreground">Required</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold">{statusStats.fer.drafted}</div>
+                      <p className="text-xs text-muted-foreground">Drafted</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold">{statusStats.fer.filed}</div>
+                      <p className="text-xs text-muted-foreground">Filed</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold">{statusStats.fer.completed}</div>
+                      <p className="text-xs text-muted-foreground">Completed</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
           
+          {/* Employee vs Patent Status Table */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Complete Specification</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Employee Patent Status</CardTitle>
+                <Users className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <CardDescription>Patent assignments and completion status by employee</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-2 py-2">
-                <div className="text-center">
-                  <div className="text-xl font-bold">{statusStats.cs.drafted}</div>
-                  <p className="text-xs text-muted-foreground">Drafted</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-xl font-bold">{statusStats.cs.filed}</div>
-                  <p className="text-xs text-muted-foreground">Filed</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-xl font-bold">{statusStats.cs.completed}</div>
-                  <p className="text-xs text-muted-foreground">Completed</p>
-                </div>
-              </div>
+              <EmployeePatentTable patents={patents} />
             </CardContent>
           </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">First Examination Report</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-4 gap-2 py-2">
-                <div className="text-center">
-                  <div className="text-xl font-bold">{statusStats.fer.required}</div>
-                  <p className="text-xs text-muted-foreground">Required</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-xl font-bold">{statusStats.fer.drafted}</div>
-                  <p className="text-xs text-muted-foreground">Drafted</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-xl font-bold">{statusStats.fer.filed}</div>
-                  <p className="text-xs text-muted-foreground">Filed</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-xl font-bold">{statusStats.fer.completed}</div>
-                  <p className="text-xs text-muted-foreground">Completed</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        </>
       )}
       
       {/* Employee Statistics */}
