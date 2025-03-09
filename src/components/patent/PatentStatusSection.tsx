@@ -221,7 +221,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
 
   // Check workflow conditions
   const canStartPSDrafting = patent.idf_received === true;
-  const canStartCSFiling = patent.cs_data_received === true;
+  const canStartCSDrafting = patent.cs_data_received === true;
 
   // Button tooltip content based on workflow conditions
   const getPSDraftingTooltip = () => {
@@ -231,8 +231,8 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
     return "";
   };
 
-  const getCSFilingTooltip = () => {
-    if (!canStartCSFiling) {
+  const getCSDraftingTooltip = () => {
+    if (!canStartCSDrafting) {
       return "CS Data must be received before CS Drafting can be completed";
     }
     return "";
@@ -385,7 +385,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                         variant={patent.cs_drafting_status === 1 ? "default" : "outline"} 
                         size="sm"
                         onClick={() => handleStatusToggle('cs_drafting_status')}
-                        disabled={isUpdating || userRole !== 'admin' || !canStartCSFiling}
+                        disabled={isUpdating || userRole !== 'admin' || !canStartCSDrafting}
                         className="text-xs px-3 py-1 h-7"
                       >
                         {patent.cs_drafting_status === 1 ? (
@@ -396,9 +396,9 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                       </Button>
                     </span>
                   </TooltipTrigger>
-                  {getCSFilingTooltip() && (
+                  {getCSDraftingTooltip() && (
                     <TooltipContent>
-                      <p>{getCSFilingTooltip()}</p>
+                      <p>{getCSDraftingTooltip()}</p>
                     </TooltipContent>
                   )}
                 </Tooltip>
@@ -413,7 +413,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                     <X className="h-3.5 w-3.5 mr-1" /> Reset
                   </Button>
                 )}
-                {!canStartCSFiling && (
+                {!canStartCSDrafting && (
                   <AlertCircle className="h-5 w-5 text-amber-500" />
                 )}
               </div>

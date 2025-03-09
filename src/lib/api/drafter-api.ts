@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Patent } from "@/lib/types";
 import { toast } from "sonner";
@@ -124,5 +123,59 @@ export const completeDrafterTask = async (
     console.error("Error completing drafting task:", error);
     toast.error("Failed to complete drafting task");
     return false;
+  }
+};
+
+export const fetchDrafterPatents = async (drafterName: string) => {
+  try {
+    const { data: psPatents, error: psError } = await supabase
+      .from('patents')
+      .select('*')
+      .eq('ps_drafter_assgn', drafterName)
+      .eq('ps_drafting_status', 0)
+      .is('withdrawn', false)
+      .filter('idf_received', 'eq', true); // Only show patents where IDF has been received
+
+    if (psError) throw psError;
+
+    const { data: csPatents, error: csError } = await supabase
+      .from('patents')
+      .select('*')
+      .eq('cs_drafter_assgn', drafterName)
+      .eq('cs_drafting_status', 0)
+      .is('withdrawn', false)
+      .filter('cs_data_received', 'eq', true); // Only show patents where CS Data has been received
+
+    if (csError) throw csError;
+
+    // Fetch FER entries assigned to this drafter
+    const { data: ferEntries, error: ferError } = await supabase
+      .from('fer_entries')
+      .select('*, patent:patents(*)')
+      .eq('fer_drafter_assgn', drafterName)
+      .eq('fer_drafter_status', 0)
+      .is('patent.withdrawn', false);
+
+    if (ferError) throw ferError;
+
+    // Combine the patents, identifying their type for UI display
+    const combinedPatents = [
+      ...psPatents.map(patent => ({ ...patent, draftType: 'ps' })),
+      ...csPatents.map(patent => ({ ...patent, draftType: 'cs' })),
+    ];
+
+    // Transform FER entries into a compatible format
+    const ferPatents = ferEntries.map(entry => ({
+      ...entry.patent,
+      fer_entry_id: entry.id,
+      fer_number: entry.fer_number,
+      draftType: 'fer'
+    }));
+
+    // Combine all patents
+    return [...combinedPatents, ...ferPatents];
+  } catch (error) {
+    console.error('Error fetching drafter patents:', error);
+    throw error;
   }
 };
