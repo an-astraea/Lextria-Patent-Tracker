@@ -71,7 +71,7 @@ const PatentDetails = () => {
     const fetchAllEmployees = async () => {
       try {
         const employeesData = await fetchEmployees();
-        setEmployeesList(employeesData || []); // Fixed: use employeesList instead of employees
+        setEmployeesList(employeesData || []); 
       } catch (error) {
         console.error('Error fetching employees:', error);
       }
