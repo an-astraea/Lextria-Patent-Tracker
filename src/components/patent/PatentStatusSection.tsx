@@ -5,8 +5,8 @@ import StatusBadge from "@/components/StatusBadge";
 import { Patent } from "@/lib/types";
 import { updatePatentStatus, updatePatentPayment } from "@/lib/api";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Loader2, Check, User, Calendar } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -126,11 +126,208 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
 
   const canEditPayment = userRole === 'admin';
 
+  // Get status display for patent stages
+  const getStageStatus = (status: number) => {
+    return status === 1 ? 'completed' : 'pending';
+  };
+
+  // Helper function to get status badge text
+  const getStatusText = (status: number) => {
+    return status === 1 ? 'Completed' : 'Pending';
+  };
+
   return (
     <div className="space-y-6">
+      {/* Patent Status Boxes - New Section */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Patent Status</CardTitle>
+          <CardDescription>Current status of each stage in the patent process</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* PS Drafting Status */}
+            <div className="border rounded-lg p-4 space-y-3 bg-white">
+              <div className="font-medium">PS Drafting Status</div>
+              <div className="flex gap-2">
+                <Button 
+                  variant={patent.ps_drafting_status === 1 ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => handleStatusToggle('ps_drafting_status')}
+                  disabled={isUpdating || userRole !== 'admin'}
+                  className="text-xs px-3 py-1 h-7"
+                >
+                  Completed
+                </Button>
+                {userRole === 'admin' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleStatusToggle('ps_drafting_status')}
+                    disabled={isUpdating}
+                    className="text-xs px-3 py-1 h-7"
+                  >
+                    Reset
+                  </Button>
+                )}
+              </div>
+              <div className="text-sm text-gray-600 flex items-center gap-1">
+                <User className="h-3 w-3" /> Assigned to: {patent.ps_drafter_assgn || 'Not assigned'}
+              </div>
+              <div className="text-sm text-gray-600 flex items-center gap-1">
+                <Calendar className="h-3 w-3" /> Deadline: {patent.ps_drafter_deadline || 'No deadline'}
+              </div>
+            </div>
+
+            {/* PS Filing Status */}
+            <div className="border rounded-lg p-4 space-y-3 bg-white">
+              <div className="font-medium">PS Filing Status</div>
+              <div className="flex gap-2">
+                <Button 
+                  variant={patent.ps_filing_status === 1 ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => handleStatusToggle('ps_filing_status')}
+                  disabled={isUpdating || userRole !== 'admin'}
+                  className="text-xs px-3 py-1 h-7"
+                >
+                  {getStatusText(patent.ps_filing_status)}
+                </Button>
+                {patent.ps_filing_status === 1 && userRole === 'admin' && (
+                  <Check className="h-5 w-5 text-green-600" />
+                )}
+              </div>
+              <div className="text-sm text-gray-600 flex items-center gap-1">
+                <User className="h-3 w-3" /> Assigned to: {patent.ps_filer_assgn || 'Not assigned'}
+              </div>
+              <div className="text-sm text-gray-600 flex items-center gap-1">
+                <Calendar className="h-3 w-3" /> Deadline: {patent.ps_filer_deadline || 'No deadline'}
+              </div>
+            </div>
+
+            {/* PS Completion Status */}
+            <div className="border rounded-lg p-4 space-y-3 bg-white">
+              <div className="font-medium">PS Completion Status</div>
+              <div className="flex gap-2">
+                <Button 
+                  variant={patent.ps_completion_status === 1 ? "default" : "outline"} 
+                  size="sm"
+                  disabled={true}
+                  className="text-xs px-3 py-1 h-7"
+                >
+                  {getStatusText(patent.ps_completion_status)}
+                </Button>
+                {patent.ps_completion_status === 1 && (
+                  <Check className="h-5 w-5 text-green-600" />
+                )}
+              </div>
+            </div>
+
+            {/* CS Drafting Status */}
+            <div className="border rounded-lg p-4 space-y-3 bg-white">
+              <div className="font-medium">CS Drafting Status</div>
+              <div className="flex gap-2">
+                <Button 
+                  variant={patent.cs_drafting_status === 1 ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => handleStatusToggle('cs_drafting_status')}
+                  disabled={isUpdating || userRole !== 'admin'}
+                  className="text-xs px-3 py-1 h-7"
+                >
+                  {getStatusText(patent.cs_drafting_status)}
+                </Button>
+                {patent.cs_drafting_status === 1 && userRole === 'admin' && (
+                  <Check className="h-5 w-5 text-green-600" />
+                )}
+              </div>
+              <div className="text-sm text-gray-600 flex items-center gap-1">
+                <User className="h-3 w-3" /> Assigned to: {patent.cs_drafter_assgn || 'Not assigned'}
+              </div>
+              <div className="text-sm text-gray-600 flex items-center gap-1">
+                <Calendar className="h-3 w-3" /> Deadline: {patent.cs_drafter_deadline || 'No deadline'}
+              </div>
+            </div>
+
+            {/* CS Filing Status */}
+            <div className="border rounded-lg p-4 space-y-3 bg-white">
+              <div className="font-medium">CS Filing Status</div>
+              <div className="flex gap-2">
+                <Button 
+                  variant={patent.cs_filing_status === 1 ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => handleStatusToggle('cs_filing_status')}
+                  disabled={isUpdating || userRole !== 'admin'}
+                  className="text-xs px-3 py-1 h-7"
+                >
+                  {getStatusText(patent.cs_filing_status)}
+                </Button>
+                {patent.cs_filing_status === 1 && userRole === 'admin' && (
+                  <Check className="h-5 w-5 text-green-600" />
+                )}
+              </div>
+              <div className="text-sm text-gray-600 flex items-center gap-1">
+                <User className="h-3 w-3" /> Assigned to: {patent.cs_filer_assgn || 'Not assigned'}
+              </div>
+              <div className="text-sm text-gray-600 flex items-center gap-1">
+                <Calendar className="h-3 w-3" /> Deadline: {patent.cs_filer_deadline || 'No deadline'}
+              </div>
+            </div>
+
+            {/* CS Completion Status */}
+            <div className="border rounded-lg p-4 space-y-3 bg-white">
+              <div className="font-medium">CS Completion Status</div>
+              <div className="flex gap-2">
+                <Button 
+                  variant={patent.cs_completion_status === 1 ? "default" : "outline"} 
+                  size="sm"
+                  disabled={true}
+                  className="text-xs px-3 py-1 h-7"
+                >
+                  {getStatusText(patent.cs_completion_status)}
+                </Button>
+                {patent.cs_completion_status === 1 && (
+                  <Check className="h-5 w-5 text-green-600" />
+                )}
+              </div>
+            </div>
+
+            {/* FER Status */}
+            <div className="border rounded-lg p-4 space-y-3 bg-white">
+              <div className="font-medium">FER Status</div>
+              <div className="flex gap-2">
+                <Button 
+                  variant={patent.fer_status === 1 ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => handleStatusToggle('fer_status')}
+                  disabled={isUpdating || userRole !== 'admin'}
+                  className="text-xs px-3 py-1 h-7"
+                >
+                  {getStatusText(patent.fer_status)}
+                </Button>
+                {patent.fer_status === 1 && userRole === 'admin' && (
+                  <Check className="h-5 w-5 text-green-600" />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {userRole === 'admin' && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-700 font-medium">Admin Note:</p>
+              <p className="text-sm text-gray-600">
+                You can manually update any status by clicking the buttons next to each status. 
+                This allows you to override the workflow when necessary, such as when a patent 
+                starts from CS drafting instead of PS. If a new FER entry is created, the patent 
+                status will be updated automatically.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Original status boxes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">General Status</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -158,6 +355,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
         </CardContent>
       </Card>
 
+      {/* Payment status section */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Payment Status</CardTitle>
