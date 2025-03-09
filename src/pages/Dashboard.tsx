@@ -22,6 +22,7 @@ import PendingApprovals from '@/components/dashboard/PendingApprovals';
 import UserAssignments from '@/components/dashboard/UserAssignments';
 import DeadlinePatents from '@/components/dashboard/DeadlinePatents';
 import PatentStateTable from '@/components/dashboard/PatentStateTable';
+import PatentStatusTable from '@/components/dashboard/PatentStatusTable';
 
 const Dashboard = () => {
   const [patents, setPatents] = useState<Patent[]>([]);
@@ -114,7 +115,10 @@ const Dashboard = () => {
       {/* Admin-specific sections */}
       {user?.role === 'admin' && (
         <>
-          {/* Patent State Table - added new component here */}
+          {/* Patent Processing State Table - new component */}
+          <PatentStatusTable patents={patents} />
+          
+          {/* Patent State Table (geographical) */}
           <PatentStateTable patents={patents} />
           
           {/* Conversion Stats */}
