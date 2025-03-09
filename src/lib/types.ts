@@ -242,8 +242,8 @@ export interface PaymentStatusSectionProps {
 
 export interface EmptyStateProps {
   title: string;
-  description?: string;
   message?: string;
+  description?: string;
   buttonText?: string;
   onButtonClick?: () => Promise<void> | void;
   icon?: string;
@@ -272,11 +272,11 @@ export interface ApiResponse<T> {
 }
 
 // Helper type for API responses with proper unions
-export type ApiPatentsResponse = Patent[] | { patents: Patent[]; error?: any } | { error: any; patents: any[] };
-export type ApiEmployeesResponse = Employee[] | { employees: Employee[]; error?: any } | { error: any; employees: any[] };
-export type ApiPatentResponse = Patent | { patent: Patent; error?: any } | { error: any; patent: any } | { success: boolean; patent: Patent; error?: any };
-export type ApiTimelineResponse = TimelineEvent[] | { timeline: TimelineEvent[]; error?: any } | { error: any; timeline: any[] };
-export type ApiFERResponse = FEREntry | { fer: FEREntry; error?: any } | { error: any; fer: any; success: boolean } | { success: boolean; fer?: FEREntry; error?: any };
+export type ApiPatentsResponse = Patent[] | { patents: Patent[]; error?: any; } | { error: any; patents?: any[] };
+export type ApiEmployeesResponse = Employee[] | { employees: Employee[]; error?: any; } | { error: any; employees?: any[] };
+export type ApiPatentResponse = Patent | { patent: Patent; error?: any; } | { error: any; patent?: any; } | { success: boolean; patent: Patent; error?: any; };
+export type ApiTimelineResponse = TimelineEvent[] | { timeline: TimelineEvent[]; error?: any; } | { error: any; timeline?: any[] };
+export type ApiFERResponse = FEREntry | { fer: FEREntry; error?: any; } | { error: any; fer?: any; success?: boolean; } | { success: boolean; fer?: FEREntry; error?: any; };
 
 export type PatentResponse = Patent | { error: any; patent: any; } | { 
   patent: Patent; 

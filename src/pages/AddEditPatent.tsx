@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -34,7 +33,10 @@ import {
   handlePatentResponse, 
   handleFERResponse, 
   createDummyInventorId,
-  safelyUpdateFEREntries
+  safelyUpdateFEREntries,
+  ApiEmployeesResponse,
+  ApiPatentResponse,
+  ApiFERResponse
 } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -388,7 +390,7 @@ const AddEditPatent = () => {
     
       if (isEditing && id) {
         // Update existing patent
-        const patentDataToUpdate: Partial<Patent> = {
+        const patentDataToUpdate = {
           ...formData,
           inventors: inventorsWithIds
         };
@@ -403,7 +405,7 @@ const AddEditPatent = () => {
         const newPatentData = await createPatent({
           ...formData,
           inventors: inventorsWithIds
-        } as PatentFormData);
+        });
         
         const newPatent = handlePatentResponse(newPatentData);
       

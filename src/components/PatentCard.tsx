@@ -1,238 +1,55 @@
-
 import React from 'react';
-import { Patent } from '@/lib/types';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Patent, PatentCardProps } from '@/lib/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import StatusBadge from './StatusBadge';
-import { Button } from '@/components/ui/button';
-import { 
-  FileText, 
-  Edit, 
-  Trash2, 
-  CalendarClock, 
-  User, 
-  Building,
-  History,
-  AlertTriangle,
-  IndianRupee
-} from 'lucide-react';
+import { Building, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { toast } from 'sonner';
-import TimelineDialog from './TimelineDialog';
 
 interface PatentCardProps {
   patent: Patent;
-  showDeadline?: boolean;
-  onDelete?: (id: string) => void;
+  key?: string;
+  isCompact?: boolean;
+  showClientInfo?: boolean;
+  showReviewBadge?: boolean;
 }
 
-const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
-  // Get user from localStorage
-  const userString = localStorage.getItem('user');
-  const user = userString ? JSON.parse(userString) : null;
-
-  const determineStatus = (patent: Patent) => {
-    // First check if patent is withdrawn
-    if (patent.withdrawn) {
-      return 'withdrawn';
-    }
-    
-    // Then check if patent is completed
-    if (patent.completed) {
-      return 'completed';
-    }
-    
-    // Check if IDF is received (prerequisite for most work)
-    if (!patent.idf_received) {
-      return 'pending';
-    }
-    
-    if (patent.ps_completion_status === 1 && patent.cs_completion_status === 1) {
-      return 'completed';
-    } else if ((patent.ps_drafting_status === 1 || patent.cs_drafting_status === 1 || patent.fer_drafter_status === 1) && 
-               (patent.ps_filing_status === 0 || patent.cs_filing_status === 0 || patent.fer_filing_status === 0)) {
-      return 'inProgress';
-    } else if (patent.ps_drafting_status === 0 && patent.cs_drafting_status === 0) {
-      return 'notStarted';
-    } else {
-      return 'pending';
-    }
-  };
-
-  const status = determineStatus(patent);
-
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete(patent.id);
-    } else {
-      toast.error("Delete functionality not implemented");
-    }
-  };
-
-  // Find the closest deadline if showDeadline is true
-  const findClosestDeadline = () => {
-    if (!showDeadline) return null;
-    
-    const deadlines = [
-      { label: 'PS Draft', date: patent.ps_drafter_deadline },
-      { label: 'PS File', date: patent.ps_filer_deadline },
-      { label: 'CS Draft', date: patent.cs_drafter_deadline },
-      { label: 'CS File', date: patent.cs_filer_deadline },
-      { label: 'FER Draft', date: patent.fer_drafter_deadline },
-      { label: 'FER File', date: patent.fer_filer_deadline }
-    ].filter(d => d.date);
-    
-    if (deadlines.length === 0) return null;
-    
-    deadlines.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    return deadlines[0];
-  };
-  
-  const closestDeadline = findClosestDeadline();
-
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString();
-  };
-  
-  // Get payment status info
-  const getPaymentStatusInfo = () => {
-    if (!patent.invoice_sent) {
-      return { label: 'Invoice Not Sent', color: 'bg-gray-100 text-gray-800' };
-    }
-    
-    if (patent.payment_status === 'fully_paid') {
-      return { label: 'Fully Paid', color: 'bg-green-100 text-green-800' };
-    }
-    
-    if (patent.payment_status === 'partially_paid') {
-      return { label: 'Partially Paid', color: 'bg-amber-100 text-amber-800' };
-    }
-    
-    return { label: 'Invoice Sent', color: 'bg-blue-100 text-blue-800' };
-  };
-
+const PatentCard: React.FC<PatentCardProps> = ({ patent, isCompact = false, showClientInfo = false, showReviewBadge = false }) => {
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-md border border-border">
-      <div className="relative p-6">
-        {patent.withdrawn && (
-          <div className="absolute top-0 right-0 m-2">
-            <StatusBadge status="withdrawn" />
-          </div>
-        )}
-        
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h3 className="text-lg font-semibold line-clamp-1">{patent.patent_title}</h3>
-            <div className="text-sm text-muted-foreground mt-1">ID: {patent.tracking_id}</div>
-          </div>
-          <StatusBadge status={status} />
-        </div>
-        
-        <div className="grid grid-cols-1 gap-3 mb-4">
-          <div className="flex items-center gap-2">
-            <Building className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">{patent.patent_applicant}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">Client: {patent.client_id}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <CalendarClock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">Filed: {formatDate(patent.date_of_filing)}</span>
-          </div>
-          
-          {patent.payment_amount > 0 && (
-            <div className="flex items-center gap-2">
-              <IndianRupee className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">
-                Payment: ₹{patent.payment_received || 0} / ₹{patent.payment_amount}
-              </span>
+    <Link to={`/patents/${patent.id}`}>
+      <Card className="hover:shadow-md transition-shadow">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex justify-between items-start">
+            <div className="truncate">{patent.patent_title}</div>
+            {showReviewBadge && (
+              <Badge variant="secondary">Review</Badge>
+            )}
+          </CardTitle>
+          <CardDescription>ID: {patent.tracking_id}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-1 text-sm">
+          {showClientInfo && (
+            <div className="flex items-center space-x-2">
+              <Building className="h-4 w-4 text-gray-500" />
+              <span>Client: {patent.client_id}</span>
             </div>
           )}
-          
-          {closestDeadline && (
-            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md text-sm">
-              <span className="font-medium">{closestDeadline.label} Deadline:</span> {formatDate(closestDeadline.date)}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-wrap gap-2 mt-3">
-          {patent.idf_sent && (
-            <StatusBadge 
-              status={patent.idf_received ? "completed" : "pending"} 
-              size="sm"
-            >
-              {patent.idf_received ? "IDF Received" : "IDF Sent"}
-            </StatusBadge>
-          )}
-          
-          {patent.cs_data && (
-            <StatusBadge 
-              status={patent.cs_data_received ? "completed" : "pending"} 
-              size="sm"
-            >
-              {patent.cs_data_received ? "CS Data Received" : "CS Data Sent"}
-            </StatusBadge>
-          )}
-          
-          {patent.invoice_sent && (
-            <StatusBadge 
-              status={patent.payment_status || "pending"} 
-              size="sm"
-            >
-              {getPaymentStatusInfo().label}
-            </StatusBadge>
-          )}
-          
-          {patent.completed && (
-            <StatusBadge status="completed" size="sm">Completed</StatusBadge>
-          )}
-        </div>
-      </div>
-      
-      <CardFooter className="flex justify-between bg-muted/30 p-4 border-t">
-        <div className="flex items-center gap-1">
-          <Link to={`/patents/${patent.id}`}>
-            <Button variant="ghost" size="sm" className="flex items-center gap-1">
-              <FileText className="h-4 w-4" />
-              <span>View</span>
-            </Button>
-          </Link>
-          
-          <TimelineDialog patent={patent}>
-            <Button variant="ghost" size="sm" className="flex items-center gap-1">
-              <History className="h-4 w-4" />
-              <span>Timeline</span>
-            </Button>
-          </TimelineDialog>
-        </div>
-        
-        <div className="flex items-center gap-1">
-          {user?.role === 'admin' && (
+          <div className="flex items-center space-x-2">
+            <FileText className="h-4 w-4 text-gray-500" />
+            <span>Applicant: {patent.patent_applicant}</span>
+          </div>
+          {!isCompact && (
             <>
-              <Link to={`/patents/edit/${patent.id}`}>
-                <Button variant="ghost" size="sm">
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </Link>
-              
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleDelete}
-                className="hover:text-destructive"
-                disabled={!onDelete}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <div>
+                <span className="font-medium">Filing Date:</span> {patent.date_of_filing}
+              </div>
+              <div>
+                <span className="font-medium">Inventors:</span> {patent.inventors?.map(i => i.inventor_name).join(', ')}
+              </div>
             </>
           )}
-        </div>
-      </CardFooter>
-    </Card>
+        </CardContent>
+      </Card>
+    </Link>
   );
 };
 

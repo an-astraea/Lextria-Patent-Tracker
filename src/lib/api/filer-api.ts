@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Patent } from "@/lib/types";
 import { toast } from "sonner";
@@ -143,6 +142,24 @@ export const completeFilerTask = async (
   } catch (error) {
     console.error("Error completing filing task:", error);
     toast.error("Failed to complete filing task");
+    return false;
+  }
+};
+
+export const completeFERFiling = async (patentId: string, filerName: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`/api/patents/${patentId}/complete-fer-filing`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ filerName }),
+    });
+
+    const data = await response.json();
+    return data.success || false;
+  } catch (error) {
+    console.error('Error completing FER filing task:', error);
     return false;
   }
 };
