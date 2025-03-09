@@ -1,125 +1,125 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Employee } from "../types";
-import { toast } from "sonner";
 
-export const fetchEmployees = async (): Promise<Employee[]> => {
+// Employee functions
+export const fetchEmployees = async () => {
   try {
     const { data, error } = await supabase
-      .from("employees")
-      .select("*");
-
+      .from('employees')
+      .select('*')
+      .order('full_name', { ascending: true });
+    
     if (error) {
-      throw error;
+      console.error("Error fetching employees:", error);
+      return { error: error.message, employees: [] };
     }
-
-    // Cast the roles to the expected type
-    return (data || []).map(employee => ({
-      ...employee,
-      role: employee.role as 'admin' | 'drafter' | 'filer'
-    }));
-  } catch (error) {
-    console.error("Error fetching employees:", error);
-    toast.error("Failed to load employees");
-    return [];
+    
+    return { 
+      employees: data.map(emp => ({
+        ...emp,
+        role: emp.role as 'admin' | 'drafter' | 'filer' | 'employee'
+      }))
+    };
+  } catch (error: any) {
+    console.error("Exception fetching employees:", error);
+    return { error: error.message, employees: [] };
   }
 };
 
-export const fetchEmployeeById = async (id: string): Promise<Employee | null> => {
+export const fetchEmployeeById = async (id: string) => {
   try {
     const { data, error } = await supabase
-      .from("employees")
-      .select("*")
-      .eq("id", id)
+      .from('employees')
+      .select('*')
+      .eq('id', id)
       .single();
-
+    
     if (error) {
-      throw error;
+      console.error("Error fetching employee:", error);
+      return { error: error.message, employee: null };
     }
-
-    if (!data) {
-      return null;
-    }
-
-    // Cast the role to the expected type
+    
     return {
       ...data,
-      role: data.role as 'admin' | 'drafter' | 'filer'
+      role: data.role as 'admin' | 'drafter' | 'filer' | 'employee'
     };
-  } catch (error) {
-    console.error("Error fetching employee:", error);
-    toast.error("Failed to load employee details");
-    return null;
+  } catch (error: any) {
+    console.error("Exception fetching employee:", error);
+    return { error: error.message, employee: null };
   }
 };
 
-// Added function to create a new employee
-export const createEmployee = async (employee: Omit<Employee, 'id' | 'created_at' | 'updated_at'>): Promise<Employee | null> => {
+export const createEmployee = async (employeeData: Partial<Employee>) => {
   try {
+    // Create the employee record
     const { data, error } = await supabase
-      .from("employees")
-      .insert({
-        emp_id: employee.emp_id,
-        full_name: employee.full_name,
-        email: employee.email,
-        ph_no: employee.ph_no,
-        password: employee.password,
-        role: employee.role
-      })
+      .from('employees')
+      .insert([{
+        emp_id: employeeData.emp_id,
+        full_name: employeeData.full_name,
+        email: employeeData.email,
+        ph_no: employeeData.ph_no,
+        password: employeeData.password,
+        role: employeeData.role || 'drafter' // Default to drafter if role not specified
+      }])
       .select()
       .single();
-
+    
     if (error) {
-      throw error;
+      console.error("Error creating employee:", error);
+      return { error: error.message, success: false };
     }
-
-    return {
-      ...data,
-      role: data.role as 'admin' | 'drafter' | 'filer'
+    
+    return { 
+      success: true, 
+      employee: {
+        ...data,
+        role: data.role as 'admin' | 'drafter' | 'filer' | 'employee'
+      }
     };
-  } catch (error) {
-    console.error("Error creating employee:", error);
-    toast.error("Failed to create employee");
-    return null;
+  } catch (error: any) {
+    console.error("Exception creating employee:", error);
+    return { error: error.message, success: false };
   }
 };
 
-// Added function to update an employee
-export const updateEmployee = async (id: string, employee: Partial<Omit<Employee, 'id'>>): Promise<boolean> => {
+export const updateEmployee = async (id: string, employeeData: Partial<Employee>) => {
   try {
+    // Update employee record
     const { error } = await supabase
-      .from("employees")
-      .update(employee)
-      .eq("id", id);
-
+      .from('employees')
+      .update(employeeData)
+      .eq('id', id);
+    
     if (error) {
-      throw error;
+      console.error("Error updating employee:", error);
+      return { error: error.message, success: false };
     }
-
-    return true;
-  } catch (error) {
-    console.error("Error updating employee:", error);
-    toast.error("Failed to update employee");
-    return false;
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error("Exception updating employee:", error);
+    return { error: error.message, success: false };
   }
 };
 
-// Added function to delete an employee
-export const deleteEmployee = async (id: string): Promise<boolean> => {
+export const deleteEmployee = async (id: string) => {
   try {
-    const { error } = await supabase
-      .from("employees")
+    // Delete the employee record
+    const { error: deleteError } = await supabase
+      .from('employees')
       .delete()
-      .eq("id", id);
-
-    if (error) {
-      throw error;
+      .eq('id', id);
+    
+    if (deleteError) {
+      console.error("Error deleting employee:", deleteError);
+      return { error: deleteError.message, success: false };
     }
-
-    return true;
-  } catch (error) {
-    console.error("Error deleting employee:", error);
-    toast.error("Failed to delete employee");
-    return false;
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error("Exception deleting employee:", error);
+    return { error: error.message, success: false };
   }
 };

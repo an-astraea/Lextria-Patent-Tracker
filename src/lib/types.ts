@@ -332,7 +332,10 @@ export function handlePatentsResponse(response: ApiPatentsResponse): Patent[] {
 // Helper function to handle API response for Employees
 export function handleEmployeesResponse(response: ApiEmployeesResponse): Employee[] {
   if (Array.isArray(response)) {
-    return response;
+    return response.map(emp => ({
+      ...emp,
+      role: emp.role as 'admin' | 'drafter' | 'filer' | 'employee'
+    }));
   } else if (response && 'employees' in response && Array.isArray(response.employees)) {
     return response.employees.map(emp => ({
       ...emp,
