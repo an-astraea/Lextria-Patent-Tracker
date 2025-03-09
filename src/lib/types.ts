@@ -38,13 +38,7 @@ export interface Patent {
   fer_filer_deadline?: string | null;
   fer_review_file_status?: number;
   fer_completion_status?: number;
-  form_26?: boolean;
-  form_18?: boolean;
-  form_18a?: boolean;
-  form_9?: boolean;
-  form_9a?: boolean;
-  form_13?: boolean;
-  // Adding the other forms that are referenced in the code
+  // Form fields
   form_1?: boolean;
   form_2?: boolean;
   form_3?: boolean;
@@ -53,13 +47,18 @@ export interface Patent {
   form_6?: boolean;
   form_7?: boolean;
   form_8?: boolean;
+  form_9?: boolean;
+  form_9a?: boolean;
   form_10?: boolean;
   form_11?: boolean;
   form_12?: boolean;
+  form_13?: boolean;
   form_14?: boolean;
   form_15?: boolean;
   form_16?: boolean;
   form_17?: boolean;
+  form_18?: boolean;
+  form_18a?: boolean;
   form_19?: boolean;
   form_20?: boolean;
   form_21?: boolean;
@@ -67,11 +66,26 @@ export interface Patent {
   form_23?: boolean;
   form_24?: boolean;
   form_25?: boolean;
+  form_26?: boolean;
   form_27?: boolean;
   form_28?: boolean;
   form_29?: boolean;
   form_30?: boolean;
   form_31?: boolean;
+  // For backwards compatibility with any existing code
+  form_01?: boolean;
+  form_02_ps?: boolean;
+  form_02_cs?: boolean;
+  form_03?: boolean;
+  form_04?: boolean;
+  form_05?: boolean;
+  form_06?: boolean;
+  form_07?: boolean;
+  form_07a?: boolean;
+  form_08?: boolean;
+  form_08a?: boolean;
+  form_09?: boolean;
+  form_09a?: boolean;
   completed?: boolean;
   withdrawn?: boolean;
   payment_status?: string;
@@ -150,15 +164,8 @@ export interface InventorInfo {
   updated_at?: string;
 }
 
-// Adding the Inventor interface that's referenced in the code
-export interface Inventor {
-  id?: string;
-  tracking_id: string;
-  inventor_name: string;
-  inventor_addr: string;
-  created_at?: string;
-  updated_at?: string;
-}
+// Add Inventor alias for backward compatibility
+export type Inventor = InventorInfo;
 
 export interface FEREntry {
   id: string;
@@ -176,7 +183,7 @@ export interface FEREntry {
   fer_date?: string | null;
   created_at?: string;
   updated_at?: string;
-  patent?: Patent; // Adding this for the Filings component
+  patent?: Patent; // Add this for when the patent is included in a FER response
 }
 
 export interface FERHistory {
@@ -188,5 +195,9 @@ export interface FERHistory {
   notes?: string;
   created_at?: string;
   updated_at?: string;
-  tracking_id?: string; // Adding this since it's used in data.ts
+  tracking_id?: string; // Add this for backward compatibility
+  fer_drafter_assgn?: string; // Add this for backward compatibility
+  fer_drafter_deadline?: string; // Add this for backward compatibility
+  fer_filer_assgn?: string; // Add this for backward compatibility
+  fer_filer_deadline?: string; // Add this for backward compatibility
 }

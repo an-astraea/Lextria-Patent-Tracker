@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 import { EmployeeFormData, FEREntry, PatentFormData, Patent, Employee } from './types';
+import { normalizePatents } from './utils/type-converters';
 
 // Use import.meta.env for Vite projects instead of process.env
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://afjnaobrkqxejmztqyhd.supabase.co';
@@ -23,7 +24,8 @@ export const fetchPatents = async () => {
     return [];
   }
 
-  return patents || [];
+  // Normalize the patents data to match our type definitions
+  return patents ? normalizePatents(patents) : [];
 };
 
 // Function to fetch a single patent by ID
@@ -44,7 +46,8 @@ export const fetchPatentById = async (id: string) => {
     return null;
   }
 
-  return patent;
+  // Normalize the patent data to match our type definitions
+  return patent ? normalizePatents([patent])[0] : null;
 };
 
 // Function to fetch all employees
@@ -101,7 +104,8 @@ export const fetchPendingReviews = async () => {
     return [];
   }
 
-  return data || [];
+  // Normalize the patents data to match our type definitions
+  return data ? normalizePatents(data) : [];
 };
 
 // Function to approve a patent review
@@ -266,8 +270,11 @@ export const fetchDrafterAssignments = async (drafterName: string) => {
       return [];
     }
     
+    // Normalize the patents data
+    const normalizedPatents = normalizePatents(data || []);
+    
     // Filter only patents where the drafter has pending tasks
-    const filteredPatents = data.filter(patent => 
+    const filteredPatents = normalizedPatents.filter(patent => 
       (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 0) ||
       (patent.cs_drafter_assgn === drafterName && patent.cs_drafting_status === 0) ||
       (patent.fer_drafter_assgn === drafterName && patent.fer_drafter_status === 0) ||
@@ -300,8 +307,11 @@ export const fetchDrafterCompletedAssignments = async (drafterName: string) => {
       return [];
     }
     
+    // Normalize the patents data
+    const normalizedPatents = normalizePatents(data || []);
+    
     // Filter only patents where the drafter has completed tasks
-    const filteredPatents = data.filter(patent => 
+    const filteredPatents = normalizedPatents.filter(patent => 
       (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 1) ||
       (patent.cs_drafter_assgn === drafterName && patent.cs_drafting_status === 1) ||
       (patent.fer_drafter_assgn === drafterName && patent.fer_drafter_status === 1) ||
@@ -394,8 +404,11 @@ export const fetchFilerAssignments = async (filerName: string) => {
       return [];
     }
     
+    // Normalize the patents data
+    const normalizedPatents = normalizePatents(data || []);
+    
     // Filter only patents where the filer has pending tasks
-    const filteredPatents = data.filter(patent => 
+    const filteredPatents = normalizedPatents.filter(patent => 
       // PS filer task is ready when PS drafting is complete
       (patent.ps_filer_assgn === filerName && patent.ps_filing_status === 0 && patent.ps_drafting_status === 1) ||
       // CS filer task is ready when CS drafting is complete
@@ -452,8 +465,11 @@ export const fetchFilerCompletedAssignments = async (filerName: string) => {
       return [];
     }
     
+    // Normalize the patents data
+    const normalizedPatents = normalizePatents(data || []);
+    
     // Filter only patents where the filer has completed tasks
-    const filteredPatents = data.filter(patent => 
+    const filteredPatents = normalizedPatents.filter(patent => 
       (patent.ps_filer_assgn === filerName && patent.ps_filing_status === 1) ||
       (patent.cs_filer_assgn === filerName && patent.cs_filing_status === 1) ||
       (patent.fer_filer_assgn === filerName && patent.fer_filing_status === 1) ||
