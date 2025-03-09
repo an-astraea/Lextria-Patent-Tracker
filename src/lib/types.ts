@@ -1,4 +1,3 @@
-
 export interface Inventor {
   id: string;
   tracking_id: string;
@@ -272,12 +271,12 @@ export interface ApiResponse<T> {
   fer?: any;
 }
 
-// Helper type for API responses
+// Helper type for API responses with proper unions
 export type ApiPatentsResponse = Patent[] | { patents: Patent[]; error?: any } | { error: any; patents: any[] };
 export type ApiEmployeesResponse = Employee[] | { employees: Employee[]; error?: any } | { error: any; employees: any[] };
-export type ApiPatentResponse = Patent | { patent: Patent; error?: any } | { error: any; patent: any };
+export type ApiPatentResponse = Patent | { patent: Patent; error?: any } | { error: any; patent: any } | { success: boolean; patent: Patent; error?: any };
 export type ApiTimelineResponse = TimelineEvent[] | { timeline: TimelineEvent[]; error?: any } | { error: any; timeline: any[] };
-export type ApiFERResponse = FEREntry | { fer: FEREntry; error?: any } | { error: any; fer: any; success: boolean };
+export type ApiFERResponse = FEREntry | { fer: FEREntry; error?: any } | { error: any; fer: any; success: boolean } | { success: boolean; fer?: FEREntry; error?: any };
 
 export type PatentResponse = Patent | { error: any; patent: any; } | { 
   patent: Patent; 
@@ -376,4 +375,62 @@ export function handleFERResponse(response: ApiFERResponse): FEREntry | null {
 // Helper function to create dummy ID for inventors
 export function createDummyInventorId(): string {
   return `temp-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+}
+
+// Helper function to safely update state with Patent API response
+export function safelySetPatent(setState: React.Dispatch<React.SetStateAction<Patent | null>>, response: any): void {
+  if (!response) return;
+  
+  if ('id' in response) {
+    setState(response as Patent);
+  } else if ('patent' in response && response.patent) {
+    setState(response.patent as Patent);
+  } else {
+    console.error('Invalid patent response:', response);
+  }
+}
+
+// Helper function to safely update state with FER API response
+export function safelyUpdateFEREntries(setFerEntries: React.Dispatch<React.SetStateAction<FEREntry[]>>, newFER: any): void {
+  if (!newFER) return;
+  
+  setFerEntries(prev => {
+    if ('id' in newFER && 'fer_number' in newFER) {
+      return [...prev, newFER as FEREntry];
+    } else if ('fer' in newFER && newFER.fer) {
+      return [...prev, newFER.fer as FEREntry];
+    }
+    
+    console.error('Invalid FER entry:', newFER);
+    return prev;
+  });
+}
+
+// Helper function to safely update Patent state with new FER entries
+export function safelyUpdatePatentWithFER(setPatent: React.Dispatch<React.SetStateAction<Patent | null>>, newFER: any): void {
+  if (!newFER) return;
+  
+  setPatent(prev => {
+    if (!prev) return prev;
+    
+    let updatedFER: FEREntry | null = null;
+    
+    if ('id' in newFER && 'fer_number' in newFER) {
+      updatedFER = newFER as FEREntry;
+    } else if ('fer' in newFER && newFER.fer) {
+      updatedFER = newFER.fer as FEREntry;
+    }
+    
+    if (!updatedFER) {
+      console.error('Invalid FER entry:', newFER);
+      return prev;
+    }
+    
+    return {
+      ...prev,
+      fer_entries: [...(prev.fer_entries || []), updatedFER],
+      fer_status: 1,
+      fer_completion_status: 0
+    };
+  });
 }

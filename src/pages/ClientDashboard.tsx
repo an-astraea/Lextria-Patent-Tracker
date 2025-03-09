@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { fetchPatents } from '@/lib/api';
 import { Patent } from '@/lib/types';
@@ -26,7 +27,7 @@ const ClientDashboard = () => {
           toast.error('Failed to load patents');
           setPatents([]);
         } else {
-          setPatents(response.patents);
+          setPatents(response.patents || []);
         }
       } catch (error) {
         console.error('Error loading patents:', error);
@@ -114,7 +115,7 @@ const ClientDashboard = () => {
             <PatentCard 
               key={patent.id} 
               patent={patent}
-              showClientInfo
+              showClientInfo={true}
             />
           ))}
         </div>
