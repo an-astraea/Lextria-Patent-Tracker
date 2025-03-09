@@ -1,27 +1,15 @@
 
 import React from 'react';
 
-interface LoadingStateProps {
-  size?: 'sm' | 'md' | 'lg';
-  text?: string;
-  className?: string;
+export interface LoadingStateProps {
+  message?: string;
 }
 
-const LoadingState: React.FC<LoadingStateProps> = ({ 
-  size = 'md', 
-  text = 'Loading...',
-  className = ''
-}) => {
-  const sizeClass = {
-    sm: 'h-4 w-4',
-    md: 'h-8 w-8',
-    lg: 'h-12 w-12',
-  }[size];
-
+const LoadingState: React.FC<LoadingStateProps> = ({ message = 'Loading...' }) => {
   return (
-    <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
-      <div className={`animate-spin rounded-full border-b-2 border-primary ${sizeClass}`}></div>
-      {text && <p className="text-muted-foreground text-sm">{text}</p>}
+    <div className="flex flex-col items-center justify-center p-8 h-full">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <p className="mt-4 text-muted-foreground">{message}</p>
     </div>
   );
 };

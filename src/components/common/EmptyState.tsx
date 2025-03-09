@@ -1,34 +1,38 @@
 
-import React, { ReactNode } from 'react';
-import { FileQuestion } from 'lucide-react';
+import React from 'react';
+import { FileText, AlertTriangle, CheckCircle, Info, LucideIcon, Search } from 'lucide-react';
 
-interface EmptyStateProps {
-  title?: string;
-  message: string;
-  icon?: ReactNode;
-  action?: ReactNode;
+export interface EmptyStateProps {
+  title: string;
+  description?: string;
+  icon?: string;
 }
 
-const EmptyState: React.FC<EmptyStateProps> = ({ 
-  title = 'No data found', 
-  message, 
-  icon,
-  action
-}) => {
+const EmptyState: React.FC<EmptyStateProps> = ({ title, description, icon }) => {
+  const getIcon = (): React.ReactNode => {
+    switch (icon) {
+      case 'FileText':
+        return <FileText className="h-12 w-12 text-muted-foreground opacity-50" />;
+      case 'AlertTriangle':
+        return <AlertTriangle className="h-12 w-12 text-muted-foreground opacity-50" />;
+      case 'CheckCircle':
+        return <CheckCircle className="h-12 w-12 text-muted-foreground opacity-50" />;
+      case 'Info':
+        return <Info className="h-12 w-12 text-muted-foreground opacity-50" />;
+      case 'Search':
+        return <Search className="h-12 w-12 text-muted-foreground opacity-50" />;
+      default:
+        return <FileText className="h-12 w-12 text-muted-foreground opacity-50" />;
+    }
+  };
+
   return (
-    <div className="text-center p-8 border rounded-lg bg-background flex flex-col items-center gap-4">
-      <div className="text-muted-foreground">
-        {icon || <FileQuestion className="h-16 w-16 mx-auto opacity-20" />}
+    <div className="flex flex-col items-center justify-center p-8 text-center">
+      <div className="mb-4">
+        {getIcon()}
       </div>
-      <div>
-        <h3 className="text-lg font-medium">{title}</h3>
-        <p className="text-muted-foreground mt-1">{message}</p>
-      </div>
-      {action && (
-        <div className="mt-2">
-          {action}
-        </div>
-      )}
+      <h3 className="text-lg font-medium">{title}</h3>
+      {description && <p className="mt-2 text-sm text-muted-foreground">{description}</p>}
     </div>
   );
 };

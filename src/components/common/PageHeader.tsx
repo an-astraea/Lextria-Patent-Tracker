@@ -1,43 +1,44 @@
 
-import React, { ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Building, CheckSquare, FileText, Home, Landmark, LucideIcon, User, Users } from 'lucide-react';
 
-interface PageHeaderProps {
+export interface PageHeaderProps {
   title: string;
-  subtitle?: string;
-  backButton?: boolean;
-  action?: ReactNode;
+  description?: string;
+  icon?: string;
 }
 
-const PageHeader: React.FC<PageHeaderProps> = ({ 
-  title, 
-  subtitle, 
-  backButton = false,
-  action
-}) => {
-  const navigate = useNavigate();
-  
+const PageHeader: React.FC<PageHeaderProps> = ({ title, description, icon }) => {
+  const getIcon = (): React.ReactNode => {
+    switch (icon) {
+      case 'Home':
+        return <Home className="h-5 w-5" />;
+      case 'FileText':
+        return <FileText className="h-5 w-5" />;
+      case 'CheckSquare':
+        return <CheckSquare className="h-5 w-5" />;
+      case 'User':
+        return <User className="h-5 w-5" />;
+      case 'Users':
+        return <Users className="h-5 w-5" />;
+      case 'Building':
+        return <Building className="h-5 w-5" />;
+      case 'Landmark':
+        return <Landmark className="h-5 w-5" />;
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-      <div className="flex items-center gap-2">
-        {backButton && (
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        )}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-          {subtitle && <p className="text-muted-foreground">{subtitle}</p>}
-        </div>
+    <div className="flex items-center justify-between">
+      <div className="space-y-1">
+        <h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+          {icon && <span className="text-muted-foreground">{getIcon()}</span>}
+          {title}
+        </h2>
+        {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
-      
-      {action && (
-        <div>
-          {action}
-        </div>
-      )}
     </div>
   );
 };

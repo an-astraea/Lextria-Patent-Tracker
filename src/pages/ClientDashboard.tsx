@@ -116,7 +116,7 @@ const ClientDashboard = () => {
             <PatentCard 
               key={patent.id} 
               patent={patent}
-              showClientInfo
+              showClientInfo={true}
             />
           ))}
         </div>

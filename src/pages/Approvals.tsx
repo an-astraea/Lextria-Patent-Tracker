@@ -1,213 +1,468 @@
+
 import React, { useState, useEffect } from 'react';
-import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchPendingReviews, approvePatentReview, rejectPatentReview } from '@/lib/api';
 import { Patent } from '@/lib/types';
-import { useNavigate } from 'react-router-dom';
-import PendingReviewCard, { ReviewType, getPendingReviewTypes } from '@/components/approvals/PendingReviewCard';
-import RefreshButton from '@/components/approvals/RefreshButton';
-import EmptyApprovals from '@/components/approvals/EmptyApprovals';
-import LoadingSpinner from '@/components/approvals/LoadingSpinner';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { useIsMobile } from '@/hooks/use-mobile';
-
-const ITEMS_PER_PAGE = 6; // Number of items to show per page
+import PageHeader from '@/components/common/PageHeader';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, Clock, Info, Loader2, MessageCircle, X } from 'lucide-react';
+import PatentCard from '@/components/PatentCard';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { toast } from 'sonner';
+import LoadingState from '@/components/common/LoadingState';
+import EmptyState from '@/components/common/EmptyState';
 
 const Approvals = () => {
-  const navigate = useNavigate();
-  const [pendingReviews, setPendingReviews] = useState<Patent[]>([]);
+  const [patents, setPatents] = useState<Patent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [initialLoadDone, setInitialLoadDone] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const isMobile = useIsMobile();
-
-  // Get user from localStorage
-  const userString = localStorage.getItem('user');
-  const user = userString ? JSON.parse(userString) : null;
-
-  // Redirect if not admin
-  React.useEffect(() => {
-    if (!user || user.role !== 'admin') {
-      toast.error('Access denied. Admin privileges required.');
-      navigate('/dashboard');
-    }
-  }, [user, navigate]);
-
-  // Load data only once on initial mount
+  const [activeTab, setActiveTab] = useState('all');
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [currentPatent, setCurrentPatent] = useState<Patent | null>(null);
+  const [currentReviewType, setCurrentReviewType] = useState<string>('');
+  const [rejectionReason, setRejectionReason] = useState('');
+  
+  // Get user role and info from localStorage
+  const userRole = JSON.parse(localStorage.getItem('user') || '{}').role || '';
+  
   useEffect(() => {
-    if (user && user.role === 'admin' && !initialLoadDone) {
-      loadReviews();
-      setInitialLoadDone(true);
-    }
-  }, [user, initialLoadDone]);
-
-  const loadReviews = async () => {
-    if (user && user.role === 'admin') {
+    const loadPendingReviews = async () => {
       try {
         setLoading(true);
-        const reviews = await fetchPendingReviews();
-        setPendingReviews(reviews);
+        const response = await fetchPendingReviews();
+        if (response.error) {
+          toast.error('Failed to load pending reviews');
+          setPatents([]);
+        } else {
+          setPatents(response.patents);
+        }
       } catch (error) {
-        console.error('Error loading reviews:', error);
-        toast.error('Failed to load pending reviews');
+        console.error('Error loading pending reviews:', error);
+        toast.error('An error occurred while loading pending reviews');
+        setPatents([]);
       } finally {
         setLoading(false);
       }
-    }
-  };
-
-  const handleApprove = async (patent: Patent, reviewType: ReviewType) => {
+    };
+    
+    loadPendingReviews();
+  }, []);
+  
+  const handleApprove = async (patent: Patent, reviewType: string) => {
+    if (processingIds.has(patent.id)) return;
+    
+    setProcessingIds(new Set([...processingIds, patent.id]));
     try {
-      const success = await approvePatentReview(patent, reviewType);
+      const success = await approvePatentReview(patent.id, reviewType as any);
       if (success) {
         toast.success('Review approved successfully');
-        
-        // Optimistic UI update - Remove the approved review from the list
-        setPendingReviews(prevReviews => {
-          const updatedReviews = [...prevReviews];
-          // If this is the last review for this patent, remove the patent
-          const reviewsForPatent = getPendingReviewTypes(patent);
-          if (reviewsForPatent.length <= 1) {
-            return updatedReviews.filter(p => p.id !== patent.id);
-          }
-          
-          // Otherwise, keep the patent but update its review status
-          return updatedReviews.map(p => {
-            if (p.id === patent.id) {
-              const updatedPatent = { ...p };
-              switch(reviewType) {
-                case 'ps_draft': updatedPatent.ps_review_draft_status = 0; break;
-                case 'ps_file': updatedPatent.ps_review_file_status = 0; break;
-                case 'cs_draft': updatedPatent.cs_review_draft_status = 0; break;
-                case 'cs_file': updatedPatent.cs_review_file_status = 0; break;
-                case 'fer_draft': updatedPatent.fer_review_draft_status = 0; break;
-                case 'fer_file': updatedPatent.fer_review_file_status = 0; break;
-              }
-              return updatedPatent;
-            }
-            return p;
+        // Remove the patent from the list if there are no more pending reviews
+        setPatents(prev => {
+          return prev.filter(p => {
+            if (p.id !== patent.id) return true;
+            
+            // Check if there are any remaining reviews after this approval
+            const hasMoreReviews = 
+              (reviewType !== 'ps_draft' && p.ps_review_draft_status === 1) ||
+              (reviewType !== 'ps_file' && p.ps_review_file_status === 1) ||
+              (reviewType !== 'cs_draft' && p.cs_review_draft_status === 1) ||
+              (reviewType !== 'cs_file' && p.cs_review_file_status === 1) ||
+              (reviewType !== 'fer_draft' && p.fer_review_draft_status === 1) ||
+              (reviewType !== 'fer_file' && p.fer_review_file_status === 1);
+            
+            return hasMoreReviews;
           });
         });
-        
-        // Dispatch custom event to notify other components about the approval
-        const approvalEvent = new CustomEvent('approval-complete');
-        window.dispatchEvent(approvalEvent);
+      } else {
+        toast.error('Failed to approve review');
       }
     } catch (error) {
       console.error('Error approving review:', error);
-      toast.error('Failed to approve review');
+      toast.error('An error occurred while approving review');
+    } finally {
+      setProcessingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(patent.id);
+        return newSet;
+      });
     }
   };
-
-  const handleReject = async (patent: Patent, reviewType: ReviewType) => {
+  
+  const openRejectDialog = (patent: Patent, reviewType: string) => {
+    setCurrentPatent(patent);
+    setCurrentReviewType(reviewType);
+    setRejectionReason('');
+    setRejectDialogOpen(true);
+  };
+  
+  const handleReject = async () => {
+    if (!currentPatent || !currentReviewType || processingIds.has(currentPatent.id)) return;
+    
+    setProcessingIds(new Set([...processingIds, currentPatent.id]));
     try {
-      const success = await rejectPatentReview(patent, reviewType);
+      const success = await rejectPatentReview(currentPatent.id, currentReviewType as any, rejectionReason);
       if (success) {
-        toast.success('Review rejected and sent back to assignee');
-        
-        // Optimistic UI update - Remove the rejected review from the list
-        setPendingReviews(prevReviews => {
-          const updatedReviews = [...prevReviews];
-          // If this is the last review for this patent, remove the patent
-          const reviewsForPatent = getPendingReviewTypes(patent);
-          if (reviewsForPatent.length <= 1) {
-            return updatedReviews.filter(p => p.id !== patent.id);
-          }
-          
-          // Otherwise, keep the patent but update its review status
-          return updatedReviews.map(p => {
-            if (p.id === patent.id) {
-              const updatedPatent = { ...p };
-              switch(reviewType) {
-                case 'ps_draft': updatedPatent.ps_review_draft_status = 0; break;
-                case 'ps_file': updatedPatent.ps_review_file_status = 0; break;
-                case 'cs_draft': updatedPatent.cs_review_draft_status = 0; break;
-                case 'cs_file': updatedPatent.cs_review_file_status = 0; break;
-                case 'fer_draft': updatedPatent.fer_review_draft_status = 0; break;
-                case 'fer_file': updatedPatent.fer_review_file_status = 0; break;
-              }
-              return updatedPatent;
-            }
-            return p;
-          });
-        });
-        
-        // Dispatch custom event to notify other components about the rejection
-        const rejectionEvent = new CustomEvent('rejection-complete');
-        window.dispatchEvent(rejectionEvent);
+        toast.success('Review rejected successfully');
+        // Remove the patent from the list
+        setPatents(prev => prev.filter(p => 
+          p.id !== currentPatent.id || (
+            (currentReviewType !== 'ps_draft' && p.ps_review_draft_status === 1) ||
+            (currentReviewType !== 'ps_file' && p.ps_review_file_status === 1) ||
+            (currentReviewType !== 'cs_draft' && p.cs_review_draft_status === 1) ||
+            (currentReviewType !== 'cs_file' && p.cs_review_file_status === 1) ||
+            (currentReviewType !== 'fer_draft' && p.fer_review_draft_status === 1) ||
+            (currentReviewType !== 'fer_file' && p.fer_review_file_status === 1)
+          )
+        ));
+        setRejectDialogOpen(false);
+      } else {
+        toast.error('Failed to reject review');
       }
     } catch (error) {
       console.error('Error rejecting review:', error);
-      toast.error('Failed to reject review');
+      toast.error('An error occurred while rejecting review');
+    } finally {
+      setProcessingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(currentPatent.id);
+        return newSet;
+      });
     }
   };
-
-  const handleRefresh = () => {
-    loadReviews();
-  };
-
-  // Pagination logic
-  const totalPages = Math.ceil(pendingReviews.length / ITEMS_PER_PAGE);
-  const paginatedReviews = pendingReviews.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
-
-  return (
-    <div className="container mx-auto py-6 px-4 sm:px-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
-        <h1 className="text-2xl font-bold">Pending Approvals</h1>
-        <RefreshButton onRefresh={handleRefresh} loading={loading} />
+  
+  // Filter patents based on the active tab
+  const filteredPatents = patents.filter(patent => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'drafting') 
+      return patent.ps_review_draft_status === 1 || patent.cs_review_draft_status === 1 || patent.fer_review_draft_status === 1;
+    if (activeTab === 'filing') 
+      return patent.ps_review_file_status === 1 || patent.cs_review_file_status === 1 || patent.fer_review_file_status === 1;
+    return true;
+  });
+  
+  if (userRole !== 'admin') {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Approvals" description="Approve or reject review requests" icon="CheckSquare" />
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Access Restricted</AlertTitle>
+          <AlertDescription>
+            Only administrators can access the approvals page.
+          </AlertDescription>
+        </Alert>
       </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Approvals" description="Approve or reject review requests" icon="CheckSquare" />
       
-      {loading && !pendingReviews.length ? (
-        <LoadingSpinner />
-      ) : pendingReviews.length > 0 ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {paginatedReviews.map(patent => (
-              <PendingReviewCard 
-                key={patent.id} 
-                patent={patent} 
-                onApprove={handleApprove}
-                onReject={handleReject}
-              />
-            ))}
+      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="all">All Approvals</TabsTrigger>
+          <TabsTrigger value="drafting">Drafting Reviews</TabsTrigger>
+          <TabsTrigger value="filing">Filing Reviews</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value={activeTab} className="space-y-4">
+          {loading ? (
+            <LoadingState message="Loading approval requests..." />
+          ) : filteredPatents.length === 0 ? (
+            <EmptyState 
+              title="No pending approvals" 
+              description="There are no pending reviews that require your attention." 
+              icon="CheckCircle"
+            />
+          ) : (
+            <>
+              {filteredPatents.map(patent => (
+                <Card key={patent.id} className="overflow-hidden">
+                  <CardContent className="p-0">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="md:col-span-2 p-6">
+                        <h3 className="text-lg font-semibold mb-2">{patent.patent_title}</h3>
+                        <div className="text-sm text-muted-foreground mb-2">
+                          ID: {patent.tracking_id} | Applicant: {patent.patent_applicant}
+                        </div>
+                        
+                        {patent.ps_review_draft_status === 1 && (
+                          <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-md mb-2">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-amber-600" />
+                              <span>PS Draft needs review by admin</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-red-300 hover:bg-red-50"
+                                onClick={() => openRejectDialog(patent, 'ps_draft')}
+                                disabled={processingIds.has(patent.id)}
+                              >
+                                <X className="h-4 w-4 mr-1 text-red-500" /> Reject
+                              </Button>
+                              <Button 
+                                size="sm"
+                                onClick={() => handleApprove(patent, 'ps_draft')}
+                                disabled={processingIds.has(patent.id)}
+                              >
+                                {processingIds.has(patent.id) ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                ) : (
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                )}
+                                Approve
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {patent.ps_review_file_status === 1 && (
+                          <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-md mb-2">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-blue-600" />
+                              <span>PS Filing needs review by admin</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-red-300 hover:bg-red-50"
+                                onClick={() => openRejectDialog(patent, 'ps_file')}
+                                disabled={processingIds.has(patent.id)}
+                              >
+                                <X className="h-4 w-4 mr-1 text-red-500" /> Reject
+                              </Button>
+                              <Button 
+                                size="sm"
+                                onClick={() => handleApprove(patent, 'ps_file')}
+                                disabled={processingIds.has(patent.id)}
+                              >
+                                {processingIds.has(patent.id) ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                ) : (
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                )}
+                                Approve
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {patent.cs_review_draft_status === 1 && (
+                          <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-md mb-2">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-amber-600" />
+                              <span>CS Draft needs review by admin</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-red-300 hover:bg-red-50"
+                                onClick={() => openRejectDialog(patent, 'cs_draft')}
+                                disabled={processingIds.has(patent.id)}
+                              >
+                                <X className="h-4 w-4 mr-1 text-red-500" /> Reject
+                              </Button>
+                              <Button 
+                                size="sm"
+                                onClick={() => handleApprove(patent, 'cs_draft')}
+                                disabled={processingIds.has(patent.id)}
+                              >
+                                {processingIds.has(patent.id) ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                ) : (
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                )}
+                                Approve
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {patent.cs_review_file_status === 1 && (
+                          <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-md mb-2">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-blue-600" />
+                              <span>CS Filing needs review by admin</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-red-300 hover:bg-red-50"
+                                onClick={() => openRejectDialog(patent, 'cs_file')}
+                                disabled={processingIds.has(patent.id)}
+                              >
+                                <X className="h-4 w-4 mr-1 text-red-500" /> Reject
+                              </Button>
+                              <Button 
+                                size="sm"
+                                onClick={() => handleApprove(patent, 'cs_file')}
+                                disabled={processingIds.has(patent.id)}
+                              >
+                                {processingIds.has(patent.id) ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                ) : (
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                )}
+                                Approve
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {patent.fer_review_draft_status === 1 && (
+                          <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-md mb-2">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-amber-600" />
+                              <span>FER Draft needs review by admin</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-red-300 hover:bg-red-50"
+                                onClick={() => openRejectDialog(patent, 'fer_draft')}
+                                disabled={processingIds.has(patent.id)}
+                              >
+                                <X className="h-4 w-4 mr-1 text-red-500" /> Reject
+                              </Button>
+                              <Button 
+                                size="sm"
+                                onClick={() => handleApprove(patent, 'fer_draft')}
+                                disabled={processingIds.has(patent.id)}
+                              >
+                                {processingIds.has(patent.id) ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                ) : (
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                )}
+                                Approve
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {patent.fer_review_file_status === 1 && (
+                          <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-md mb-2">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-blue-600" />
+                              <span>FER Filing needs review by admin</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-red-300 hover:bg-red-50"
+                                onClick={() => openRejectDialog(patent, 'fer_file')}
+                                disabled={processingIds.has(patent.id)}
+                              >
+                                <X className="h-4 w-4 mr-1 text-red-500" /> Reject
+                              </Button>
+                              <Button 
+                                size="sm"
+                                onClick={() => handleApprove(patent, 'fer_file')}
+                                disabled={processingIds.has(patent.id)}
+                              >
+                                {processingIds.has(patent.id) ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                ) : (
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                )}
+                                Approve
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="bg-gray-50 p-6 flex flex-col justify-between">
+                        <div>
+                          <h4 className="font-medium mb-2">Patent Details</h4>
+                          <div className="space-y-1 text-sm">
+                            <div><span className="text-gray-500">Client ID:</span> {patent.client_id}</div>
+                            <div><span className="text-gray-500">Application No:</span> {patent.application_no || 'N/A'}</div>
+                            <div>
+                              <span className="text-gray-500">Filing Date:</span> {patent.date_of_filing 
+                                ? new Date(patent.date_of_filing).toLocaleDateString() 
+                                : 'Not filed yet'}
+                            </div>
+                            <div>
+                              <span className="text-gray-500">PS Drafter:</span> {patent.ps_drafter_assgn || 'Not assigned'}
+                            </div>
+                            <div>
+                              <span className="text-gray-500">PS Filer:</span> {patent.ps_filer_assgn || 'Not assigned'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-4">
+                          <Button variant="outline" className="w-full" asChild>
+                            <a href={`/patents/${patent.id}`}>
+                              View Full Details
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
+      
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Review</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejection. This will be sent to the assignee for correction.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <Textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Enter reason for rejection..."
+              className="min-h-[100px]"
+            />
           </div>
           
-          {totalPages > 1 && (
-            <Pagination className="mt-4">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} 
-                  />
-                </PaginationItem>
-                
-                {Array.from({ length: totalPages }).map((_, i) => (
-                  <PaginationItem key={i} className={isMobile && totalPages > 5 && ![0, 1, totalPages - 2, totalPages - 1].includes(i) && i !== currentPage - 1 ? "hidden" : ""}>
-                    <PaginationLink
-                      onClick={() => setCurrentPage(i + 1)}
-                      isActive={currentPage === i + 1}
-                    >
-                      {i + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} 
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
-        </div>
-      ) : (
-        <EmptyApprovals />
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleReject}
+              disabled={!rejectionReason.trim() || processingIds.has(currentPatent?.id || '')}
+            >
+              {processingIds.has(currentPatent?.id || '') ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              ) : (
+                <X className="h-4 w-4 mr-1" />
+              )}
+              Reject
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
