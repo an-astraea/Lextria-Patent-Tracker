@@ -50,6 +50,7 @@ const Patents = () => {
     filingStatus: null as string | null,
     ferStatus: null as string | null,
     clientId: null as string | null,
+    patentStatus: null as string | null,
     dateRange: {
       start: null as string | null,
       end: null as string | null,
@@ -141,6 +142,26 @@ const Patents = () => {
       });
     }
     
+    // Apply general patent status filter
+    if (filters.patentStatus) {
+      filtered = filtered.filter(patent => {
+        if (filters.patentStatus === 'withdrawn') {
+          return patent.withdrawn === true;
+        } else if (filters.patentStatus === 'idf_sent') {
+          return patent.idf_sent === true;
+        } else if (filters.patentStatus === 'idf_received') {
+          return patent.idf_received === true;
+        } else if (filters.patentStatus === 'cs_data_sent') {
+          return patent.cs_data === true;
+        } else if (filters.patentStatus === 'cs_data_received') {
+          return patent.cs_data_received === true;
+        } else if (filters.patentStatus === 'completed') {
+          return patent.completed === true;
+        }
+        return true;
+      });
+    }
+    
     // Apply client ID filter
     if (filters.clientId) {
       filtered = filtered.filter(patent => patent.client_id === filters.clientId);
@@ -222,6 +243,7 @@ const Patents = () => {
       filingStatus: null,
       ferStatus: null,
       clientId: null,
+      patentStatus: null,
       dateRange: {
         start: null,
         end: null,
@@ -233,17 +255,19 @@ const Patents = () => {
   
   const getInProgressPatents = () => {
     return filteredPatents.filter(patent => 
-      !patent.ps_completion_status || 
-      !patent.cs_completion_status || 
-      (patent.fer_status === 1 && !patent.fer_completion_status)
+      !patent.completed && !patent.withdrawn
     );
   };
   
   const getCompletedPatents = () => {
     return filteredPatents.filter(patent => 
-      patent.ps_completion_status === 1 && 
-      patent.cs_completion_status === 1 && 
-      (patent.fer_status === 0 || patent.fer_completion_status === 1)
+      patent.completed === true
+    );
+  };
+  
+  const getWithdrawnPatents = () => {
+    return filteredPatents.filter(patent => 
+      patent.withdrawn === true
     );
   };
   
@@ -253,6 +277,7 @@ const Patents = () => {
     if (filters.filingStatus) count++;
     if (filters.ferStatus) count++;
     if (filters.clientId) count++;
+    if (filters.patentStatus) count++;
     if (filters.dateRange.start || filters.dateRange.end) count++;
     if (searchQuery) count++;
     return count;
@@ -319,6 +344,26 @@ const Patents = () => {
                   <X className="h-4 w-4 mr-1" />
                   Clear
                 </Button>
+              </div>
+              
+              <div className="space-y-2">
+                <h5 className="text-sm font-medium">Patent Status</h5>
+                <Select 
+                  value={filters.patentStatus || undefined} 
+                  onValueChange={(value) => setFilters({...filters, patentStatus: value || null})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="withdrawn">Withdrawn</SelectItem>
+                    <SelectItem value="idf_sent">IDF Sent</SelectItem>
+                    <SelectItem value="idf_received">IDF Received</SelectItem>
+                    <SelectItem value="cs_data_sent">CS Data Sent</SelectItem>
+                    <SelectItem value="cs_data_received">CS Data Received</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="space-y-2">
@@ -430,6 +475,19 @@ const Patents = () => {
       
       {getActiveFiltersCount() > 0 && (
         <div className="flex flex-wrap gap-2">
+          {filters.patentStatus && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              Status: {filters.patentStatus.replace('_', ' ')}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setFilters({...filters, patentStatus: null})}
+                className="h-4 w-4 p-0 ml-1"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
           {filters.draftingStatus && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Drafting: {filters.draftingStatus.replace('_', ' ')}
@@ -499,9 +557,10 @@ const Patents = () => {
       )}
       
       <Tabs defaultValue="in-progress">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="in-progress">In Progress</TabsTrigger>
           <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsTrigger value="withdrawn">Withdrawn</TabsTrigger>
         </TabsList>
         
         <TabsContent value="in-progress" className="mt-6">
@@ -538,6 +597,26 @@ const Patents = () => {
               <div className="col-span-full">
                 <Card className="p-6 text-center">
                   <p className="text-muted-foreground">No completed patents</p>
+                </Card>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="withdrawn" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {getWithdrawnPatents().length > 0 ? (
+              getWithdrawnPatents().map((patent) => (
+                <PatentCard 
+                  key={patent.id} 
+                  patent={patent} 
+                  onDelete={user?.role === 'admin' ? () => confirmDelete(patent.id) : undefined} 
+                />
+              ))
+            ) : (
+              <div className="col-span-full">
+                <Card className="p-6 text-center">
+                  <p className="text-muted-foreground">No withdrawn patents</p>
                 </Card>
               </div>
             )}

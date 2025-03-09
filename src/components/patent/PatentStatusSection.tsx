@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import StatusBadge from "@/components/StatusBadge";
 import { Patent } from "@/lib/types";
 import { updatePatentStatus, updatePatentPayment } from "@/lib/api";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Check, User, Calendar } from "lucide-react";
+import { Loader2, Check, User, Calendar, AlertCircle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -15,6 +15,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface PatentStatusSectionProps {
   patent: Patent;
@@ -36,6 +41,14 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
   const [paymentReceived, setPaymentReceived] = useState(patent.payment_received?.toString() || '0');
   const [invoiceSent, setInvoiceSent] = useState(patent.invoice_sent || false);
 
+  useEffect(() => {
+    // Update state when patent prop changes
+    setPaymentStatus(patent.payment_status || 'not_sent');
+    setPaymentAmount(patent.payment_amount?.toString() || '0');
+    setPaymentReceived(patent.payment_received?.toString() || '0');
+    setInvoiceSent(patent.invoice_sent || false);
+  }, [patent]);
+
   const handleStatusToggle = async (field: string) => {
     if (!patent) return;
     
@@ -53,6 +66,24 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
     } catch (error) {
       console.error(`Error updating ${field}:`, error);
       toast.error(`Failed to update status`);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleResetStatus = async (field: string) => {
+    if (!patent) return;
+    
+    setIsUpdating(true);
+    try {
+      // Reset the status to 0
+      await updatePatentStatus(patent.id, field, 0);
+      
+      toast.success(`Status reset successfully`);
+      await refreshPatentData();
+    } catch (error) {
+      console.error(`Error resetting ${field}:`, error);
+      toast.error(`Failed to reset status`);
     } finally {
       setIsUpdating(false);
     }
@@ -126,14 +157,23 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
 
   const canEditPayment = userRole === 'admin';
 
-  // Get status display for patent stages
-  const getStageStatus = (status: number) => {
-    return status === 1 ? 'completed' : 'pending';
+  // Check workflow conditions
+  const canStartPSDrafting = patent.idf_received === true;
+  const canStartCSFiling = patent.cs_data_received === true;
+
+  // Button tooltip content based on workflow conditions
+  const getPSDraftingTooltip = () => {
+    if (!canStartPSDrafting) {
+      return "IDF must be received before PS Drafting can start";
+    }
+    return "";
   };
 
-  // Helper function to get status badge text
-  const getStatusText = (status: number) => {
-    return status === 1 ? 'Completed' : 'Pending';
+  const getCSFilingTooltip = () => {
+    if (!canStartCSFiling) {
+      return "CS Data must be received before CS Drafting can start";
+    }
+    return "";
   };
 
   return (
@@ -150,25 +190,39 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
             <div className="border rounded-lg p-4 space-y-3 bg-white">
               <div className="font-medium">PS Drafting Status</div>
               <div className="flex gap-2">
-                <Button 
-                  variant={patent.ps_drafting_status === 1 ? "default" : "outline"} 
-                  size="sm"
-                  onClick={() => handleStatusToggle('ps_drafting_status')}
-                  disabled={isUpdating || userRole !== 'admin'}
-                  className="text-xs px-3 py-1 h-7"
-                >
-                  Completed
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button 
+                        variant={patent.ps_drafting_status === 1 ? "default" : "outline"} 
+                        size="sm"
+                        onClick={() => handleStatusToggle('ps_drafting_status')}
+                        disabled={isUpdating || userRole !== 'admin' || !canStartPSDrafting}
+                        className="text-xs px-3 py-1 h-7"
+                      >
+                        Completed
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {getPSDraftingTooltip() && (
+                    <TooltipContent>
+                      <p>{getPSDraftingTooltip()}</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
                 {userRole === 'admin' && (
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => handleStatusToggle('ps_drafting_status')}
-                    disabled={isUpdating}
+                    onClick={() => handleResetStatus('ps_drafting_status')}
+                    disabled={isUpdating || patent.ps_drafting_status !== 1}
                     className="text-xs px-3 py-1 h-7"
                   >
                     Reset
                   </Button>
+                )}
+                {!canStartPSDrafting && (
+                  <AlertCircle className="h-5 w-5 text-amber-500" />
                 )}
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
@@ -187,12 +241,23 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                   variant={patent.ps_filing_status === 1 ? "default" : "outline"} 
                   size="sm"
                   onClick={() => handleStatusToggle('ps_filing_status')}
-                  disabled={isUpdating || userRole !== 'admin'}
+                  disabled={isUpdating || userRole !== 'admin' || patent.ps_drafting_status !== 1}
                   className="text-xs px-3 py-1 h-7"
                 >
-                  {getStatusText(patent.ps_filing_status)}
+                  {patent.ps_filing_status === 1 ? 'Completed' : 'Pending'}
                 </Button>
-                {patent.ps_filing_status === 1 && userRole === 'admin' && (
+                {userRole === 'admin' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleResetStatus('ps_filing_status')}
+                    disabled={isUpdating || patent.ps_filing_status !== 1}
+                    className="text-xs px-3 py-1 h-7"
+                  >
+                    Reset
+                  </Button>
+                )}
+                {patent.ps_filing_status === 1 && (
                   <Check className="h-5 w-5 text-green-600" />
                 )}
               </div>
@@ -214,7 +279,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                   disabled={true}
                   className="text-xs px-3 py-1 h-7"
                 >
-                  {getStatusText(patent.ps_completion_status)}
+                  {patent.ps_completion_status === 1 ? 'Completed' : 'Pending'}
                 </Button>
                 {patent.ps_completion_status === 1 && (
                   <Check className="h-5 w-5 text-green-600" />
@@ -226,17 +291,39 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
             <div className="border rounded-lg p-4 space-y-3 bg-white">
               <div className="font-medium">CS Drafting Status</div>
               <div className="flex gap-2">
-                <Button 
-                  variant={patent.cs_drafting_status === 1 ? "default" : "outline"} 
-                  size="sm"
-                  onClick={() => handleStatusToggle('cs_drafting_status')}
-                  disabled={isUpdating || userRole !== 'admin'}
-                  className="text-xs px-3 py-1 h-7"
-                >
-                  {getStatusText(patent.cs_drafting_status)}
-                </Button>
-                {patent.cs_drafting_status === 1 && userRole === 'admin' && (
-                  <Check className="h-5 w-5 text-green-600" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button 
+                        variant={patent.cs_drafting_status === 1 ? "default" : "outline"} 
+                        size="sm"
+                        onClick={() => handleStatusToggle('cs_drafting_status')}
+                        disabled={isUpdating || userRole !== 'admin' || !canStartCSFiling}
+                        className="text-xs px-3 py-1 h-7"
+                      >
+                        {patent.cs_drafting_status === 1 ? 'Completed' : 'Pending'}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {getCSFilingTooltip() && (
+                    <TooltipContent>
+                      <p>{getCSFilingTooltip()}</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+                {userRole === 'admin' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleResetStatus('cs_drafting_status')}
+                    disabled={isUpdating || patent.cs_drafting_status !== 1}
+                    className="text-xs px-3 py-1 h-7"
+                  >
+                    Reset
+                  </Button>
+                )}
+                {!canStartCSFiling && (
+                  <AlertCircle className="h-5 w-5 text-amber-500" />
                 )}
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
@@ -255,12 +342,23 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                   variant={patent.cs_filing_status === 1 ? "default" : "outline"} 
                   size="sm"
                   onClick={() => handleStatusToggle('cs_filing_status')}
-                  disabled={isUpdating || userRole !== 'admin'}
+                  disabled={isUpdating || userRole !== 'admin' || patent.cs_drafting_status !== 1}
                   className="text-xs px-3 py-1 h-7"
                 >
-                  {getStatusText(patent.cs_filing_status)}
+                  {patent.cs_filing_status === 1 ? 'Completed' : 'Pending'}
                 </Button>
-                {patent.cs_filing_status === 1 && userRole === 'admin' && (
+                {userRole === 'admin' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleResetStatus('cs_filing_status')}
+                    disabled={isUpdating || patent.cs_filing_status !== 1}
+                    className="text-xs px-3 py-1 h-7"
+                  >
+                    Reset
+                  </Button>
+                )}
+                {patent.cs_filing_status === 1 && (
                   <Check className="h-5 w-5 text-green-600" />
                 )}
               </div>
@@ -282,7 +380,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                   disabled={true}
                   className="text-xs px-3 py-1 h-7"
                 >
-                  {getStatusText(patent.cs_completion_status)}
+                  {patent.cs_completion_status === 1 ? 'Completed' : 'Pending'}
                 </Button>
                 {patent.cs_completion_status === 1 && (
                   <Check className="h-5 w-5 text-green-600" />
@@ -301,9 +399,20 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                   disabled={isUpdating || userRole !== 'admin'}
                   className="text-xs px-3 py-1 h-7"
                 >
-                  {getStatusText(patent.fer_status)}
+                  {patent.fer_status === 1 ? 'Active' : 'Inactive'}
                 </Button>
-                {patent.fer_status === 1 && userRole === 'admin' && (
+                {userRole === 'admin' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleResetStatus('fer_status')}
+                    disabled={isUpdating || patent.fer_status !== 1}
+                    className="text-xs px-3 py-1 h-7"
+                  >
+                    Reset
+                  </Button>
+                )}
+                {patent.fer_status === 1 && (
                   <Check className="h-5 w-5 text-green-600" />
                 )}
               </div>
@@ -315,10 +424,15 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               <p className="text-sm text-gray-700 font-medium">Admin Note:</p>
               <p className="text-sm text-gray-600">
                 You can manually update any status by clicking the buttons next to each status. 
-                This allows you to override the workflow when necessary, such as when a patent 
-                starts from CS drafting instead of PS. If a new FER entry is created, the patent 
-                status will be updated automatically.
+                This allows you to override the workflow when necessary. Note the following workflow rules:
               </p>
+              <ul className="list-disc pl-5 text-sm text-gray-600 mt-2 space-y-1">
+                <li>PS Drafting requires IDF to be received first</li>
+                <li>PS Filing requires PS Drafting to be completed</li>
+                <li>CS Drafting requires CS Data to be received</li>
+                <li>CS Filing requires CS Drafting to be completed</li>
+                <li>The patent is considered completed only when Admin marks it as Completed</li>
+              </ul>
             </div>
           )}
         </CardContent>
