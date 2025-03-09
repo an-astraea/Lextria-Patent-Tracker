@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Patent } from '@/lib/types';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +28,10 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
   // Get user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
+  
+  // Add state for timeline dialog
+  const [showTimelineDialog, setShowTimelineDialog] = useState(false);
+  const [timelineMilestones, setTimelineMilestones] = useState([]);
 
   const determineStatus = (patent: Patent) => {
     if (patent.ps_completion_status === 1 && patent.cs_completion_status === 1) {
@@ -76,6 +80,49 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString();
+  };
+
+  // Function to generate timeline milestones (simplified for demo)
+  const openTimelineDialog = () => {
+    // In a real app, you might fetch this data from the API
+    // This is simplified mock data based on patent statuses
+    const milestones = [
+      patent.ps_drafting_status === 1 && {
+        id: 'ps-draft',
+        event_type: 'PS Drafting Completed',
+        event_description: 'Provisional specification drafting was completed',
+        created_at: new Date().toISOString(),
+        status: 1,
+        employee_name: patent.ps_drafter_assgn,
+      },
+      patent.ps_filing_status === 1 && {
+        id: 'ps-file',
+        event_type: 'PS Filing Completed',
+        event_description: 'Provisional specification filing was completed',
+        created_at: new Date().toISOString(),
+        status: 1,
+        employee_name: patent.ps_filer_assgn,
+      },
+      patent.cs_drafting_status === 1 && {
+        id: 'cs-draft',
+        event_type: 'CS Drafting Completed',
+        event_description: 'Complete specification drafting was completed',
+        created_at: new Date().toISOString(),
+        status: 1,
+        employee_name: patent.cs_drafter_assgn,
+      },
+      patent.cs_filing_status === 1 && {
+        id: 'cs-file',
+        event_type: 'CS Filing Completed',
+        event_description: 'Complete specification filing was completed',
+        created_at: new Date().toISOString(),
+        status: 1,
+        employee_name: patent.cs_filer_assgn,
+      },
+    ].filter(Boolean);
+    
+    setTimelineMilestones(milestones);
+    setShowTimelineDialog(true);
   };
 
   return (
@@ -141,12 +188,15 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
             </Button>
           </Link>
           
-          <TimelineDialog patent={patent}>
-            <Button variant="ghost" size="sm" className="flex items-center gap-1">
-              <History className="h-4 w-4" />
-              <span>Timeline</span>
-            </Button>
-          </TimelineDialog>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="flex items-center gap-1"
+            onClick={openTimelineDialog}
+          >
+            <History className="h-4 w-4" />
+            <span>Timeline</span>
+          </Button>
         </div>
         
         <div className="flex items-center gap-1">
@@ -171,6 +221,19 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
           )}
         </div>
       </CardFooter>
+
+      {/* Timeline Dialog with all required props */}
+      <TimelineDialog 
+        open={showTimelineDialog} 
+        onOpenChange={setShowTimelineDialog} 
+        milestones={timelineMilestones}
+        patent={patent}
+      >
+        <Button variant="ghost" size="sm" className="flex items-center gap-1">
+          <History className="h-4 w-4" />
+          <span>Timeline</span>
+        </Button>
+      </TimelineDialog>
     </Card>
   );
 };
