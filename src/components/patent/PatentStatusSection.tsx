@@ -223,6 +223,9 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
     return "";
   };
 
+  const isPSAssigned = patent.ps_drafter_assgn && patent.idf_received === true;
+  const isCSAssigned = patent.cs_drafter_assgn && patent.cs_data_received === true && patent.cs_data === true;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -275,7 +278,11 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                 )}
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
-                <User className="h-3 w-3" /> Assigned to: {patent.ps_drafter_assgn || 'Not assigned'}
+                <User className="h-3 w-3" /> 
+                Assigned to: {isPSAssigned ? patent.ps_drafter_assgn : 'Not assigned'}
+                {patent.ps_drafter_assgn && !isPSAssigned && (
+                  <span className="text-amber-500 text-xs"> (Waiting for IDF)</span>
+                )}
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <Calendar className="h-3 w-3" /> Deadline: {patent.ps_drafter_deadline || 'No deadline'}
@@ -319,7 +326,11 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                 )}
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
-                <User className="h-3 w-3" /> Assigned to: {patent.ps_filer_assgn || 'Not assigned'}
+                <User className="h-3 w-3" /> 
+                Assigned to: {isPSAssigned ? patent.ps_filer_assgn : 'Not assigned'}
+                {patent.ps_filer_assgn && !isPSAssigned && (
+                  <span className="text-amber-500 text-xs"> (Waiting for IDF)</span>
+                )}
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <Calendar className="h-3 w-3" /> Deadline: {patent.ps_filer_deadline || 'No deadline'}
@@ -398,7 +409,11 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                 )}
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
-                <User className="h-3 w-3" /> Assigned to: {patent.cs_drafter_assgn || 'Not assigned'}
+                <User className="h-3 w-3" /> 
+                Assigned to: {isCSAssigned ? patent.cs_drafter_assgn : 'Not assigned'}
+                {patent.cs_drafter_assgn && !isCSAssigned && (
+                  <span className="text-amber-500 text-xs"> (Waiting for CS Data)</span>
+                )}
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <Calendar className="h-3 w-3" /> Deadline: {patent.cs_drafter_deadline || 'No deadline'}
@@ -442,7 +457,11 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                 )}
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
-                <User className="h-3 w-3" /> Assigned to: {patent.cs_filer_assgn || 'Not assigned'}
+                <User className="h-3 w-3" /> 
+                Assigned to: {isCSAssigned ? patent.cs_filer_assgn : 'Not assigned'}
+                {patent.cs_filer_assgn && !isCSAssigned && (
+                  <span className="text-amber-500 text-xs"> (Waiting for CS Data)</span>
+                )}
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <Calendar className="h-3 w-3" /> Deadline: {patent.cs_filer_deadline || 'No deadline'}
@@ -663,4 +682,3 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
 };
 
 export default PatentStatusSection;
-
