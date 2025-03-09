@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Filter, X } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import FormFilters from './FormFilters';
 
 interface FilterSectionProps {
   filters: {
@@ -401,26 +402,11 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                 </div>
               </div>
 
-              {/* Form Status Filters */}
-              <div>
-                <h5 className="mb-2 text-sm font-medium">Form Status</h5>
-                <div className="space-y-2">
-                  {Object.entries(filters.formStatus).map(([key, value]) => (
-                    <div key={key} className="flex items-center">
-                      <Checkbox 
-                        id={key}
-                        checked={value}
-                        onCheckedChange={(checked) => 
-                          handleFilterChange('formStatus', key, checked as boolean)
-                        }
-                      />
-                      <label htmlFor={key} className="ml-2 text-sm">
-                        {key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* Form Status Filters - Now using the FormFilters component */}
+              <FormFilters 
+                formStatus={filters.formStatus}
+                handleFilterChange={handleFilterChange}
+              />
 
               {/* Date Range Filters */}
               <div>
