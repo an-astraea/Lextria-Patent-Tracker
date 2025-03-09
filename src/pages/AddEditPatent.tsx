@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,6 @@ import {
   fetchEmployees, 
   createPatent, 
   updatePatent,
-  createInventor,
   createFEREntry,
   updateFEREntry,
   deleteFEREntry
@@ -133,8 +133,14 @@ const AddEditPatent = () => {
     const getEmployees = async () => {
       try {
         const employeeData = await fetchEmployees();
-        const employees = handleEmployeesResponse(employeeData);
-        setEmployees(employees);
+        const response = handleEmployeesResponse(employeeData);
+        if (response.error) {
+          console.error('Error in employee data:', response.error);
+          toast.error('Failed to load employees data');
+          setEmployees([]);
+        } else {
+          setEmployees(response.employees);
+        }
       } catch (error) {
         console.error('Error fetching employees:', error);
         toast.error('Failed to load employees data');
@@ -151,7 +157,15 @@ const AddEditPatent = () => {
         try {
           setLoading(true);
           const patentData = await fetchPatentById(id);
-          const patent = handlePatentResponse(patentData);
+          const response = handlePatentResponse(patentData);
+        
+          if (response.error) {
+            toast.error('Patent not found');
+            navigate('/patents');
+            return;
+          }
+          
+          const patent = response;
         
           if (patent) {
             setFormData({
@@ -172,7 +186,7 @@ const AddEditPatent = () => {
               cs_drafter_deadline: patent.cs_drafter_deadline ? patent.cs_drafter_deadline.substring(0, 10) : '',
               cs_filer_assgn: patent.cs_filer_assgn || '',
               cs_filer_deadline: patent.cs_filer_deadline ? patent.cs_filer_deadline.substring(0, 10) : '',
-              fer_status: patent.fer_status,
+              fer_status: patent.fer_status || 0,
               fer_drafter_assgn: patent.fer_drafter_assgn || '',
               fer_drafter_deadline: patent.fer_drafter_deadline ? patent.fer_drafter_deadline.substring(0, 10) : '',
               fer_filer_assgn: patent.fer_filer_assgn || '',
@@ -304,9 +318,10 @@ const AddEditPatent = () => {
         const success = await updateFEREntry(selectedFER.id, ferData);
         if (success) {
           // Update local state
-          setFerEntries(prev => 
-            prev.map(fer => fer.id === selectedFER.id ? { ...fer, ...ferData } : fer)
+          const updatedEntries = ferEntries.map(fer => 
+            fer.id === selectedFER.id ? { ...fer, ...ferData as FEREntry } : fer
           );
+          setFerEntries(updatedEntries);
           toast.success('FER updated successfully');
         }
       } else {
@@ -315,14 +330,15 @@ const AddEditPatent = () => {
           ? Math.max(...ferEntries.map(fer => fer.fer_number)) + 1 
           : 1;
       
-        const newFER = await createFEREntry(id, nextFERNumber);
+        const newFERData = await createFEREntry(id, nextFERNumber);
+        const newFER = handleFERResponse(newFERData);
       
-        if (newFER) {
-          const safeFER = handleFERResponse(newFER);
-          if (safeFER) {
-            setFerEntries(prev => [...prev, safeFER]);
-            toast.success('New FER created successfully');
-          }
+        if (newFER && !newFER.error) {
+          // Add new FER to state
+          setFerEntries(prev => [...prev, newFER]);
+          toast.success('New FER created successfully');
+        } else {
+          toast.error('Failed to create FER');
         }
       }
     
@@ -365,16 +381,18 @@ const AddEditPatent = () => {
     try {
       setLoading(true);
     
+      // Convert inventor data to include required fields
+      const inventorsWithIds = formData.inventors.map(inv => ({
+        ...inv,
+        id: createDummyInventorId(),
+        tracking_id: formData.tracking_id
+      }));
+    
       if (isEditing && id) {
         // Update existing patent
-        // Convert inventor data to match Patent type
         const patentData: Partial<Patent> = {
           ...formData,
-          inventors: formData.inventors.map(inv => ({
-            ...inv,
-            id: createDummyInventorId(),
-            tracking_id: formData.tracking_id
-          }))
+          inventors: inventorsWithIds
         };
       
         const success = await updatePatent(id, patentData);
@@ -384,27 +402,24 @@ const AddEditPatent = () => {
         }
       } else {
         // Create new patent
-        // Convert inventor data to match Patent type
         const patentData: Partial<Patent> = {
           ...formData,
-          inventors: formData.inventors.map(inv => ({
-            ...inv,
-            id: createDummyInventorId(),
-            tracking_id: formData.tracking_id
-          }))
+          inventors: inventorsWithIds
         };
       
-        const newPatent = await createPatent(patentData);
-        const patent = handlePatentResponse(newPatent);
+        const newPatentData = await createPatent(patentData);
+        const newPatent = handlePatentResponse(newPatentData);
       
-        if (patent) {
+        if (!newPatent.error) {
           // If FER status is enabled, create the first FER entry
-          if (patent.fer_status === 1 && patent.id) {
-            await createFEREntry(patent.id, 1); // First FER number
+          if (newPatent.fer_status === 1 && newPatent.id) {
+            await createFEREntry(newPatent.id, 1); // First FER number
           }
         
           toast.success('Patent created successfully');
           navigate('/patents');
+        } else {
+          toast.error('Failed to create patent');
         }
       }
     } catch (error) {
@@ -619,7 +634,7 @@ const AddEditPatent = () => {
                         <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="no-drafters">No drafters available</SelectItem>
+                      <SelectItem value="no-drafters-available">No drafters available</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
@@ -651,7 +666,7 @@ const AddEditPatent = () => {
                         <SelectItem key={filer} value={filer}>{filer}</SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="no-filers">No filers available</SelectItem>
+                      <SelectItem value="no-filers-available">No filers available</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
@@ -693,7 +708,7 @@ const AddEditPatent = () => {
                         <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="no-drafters">No drafters available</SelectItem>
+                      <SelectItem value="no-drafters-available">No drafters available</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
@@ -725,7 +740,7 @@ const AddEditPatent = () => {
                         <SelectItem key={filer} value={filer}>{filer}</SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="no-filers">No filers available</SelectItem>
+                      <SelectItem value="no-filers-available">No filers available</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
@@ -779,7 +794,7 @@ const AddEditPatent = () => {
                           <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
                         ))
                       ) : (
-                        <SelectItem value="no-drafters">No drafters available</SelectItem>
+                        <SelectItem value="no-drafters-available">No drafters available</SelectItem>
                       )}
                     </SelectContent>
                   </Select>
@@ -811,7 +826,7 @@ const AddEditPatent = () => {
                           <SelectItem key={filer} value={filer}>{filer}</SelectItem>
                         ))
                       ) : (
-                        <SelectItem value="no-filers">No filers available</SelectItem>
+                        <SelectItem value="no-filers-available">No filers available</SelectItem>
                       )}
                     </SelectContent>
                   </Select>
@@ -861,3 +876,206 @@ const AddEditPatent = () => {
                         <TableHead>Drafter</TableHead>
                         <TableHead>Filer</TableHead>
                         <TableHead>Draft Status</TableHead>
+                        <TableHead>File Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {ferEntries.map((fer) => (
+                        <TableRow key={fer.id}>
+                          <TableCell>
+                            <Badge variant="outline">{fer.fer_number}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {fer.fer_date ? format(new Date(fer.fer_date), 'MMM dd, yyyy') : 'Not set'}
+                          </TableCell>
+                          <TableCell>{fer.fer_drafter_assgn || 'Not assigned'}</TableCell>
+                          <TableCell>{fer.fer_filer_assgn || 'Not assigned'}</TableCell>
+                          <TableCell>
+                            {fer.fer_drafter_status ? (
+                              <Badge className="bg-green-500">Completed</Badge>
+                            ) : (
+                              <Badge variant="outline">Pending</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {fer.fer_filing_status ? (
+                              <Badge className="bg-green-500">Completed</Badge>
+                            ) : (
+                              <Badge variant="outline">Pending</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleEditFER(fer)}
+                              >
+                                Edit
+                              </Button>
+                              <Button 
+                                variant="destructive" 
+                                size="sm" 
+                                onClick={() => handleDeleteFER(fer)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-[200px] border rounded-md p-4">
+                  <p className="text-muted-foreground mb-4">No FER entries have been added yet.</p>
+                  <Button variant="outline" size="sm" onClick={handleAddFER}>
+                    <Plus className="h-4 w-4 mr-1" /> Add First FER
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+        
+        <div className="flex justify-end gap-4">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => navigate('/patents')}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={loading}
+          >
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEditing ? 'Update Patent' : 'Create Patent'}
+          </Button>
+        </div>
+      </form>
+      
+      {/* FER Edit/Add Dialog */}
+      <Dialog open={isFERDialogOpen} onOpenChange={setIsFERDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{isEditingFER ? 'Edit FER Entry' : 'Add FER Entry'}</DialogTitle>
+            <DialogDescription>
+              {isEditingFER 
+                ? 'Update the details for this First Examination Report.' 
+                : 'Add a new First Examination Report entry.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="fer_date">FER Date</Label>
+              <Input
+                id="fer_date"
+                type="date"
+                value={ferDate}
+                onChange={(e) => setFERDate(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="fer_drafter">FER Drafter</Label>
+              <Select 
+                value={ferDrafter || undefined}
+                onValueChange={setFERDrafter}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select drafter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {drafters.map(drafter => (
+                    <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="fer_drafter_deadline">Drafter Deadline</Label>
+              <Input
+                id="fer_drafter_deadline"
+                type="date"
+                value={ferDrafterDeadline}
+                onChange={(e) => setFERDrafterDeadline(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="fer_filer">FER Filer</Label>
+              <Select 
+                value={ferFiler || undefined}
+                onValueChange={setFERFiler}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select filer" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {filers.map(filer => (
+                    <SelectItem key={filer} value={filer}>{filer}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="fer_filer_deadline">Filer Deadline</Label>
+              <Input
+                id="fer_filer_deadline"
+                type="date"
+                value={ferFilerDeadline}
+                onChange={(e) => setFERFilerDeadline(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsFERDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveFER} 
+              disabled={isProcessingFER}
+            >
+              {isProcessingFER && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isEditingFER ? 'Update' : 'Add'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* FER Delete Confirmation Dialog */}
+      <AlertDialog open={deleteFERDialogOpen} onOpenChange={setDeleteFERDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the FER entry. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteFER} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default AddEditPatent;
+
