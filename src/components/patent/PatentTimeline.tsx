@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import {
   Table,
@@ -23,8 +24,10 @@ import {
   Download,
   SendHorizontal,
   RadioTower,
-  Clock
+  Clock,
+  Loader2
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface TimelineEvent {
   id: string;
@@ -37,13 +40,57 @@ interface TimelineEvent {
   [key: string]: any;
 }
 
-interface PatentTimelineProps {
-  timeline: TimelineEvent[];
+export interface PatentTimelineProps {
+  patentId: string;
+  setTimelineMilestones?: React.Dispatch<React.SetStateAction<any[]>>;
+  setShowTimelineDialog?: React.Dispatch<React.SetStateAction<boolean>>;
+  timeline?: TimelineEvent[];
 }
 
-const PatentTimeline: React.FC<PatentTimelineProps> = ({ timeline }) => {
+const PatentTimeline: React.FC<PatentTimelineProps> = ({ 
+  patentId, 
+  setTimelineMilestones, 
+  setShowTimelineDialog,
+  timeline = [] 
+}) => {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [timelineData, setTimelineData] = useState<TimelineEvent[]>(timeline);
+
+  useEffect(() => {
+    const fetchTimelineData = async () => {
+      try {
+        setLoading(true);
+        // Mock API call - in a real app, you would fetch from your API
+        // const response = await fetchPatentTimeline(patentId);
+        // setTimelineData(response);
+        
+        // For now, use any provided timeline data or empty array
+        if (timeline && timeline.length > 0) {
+          setTimelineData(timeline);
+        }
+        
+        // If we have setTimelineMilestones as a prop, update it
+        if (setTimelineMilestones) {
+          setTimelineMilestones(timelineData);
+        }
+      } catch (error) {
+        console.error('Error fetching patent timeline:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load timeline events',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTimelineData();
+  }, [patentId, timeline]);
+
   // Sort timeline by date (newest first)
-  const sortedTimeline = [...timeline].sort(
+  const sortedTimeline = [...timelineData].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
@@ -78,11 +125,42 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({ timeline }) => {
     return null;
   };
 
+  const handleShowDetailedTimeline = () => {
+    if (setShowTimelineDialog) {
+      setShowTimelineDialog(true);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Timeline</CardTitle>
+          <CardDescription>Loading timeline events...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Timeline</CardTitle>
-        <CardDescription>History of events for this patent</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Timeline</CardTitle>
+          <CardDescription>History of events for this patent</CardDescription>
+        </div>
+        {timelineData.length > 0 && setShowTimelineDialog && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleShowDetailedTimeline}
+          >
+            View Full Timeline
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="pl-2">
         <ScrollArea className="h-[300px] w-full rounded-md border">

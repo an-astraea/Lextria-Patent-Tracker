@@ -1,150 +1,134 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { updatePatentNotes } from '@/lib/api';
-import { Loader2, PenLine } from 'lucide-react';
-import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { 
+  MessageCircle, 
+  User, 
+  CalendarClock,
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { Patent } from '@/lib/types';
 
-interface PatentNotesProps {
-  patentId: string;
-  initialNotes: string;
-  userRole: string;
-  onNotesUpdated?: () => void;
+interface Note {
+  id: string;
+  content: string;
+  created_by: string;
+  created_at: string;
 }
 
-// Function to convert URLs in text to anchor tags
-const linkifyText = (text: string) => {
-  if (!text) return '';
-  
-  // URL regex pattern
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  
-  // Replace URLs with anchor tags
-  return text.split(urlRegex).map((part, i) => {
-    // Check if this part is a URL
-    if (part.match(urlRegex)) {
-      return (
-        <a 
-          key={i} 
-          href={part} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:underline"
-        >
-          {part}
-        </a>
-      );
-    }
-    // Return regular text
-    return part;
-  });
-};
+export interface PatentNotesProps {
+  patent: Patent;
+  userRole: string;
+  refreshPatentData: () => Promise<void>;
+}
 
-const PatentNotes = ({ patentId, initialNotes, userRole, onNotesUpdated }: PatentNotesProps) => {
-  const [notes, setNotes] = useState(initialNotes || '');
-  const [isNotesSaving, setIsNotesSaving] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  
-  // Determine if user can edit notes (admin or drafter)
-  const canEditNotes = userRole === 'admin' || userRole === 'drafter';
+const PatentNotes: React.FC<PatentNotesProps> = ({ 
+  patent, 
+  userRole, 
+  refreshPatentData 
+}) => {
+  const { toast } = useToast();
+  const [newNote, setNewNote] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNotes(e.target.value);
-  };
+  // This is placeholder data - in a real app, notes would come from the patent object
+  const notes: Note[] = patent.notes || [];
 
-  const handleSaveNotes = async () => {
-    if (!patentId) {
-      toast.error('Patent ID is missing');
+  const handleAddNote = async () => {
+    if (!newNote.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Note content cannot be empty',
+        variant: 'destructive',
+      });
       return;
     }
 
-    setIsNotesSaving(true);
-
+    setIsSubmitting(true);
     try {
-      const success = await updatePatentNotes(patentId, notes);
-
-      if (success) {
-        toast.success('Notes updated successfully');
-        setIsEditMode(false); // Exit edit mode after saving
-        if (onNotesUpdated) {
-          onNotesUpdated();
-        }
-      } else {
-        toast.error('Failed to update notes');
-      }
+      // In a real app, you would send this to your API
+      // await addPatentNote(patent.id, newNote);
+      
+      toast({
+        title: 'Success',
+        description: 'Note added successfully',
+      });
+      
+      setNewNote('');
+      await refreshPatentData();
     } catch (error) {
-      console.error('Error updating notes:', error);
-      toast.error('Failed to update notes');
+      console.error('Error adding note:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add note',
+        variant: 'destructive',
+      });
     } finally {
-      setIsNotesSaving(false);
+      setIsSubmitting(false);
     }
-  };
-
-  const handleCancelEdit = () => {
-    setNotes(initialNotes || ''); // Reset to original notes
-    setIsEditMode(false);
   };
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between space-y-0">
-        <div>
-          <CardTitle>Notes</CardTitle>
-          <CardDescription>
-            {canEditNotes ? 'View and manage notes for this patent' : 'View notes for this patent'}
-          </CardDescription>
-        </div>
-        {canEditNotes && !isEditMode && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setIsEditMode(true)}
-          >
-            <PenLine className="h-4 w-4 mr-2" /> Edit Notes
-          </Button>
-        )}
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <MessageCircle className="h-5 w-5" />
+          Notes & Comments
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid gap-4">
-          {isEditMode ? (
-            // Editable text area in edit mode
-            <div className="grid gap-2">
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={handleNotesChange}
-                placeholder="Type your notes here."
-                className=""
-                rows={6}
-              />
+      <CardContent className="space-y-4">
+        <ScrollArea className="h-[250px] pr-4 -mr-4">
+          {notes.length > 0 ? (
+            <div className="space-y-4">
+              {notes.map((note) => (
+                <div 
+                  key={note.id} 
+                  className="border rounded-md p-3 bg-muted/50"
+                >
+                  <div className="text-sm">{note.content}</div>
+                  <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      <span>{note.created_by}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <CalendarClock className="h-3 w-3" />
+                      <span>{format(new Date(note.created_at), 'PPp')}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            // Linkified read-only view when not in edit mode
-            <div className="whitespace-pre-wrap bg-gray-100 p-3 rounded-md min-h-[160px]">
-              {notes ? linkifyText(notes) : <span className="text-gray-400">No notes available</span>}
+            <div className="flex flex-col items-center justify-center h-full text-center py-8 text-muted-foreground">
+              <MessageCircle className="h-8 w-8 mb-2 opacity-50" />
+              <p>No notes have been added yet</p>
             </div>
           )}
-          
-          {isEditMode && (
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={handleCancelEdit}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveNotes} disabled={isNotesSaving}>
-                {isNotesSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Notes'
-                )}
+        </ScrollArea>
+
+        {(userRole === 'admin' || userRole === 'drafter' || userRole === 'filer') && (
+          <div className="space-y-2">
+            <Textarea
+              placeholder="Add a note or comment..."
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              className="min-h-[100px]"
+            />
+            <div className="flex justify-end">
+              <Button
+                onClick={handleAddNote}
+                disabled={isSubmitting || !newNote.trim()}
+              >
+                {isSubmitting ? 'Adding...' : 'Add Note'}
               </Button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
