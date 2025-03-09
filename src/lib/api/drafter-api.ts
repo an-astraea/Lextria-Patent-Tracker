@@ -1,211 +1,196 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { normalizePatents } from '@/lib/utils/type-converters';
 import { Patent } from '@/lib/types';
+import { toast } from 'sonner';
 
-// Function to fetch drafter assignments
-export const fetchDrafterAssignments = async (userName: string) => {
+/**
+ * Fetches drafting assignments for a specific drafter by their name
+ * @param drafterName - The name of the drafter to fetch assignments for
+ * @returns An array of patent assignments for the drafter
+ */
+export const fetchDrafterAssignments = async (drafterName: string): Promise<Patent[]> => {
   try {
-    const { data, error } = await supabase
+    // First, fetch patents where the drafter is assigned as PS drafter
+    const { data: psAssignments, error: psError } = await supabase
       .from('patents')
-      .select(`
-        *,
-        inventors (*),
-        fer_entries (*)
-      `);
-    
-    if (error) {
-      console.error('Error fetching drafter assignments:', error);
-      return [];
-    }
-    
-    // Normalize the patents data
-    const normalizedPatents = normalizePatents(data || []);
-    
-    // Filter only patents where the drafter has pending tasks
-    // For PS tasks, check that IDF is received
-    // For CS tasks, check that CS data is received
-    const filteredPatents = normalizedPatents.filter(patent => 
-      (patent.ps_drafter_assgn === userName && patent.ps_drafting_status === 0 && patent.idf_received === true) ||
-      (patent.cs_drafter_assgn === userName && patent.cs_drafting_status === 0 && patent.cs_data_received === true) ||
-      // Also check FER entries
-      (patent.fer_entries && patent.fer_entries.some(
-        entry => entry.fer_drafter_assgn === userName && entry.fer_drafter_status === 0
-      ))
-    );
-    
-    return filteredPatents;
-  } catch (error) {
-    console.error('Error fetching drafter assignments:', error);
-    return [];
-  }
-};
+      .select('*, inventors(*)')
+      .or(`ps_drafter_assgn.eq.${drafterName},cs_drafter_assgn.eq.${drafterName},fer_drafter_assgn.eq.${drafterName}`)
+      .order('created_at', { ascending: false });
 
-// Function to fetch completed assignments
-export const fetchDrafterCompletedAssignments = async (userName: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('patents')
-      .select(`
-        *,
-        inventors (*),
-        fer_entries (*)
-      `);
-    
-    if (error) {
-      console.error('Error fetching drafter completed assignments:', error);
-      return [];
+    if (psError) {
+      console.error('Error fetching drafter assignments:', psError);
+      throw new Error('Failed to fetch drafting assignments');
     }
-    
-    // Normalize the patents data
-    const normalizedPatents = normalizePatents(data || []);
-    
-    // Filter only patents where the drafter has completed tasks
-    const filteredPatents = normalizedPatents.filter(patent => 
-      (patent.ps_drafter_assgn === userName && patent.ps_drafting_status === 1) ||
-      (patent.cs_drafter_assgn === userName && patent.cs_drafting_status === 1) ||
-      // Also check FER entries
-      (patent.fer_entries && patent.fer_entries.some(
-        entry => entry.fer_drafter_assgn === userName && entry.fer_drafter_status === 1
-      ))
-    );
-    
-    return filteredPatents;
-  } catch (error) {
-    console.error('Error fetching drafter completed assignments:', error);
-    return [];
-  }
-};
 
-// Function to complete a drafting task
-export const completeDrafterTask = async (patent: Patent, userName: string) => {
-  try {
-    // Check if prerequisites are met
-    // For PS drafting, IDF must be received
-    if (patent.ps_drafter_assgn === userName && patent.ps_drafting_status === 0) {
-      if (!patent.idf_received) {
-        console.error('Cannot complete PS drafting: IDF not received');
-        return { success: false, message: 'Cannot complete PS drafting: IDF not received' };
-      }
-    }
-    
-    // For CS drafting, CS data must be received
-    if (patent.cs_drafter_assgn === userName && patent.cs_drafting_status === 0) {
-      if (!patent.cs_data_received) {
-        console.error('Cannot complete CS drafting: CS data not received');
-        return { success: false, message: 'Cannot complete CS drafting: CS data not received' };
-      }
-    }
-    
-    const updateData: any = {};
-    let timelineEventType = '';
-    let timelineEventDesc = '';
-    
-    // Determine which drafting task to complete based on assignment
-    if (patent.ps_drafter_assgn === userName && patent.ps_drafting_status === 0 && patent.idf_received) {
-      updateData.ps_drafting_status = 1;
-      updateData.ps_review_draft_status = 1;
-      timelineEventType = 'ps_draft_completed';
-      timelineEventDesc = `PS Drafting completed by ${userName}`;
-    } else if (patent.cs_drafter_assgn === userName && patent.cs_drafting_status === 0 && patent.cs_data_received) {
-      updateData.cs_drafting_status = 1;
-      updateData.cs_review_draft_status = 1;
-      timelineEventType = 'cs_draft_completed';
-      timelineEventDesc = `CS Drafting completed by ${userName}`;
-    } else if (patent.fer_entries && patent.fer_entries.some(fer => fer.fer_drafter_assgn === userName && fer.fer_drafter_status === 0)) {
-      // Handle FER entries separately
-      const ferEntry = patent.fer_entries.find(fer => fer.fer_drafter_assgn === userName && fer.fer_drafter_status === 0);
-      if (ferEntry) {
-        const result = await completeFERDrafterTask(ferEntry, userName);
-        return { success: result, message: result ? 'FER drafting completed successfully' : 'Failed to complete FER drafting' };
-      }
-    }
-    
-    // Only update if we have fields to update
-    if (Object.keys(updateData).length > 0) {
-      const { error } = await supabase
-        .from('patents')
-        .update(updateData)
-        .eq('id', patent.id);
-      
-      if (error) {
-        console.error('Error completing drafter task:', error);
-        return { success: false, message: 'Failed to complete drafting task' };
-      }
-      
-      // Create a timeline event
-      await createTimelineEvent(
-        patent.id, 
-        timelineEventType, 
-        timelineEventDesc, 
-        1, 
-        userName
-      );
-      
-      return { success: true, message: 'Drafting task completed successfully' };
-    }
-    
-    return { success: false, message: 'No task to complete' };
-  } catch (error) {
-    console.error('Error completing drafter task:', error);
-    return { success: false, message: 'An error occurred while completing the task' };
-  }
-};
+    // For each patent, fetch the timeline information
+    const patentsWithTimeline = await Promise.all(
+      psAssignments.map(async (patent) => {
+        // Fetch timeline entries for this patent
+        const { data: timeline, error: timelineError } = await supabase
+          .from('patent_timeline')
+          .select('*')
+          .eq('patent_id', patent.id)
+          .order('created_at', { ascending: false });
 
-// Helper function for timeline events (simplified version)
-const createTimelineEvent = async (
-  patentId: string, 
-  eventType: string, 
-  eventDescription: string,
-  status: number,
-  employeeName?: string,
-  deadlineDate?: string
-) => {
-  try {
-    const { error } = await supabase
-      .from('patient_timeline')
-      .insert([
-        {
-          patent_id: patentId,
-          event_type: eventType,
-          event_description: eventDescription,
-          status: status,
-          employee_name: employeeName,
-          deadline_date: deadlineDate
-        },
-      ]);
-    
-    if (error) {
-      console.error('Error creating timeline event:', error);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error creating timeline event:', error);
-    return false;
-  }
-};
+        if (timelineError) {
+          console.error('Error fetching patent timeline:', timelineError);
+          return patent; // Return patent without timeline if there's an error
+        }
 
-// Helper function for FER drafter tasks (simplified version)
-const completeFERDrafterTask = async (ferEntry: any, userName: string) => {
-  try {
-    const { error } = await supabase
-      .from('fer_entries')
-      .update({
-        fer_drafter_status: 1,
-        fer_review_draft_status: 1
+        // Return patent with timeline data
+        return {
+          ...patent,
+          timeline: timeline || []
+        };
       })
-      .eq('id', ferEntry.id);
+    );
+
+    // Filter patents based on IDF received status for PS drafting
+    const filteredPatents = patentsWithTimeline.filter(patent => {
+      // For PS drafting, require IDF to be received
+      if (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 0) {
+        return patent.idf_received === true;
+      }
+      
+      // For CS drafting, require PS drafting to be completed and CS data received
+      if (patent.cs_drafter_assgn === drafterName && patent.cs_drafting_status === 0) {
+        return patent.cs_data_received === true;
+      }
+      
+      // For FER drafting tasks
+      if (patent.fer_drafter_assgn === drafterName && patent.fer_drafter_status === 0) {
+        return true; // No specific prerequisites for FER drafting
+      }
+      
+      return true; // Include all other assignments
+    });
+
+    return filteredPatents;
+  } catch (error) {
+    console.error('Error in fetchDrafterAssignments:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches completed drafting assignments for a specific drafter
+ * @param drafterName - The name of the drafter to fetch completed assignments for
+ * @returns An array of completed patent assignments
+ */
+export const fetchDrafterCompletedAssignments = async (drafterName: string): Promise<Patent[]> => {
+  try {
+    // Fetch patents where this drafter has completed drafting work
+    const { data: completedAssignments, error: fetchError } = await supabase
+      .from('patents')
+      .select('*, inventors(*)')
+      .or(
+        `and(ps_drafter_assgn.eq.${drafterName},ps_drafting_status.eq.1),` +
+        `and(cs_drafter_assgn.eq.${drafterName},cs_drafting_status.eq.1),` +
+        `and(fer_drafter_assgn.eq.${drafterName},fer_drafter_status.eq.1)`
+      )
+      .order('updated_at', { ascending: false });
+
+    if (fetchError) {
+      console.error('Error fetching completed drafting assignments:', fetchError);
+      throw new Error('Failed to fetch completed drafting assignments');
+    }
+
+    // For each patent, fetch the timeline information
+    const patentsWithTimeline = await Promise.all(
+      completedAssignments.map(async (patent) => {
+        const { data: timeline, error: timelineError } = await supabase
+          .from('patent_timeline')
+          .select('*')
+          .eq('patent_id', patent.id)
+          .order('created_at', { ascending: false });
+
+        if (timelineError) {
+          console.error('Error fetching patent timeline:', timelineError);
+          return patent;
+        }
+
+        return {
+          ...patent,
+          timeline: timeline || []
+        };
+      })
+    );
+
+    return patentsWithTimeline;
+  } catch (error) {
+    console.error('Error in fetchDrafterCompletedAssignments:', error);
+    throw error;
+  }
+};
+
+/**
+ * Completes a drafting task for a patent
+ * @param patent - The patent to mark drafting as complete
+ * @param drafterName - The name of the drafter completing the task
+ * @returns true if successful, false otherwise
+ */
+export const completeDrafterTask = async (patent: Patent, drafterName: string): Promise<boolean> => {
+  try {
+    // Determine which drafting task to complete based on the drafter's assignment
+    let updateObject: any = {};
+    let taskType = '';
     
-    if (error) {
-      console.error('Error completing FER drafter task:', error);
+    // Check prerequisites before allowing task completion
+    if (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 0) {
+      // Check if IDF has been received for PS drafting
+      if (!patent.idf_received) {
+        toast.error('Cannot complete PS drafting: IDF has not been received yet');
+        return false;
+      }
+      
+      updateObject = { 
+        ps_drafting_status: 1,
+        ps_review_draft_status: 1 
+      };
+      taskType = 'PS';
+    } 
+    else if (patent.cs_drafter_assgn === drafterName && patent.cs_drafting_status === 0) {
+      // Check if CS data has been received for CS drafting
+      if (!patent.cs_data_received) {
+        toast.error('Cannot complete CS drafting: CS data has not been received yet');
+        return false;
+      }
+      
+      updateObject = { 
+        cs_drafting_status: 1,
+        cs_review_draft_status: 1 
+      };
+      taskType = 'CS';
+    } 
+    else if (patent.fer_drafter_assgn === drafterName && patent.fer_drafter_status === 0) {
+      updateObject = { 
+        fer_drafter_status: 1,
+        fer_review_draft_status: 1 
+      };
+      taskType = 'FER';
+    } 
+    else {
+      console.error('Drafter is not assigned to this patent or task is already completed');
+      toast.error('You are not assigned to this drafting task or it has already been completed');
       return false;
     }
     
+    // Update the patent status
+    const { error } = await supabase
+      .from('patents')
+      .update(updateObject)
+      .eq('id', patent.id);
+    
+    if (error) {
+      console.error(`Error completing ${taskType} drafting task:`, error);
+      toast.error(`Failed to complete ${taskType} drafting: ${error.message}`);
+      return false;
+    }
+    
+    toast.success(`${taskType} drafting completed and sent for review`);
     return true;
   } catch (error) {
-    console.error('Error completing FER drafter task:', error);
+    console.error('Error in completeDrafterTask:', error);
     return false;
   }
 };

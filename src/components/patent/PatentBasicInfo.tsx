@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Patent } from '@/lib/types';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface PatentBasicInfoProps {
   patent: Patent;
@@ -20,9 +20,13 @@ const PatentBasicInfo: React.FC<PatentBasicInfoProps> = ({ patent }) => {
     }
   };
 
+  // Determine task prerequisites status
+  const hasIDFReceived = patent.idf_received === true;
+  const hasCSDataReceived = patent.cs_data_received === true && patent.cs_data === true;
+  
   // Determine assignment status
-  const isPSAssigned = patent.ps_drafter_assgn && patent.idf_received === true;
-  const isCSAssigned = patent.cs_drafter_assgn && patent.cs_data_received === true && patent.cs_data === true;
+  const isPSAssigned = patent.ps_drafter_assgn && !hasIDFReceived;
+  const isCSAssigned = patent.cs_drafter_assgn && !hasCSDataReceived;
 
   return (
     <Card>
@@ -72,9 +76,14 @@ const PatentBasicInfo: React.FC<PatentBasicInfoProps> = ({ patent }) => {
             <div className="text-sm font-medium text-gray-500">PS Drafter</div>
             <div className="font-semibold flex items-center gap-1">
               {patent.ps_drafter_assgn || 'N/A'}
-              {patent.ps_drafter_assgn && !isPSAssigned && (
+              {patent.ps_drafter_assgn && !hasIDFReceived && (
                 <div className="flex items-center gap-1 text-amber-500 text-xs">
                   <AlertCircle className="h-3 w-3" /> Waiting for IDF
+                </div>
+              )}
+              {patent.ps_drafter_assgn && hasIDFReceived && (
+                <div className="flex items-center gap-1 text-green-500 text-xs">
+                  <CheckCircle2 className="h-3 w-3" /> IDF Received
                 </div>
               )}
             </div>
@@ -83,10 +92,50 @@ const PatentBasicInfo: React.FC<PatentBasicInfoProps> = ({ patent }) => {
             <div className="text-sm font-medium text-gray-500">CS Drafter</div>
             <div className="font-semibold flex items-center gap-1">
               {patent.cs_drafter_assgn || 'N/A'}
-              {patent.cs_drafter_assgn && !isCSAssigned && (
+              {patent.cs_drafter_assgn && !hasCSDataReceived && (
                 <div className="flex items-center gap-1 text-amber-500 text-xs">
                   <AlertCircle className="h-3 w-3" /> Waiting for CS Data
                 </div>
+              )}
+              {patent.cs_drafter_assgn && hasCSDataReceived && (
+                <div className="flex items-center gap-1 text-green-500 text-xs">
+                  <CheckCircle2 className="h-3 w-3" /> CS Data Received
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Status indicators */}
+          <div>
+            <div className="text-sm font-medium text-gray-500">IDF Status</div>
+            <div className="font-semibold">
+              {patent.idf_sent ? (
+                <span className="text-green-500">Sent</span>
+              ) : (
+                <span className="text-gray-400">Not Sent</span>
+              )}
+              {' | '}
+              {patent.idf_received ? (
+                <span className="text-green-500">Received</span>
+              ) : (
+                <span className="text-gray-400">Not Received</span>
+              )}
+            </div>
+          </div>
+          
+          <div>
+            <div className="text-sm font-medium text-gray-500">CS Data Status</div>
+            <div className="font-semibold">
+              {patent.cs_data ? (
+                <span className="text-green-500">Sent</span>
+              ) : (
+                <span className="text-gray-400">Not Sent</span>
+              )}
+              {' | '}
+              {patent.cs_data_received ? (
+                <span className="text-green-500">Received</span>
+              ) : (
+                <span className="text-gray-400">Not Received</span>
               )}
             </div>
           </div>

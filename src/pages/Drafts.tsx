@@ -13,6 +13,7 @@ import RefreshButton from '@/components/approvals/RefreshButton';
 import LoadingSpinner from '@/components/approvals/LoadingSpinner';
 import EmptyApprovals from '@/components/approvals/EmptyApprovals';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { AlertCircle, Clock } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 6; // Number of items to show per page
 
@@ -154,11 +155,11 @@ const Drafts = () => {
 
   const isTaskAvailable = (patent: Patent) => {
     if (patent.ps_drafter_assgn === user?.full_name && patent.ps_drafting_status === 0) {
-      return true;
+      return patent.idf_received === true;
     } 
     
     if (patent.cs_drafter_assgn === user?.full_name && patent.cs_drafting_status === 0) {
-      return !patent.ps_drafter_assgn || patent.ps_drafting_status === 1;
+      return patent.cs_data_received === true && patent.cs_data === true;
     }
     
     if (patent.fer_drafter_assgn === user?.full_name && patent.fer_drafter_status === 0) {
@@ -168,6 +169,31 @@ const Drafts = () => {
     }
     
     return false;
+  };
+
+  const getTaskBlockedReason = (patent: Patent) => {
+    if (patent.ps_drafter_assgn === user?.full_name && patent.ps_drafting_status === 0) {
+      if (!patent.idf_received) {
+        return 'Waiting for IDF to be received';
+      }
+    }
+    
+    if (patent.cs_drafter_assgn === user?.full_name && patent.cs_drafting_status === 0) {
+      if (!patent.cs_data_received || !patent.cs_data) {
+        return 'Waiting for CS data to be received';
+      }
+    }
+    
+    if (patent.fer_drafter_assgn === user?.full_name && patent.fer_drafter_status === 0) {
+      if (patent.ps_drafter_assgn && patent.ps_drafting_status === 0) {
+        return 'Waiting for PS drafting to be completed';
+      }
+      if (patent.cs_drafter_assgn && patent.cs_drafting_status === 0) {
+        return 'Waiting for CS drafting to be completed';
+      }
+    }
+    
+    return 'Waiting for prerequisites to be met';
   };
 
   // Pagination logic
@@ -250,6 +276,30 @@ const Drafts = () => {
                         <div><span className="font-medium">Task:</span> {getTaskType(patent)}</div>
                         <div><span className="font-medium">Client ID:</span> {patent.client_id}</div>
                         <div><span className="font-medium">Deadline:</span> {formatDate(getDeadline(patent))}</div>
+                        
+                        {/* IDF status for PS drafters */}
+                        {patent.ps_drafter_assgn === user?.full_name && (
+                          <div className="flex items-center gap-1 text-sm">
+                            <span className="font-medium">IDF Status:</span>
+                            {patent.idf_received ? (
+                              <span className="text-green-500">Received ✓</span>
+                            ) : (
+                              <span className="text-amber-500">Not Received</span>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* CS data status for CS drafters */}
+                        {patent.cs_drafter_assgn === user?.full_name && (
+                          <div className="flex items-center gap-1 text-sm">
+                            <span className="font-medium">CS Data Status:</span>
+                            {patent.cs_data_received && patent.cs_data ? (
+                              <span className="text-green-500">Received ✓</span>
+                            ) : (
+                              <span className="text-amber-500">Not Received</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       
                       <div className="pt-4 mt-auto flex flex-col sm:flex-row justify-between gap-2">
@@ -272,8 +322,9 @@ const Drafts = () => {
                       </div>
                       
                       {!isTaskAvailable(patent) && (
-                        <div className="text-amber-600 font-medium text-xs mt-2">
-                          Waiting for previous stage to be completed
+                        <div className="text-amber-600 font-medium text-xs mt-2 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {getTaskBlockedReason(patent)}
                         </div>
                       )}
                     </CardContent>
