@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Loader2, FileText } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { loginUser } from '@/lib/api';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -14,7 +15,6 @@ const Index = () => {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
-  const [role, setRole] = React.useState('admin'); // Default role for testing
 
   // Check if user is already logged in
   React.useEffect(() => {
@@ -38,30 +38,29 @@ const Index = () => {
       toast.error('Please enter both email and password');
       return;
     }
+    
     try {
       setLoading(true);
       
-      // Simplified login for testing with role selection
-      const mockUser = {
-        id: '123',
-        emp_id: 'EMP001',
-        full_name: 'Test User',
-        email: email,
-        role: role
-      };
+      // Use the loginUser function from the API to authenticate the user
+      const response = await loginUser(email, password);
       
-      // Store user in localStorage
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      
-      toast.success('Login successful');
-      
-      // Redirect based on role
-      if (role === 'drafter') {
-        navigate('/drafts');
-      } else if (role === 'filer') {
-        navigate('/filings');
+      if (response.success && response.user) {
+        // Store user in localStorage
+        localStorage.setItem('user', JSON.stringify(response.user));
+        
+        toast.success('Login successful');
+        
+        // Redirect based on role
+        if (response.user.role === 'drafter') {
+          navigate('/drafts');
+        } else if (response.user.role === 'filer') {
+          navigate('/filings');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
-        navigate('/dashboard');
+        toast.error(response.message || 'Invalid credentials');
       }
       
     } catch (error) {
@@ -70,11 +69,6 @@ const Index = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Function to handle role selection
-  const handleRoleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setRole(event.target.value);
   };
 
   return (
@@ -138,22 +132,6 @@ const Index = () => {
                 required 
                 className="border-gray-300 focus:border-primary focus:ring-primary"
               />
-            </div>
-            
-            {/* Role selector for testing */}
-            <div className="space-y-2">
-              <label htmlFor="role" className="text-sm font-medium text-gray-700">Role (for testing)</label>
-              <select
-                id="role"
-                value={role}
-                onChange={handleRoleChange}
-                disabled={loading}
-                className="w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="admin">Admin</option>
-                <option value="drafter">Drafter</option>
-                <option value="filer">Filer</option>
-              </select>
             </div>
             
             <Button 
