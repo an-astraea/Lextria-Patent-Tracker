@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -81,6 +82,7 @@ const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
   const [isCompletingFiling, setIsCompletingFiling] = useState(false);
   const [isApprovingDraft, setIsApprovingDraft] = useState(false);
   const [isApprovingFiling, setIsApprovingFiling] = useState(false);
+  const [activeActionFER, setActiveActionFER] = useState<string | null>(null);
 
   const handleAddFER = () => {
     setIsEditingFER(false);
@@ -174,6 +176,62 @@ const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
       toast.error('Failed to save FER');
     } finally {
       setIsProcessingFER(false);
+    }
+  };
+
+  const handleApproveDraft = async (fer: FEREntry) => {
+    try {
+      setIsApprovingDraft(true);
+      setActiveActionFER(fer.id);
+      await onApproveDraft(fer);
+    } catch (error) {
+      console.error('Error approving draft:', error);
+      toast.error('Failed to approve draft');
+    } finally {
+      setIsApprovingDraft(false);
+      setActiveActionFER(null);
+    }
+  };
+
+  const handleApproveFiling = async (fer: FEREntry) => {
+    try {
+      setIsApprovingFiling(true);
+      setActiveActionFER(fer.id);
+      await onApproveFiling(fer);
+    } catch (error) {
+      console.error('Error approving filing:', error);
+      toast.error('Failed to approve filing');
+    } finally {
+      setIsApprovingFiling(false);
+      setActiveActionFER(null);
+    }
+  };
+
+  const handleCompleteDraft = async (fer: FEREntry) => {
+    try {
+      setIsCompletingDraft(true);
+      setActiveActionFER(fer.id);
+      await onCompleteDraft(fer);
+    } catch (error) {
+      console.error('Error completing draft:', error);
+      toast.error('Failed to complete draft');
+    } finally {
+      setIsCompletingDraft(false);
+      setActiveActionFER(null);
+    }
+  };
+
+  const handleCompleteFiling = async (fer: FEREntry) => {
+    try {
+      setIsCompletingFiling(true);
+      setActiveActionFER(fer.id);
+      await onCompleteFiling(fer);
+    } catch (error) {
+      console.error('Error completing filing:', error);
+      toast.error('Failed to complete filing');
+    } finally {
+      setIsCompletingFiling(false);
+      setActiveActionFER(null);
     }
   };
 
@@ -287,10 +345,10 @@ const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
                                 <Button 
                                   variant="outline" 
                                   size="sm" 
-                                  onClick={() => onApproveDraft(fer)}
-                                  disabled={isApprovingDraft}
+                                  onClick={() => handleApproveDraft(fer)}
+                                  disabled={isApprovingDraft && activeActionFER === fer.id}
                                 >
-                                  {isApprovingDraft ? 
+                                  {isApprovingDraft && activeActionFER === fer.id ? 
                                     <Loader2 className="h-4 w-4 animate-spin" /> : 
                                     'Approve Draft'}
                                 </Button>
@@ -299,10 +357,10 @@ const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
                                 <Button 
                                   variant="outline" 
                                   size="sm" 
-                                  onClick={() => onApproveFiling(fer)}
-                                  disabled={isApprovingFiling}
+                                  onClick={() => handleApproveFiling(fer)}
+                                  disabled={isApprovingFiling && activeActionFER === fer.id}
                                 >
-                                  {isApprovingFiling ? 
+                                  {isApprovingFiling && activeActionFER === fer.id ? 
                                     <Loader2 className="h-4 w-4 animate-spin" /> : 
                                     'Approve Filing'}
                                 </Button>
@@ -313,10 +371,10 @@ const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              onClick={() => onCompleteDraft(fer)}
-                              disabled={isCompletingDraft}
+                              onClick={() => handleCompleteDraft(fer)}
+                              disabled={isCompletingDraft && activeActionFER === fer.id}
                             >
-                              {isCompletingDraft ? 
+                              {isCompletingDraft && activeActionFER === fer.id ? 
                                 <Loader2 className="h-4 w-4 animate-spin" /> : 
                                 'Complete Draft'}
                             </Button>
@@ -325,10 +383,10 @@ const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              onClick={() => onCompleteFiling(fer)}
-                              disabled={isCompletingFiling}
+                              onClick={() => handleCompleteFiling(fer)}
+                              disabled={isCompletingFiling && activeActionFER === fer.id}
                             >
-                              {isCompletingFiling ? 
+                              {isCompletingFiling && activeActionFER === fer.id ? 
                                 <Loader2 className="h-4 w-4 animate-spin" /> : 
                                 'Complete Filing'}
                             </Button>

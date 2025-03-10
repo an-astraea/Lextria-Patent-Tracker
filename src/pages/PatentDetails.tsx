@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,8 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, ArrowLeft, FileText, AlertTriangle, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { fetchPatentById, fetchEmployees, completeDrafterTask, completeFilerTask, updatePatentForms } from '@/lib/api';
-import { Patent } from '@/lib/types';
+import { fetchPatentById, fetchEmployees, completeDrafterTask, completeFilerTask, updatePatentForms, approveFERDraft, approveFERFiling } from '@/lib/api';
+import { Patent, FEREntry } from '@/lib/types';
 import PatentBasicInfo from '@/components/patent/PatentBasicInfo';
 import InventorsList from '@/components/patent/InventorsList';
 import PatentStatusSection from '@/components/patent/PatentStatusSection';
@@ -230,117 +231,117 @@ const PatentDetails = () => {
     );
   };
 
-  const handleFERDraftCompletion = async (fer: any) => {
+  const handleFERDraftCompletion = async (fer: FEREntry) => {
     if (!patent || !user) return;
 
     try {
-      const updatedPatent = await completeDrafterTask(patent, user.full_name);
+      const success = await completeDrafterTask(patent, user.full_name, fer.id);
 
-      if (updatedPatent) {
+      if (success) {
         toast({
           title: 'Success',
-          description: 'FER Draft Completion marked as completed and submitted for review',
+          description: 'FER Draft marked as completed and submitted for review',
         });
         await fetchPatentData();
       } else {
         toast({
           title: 'Error',
-          description: 'Failed to complete FER draft completion task',
+          description: 'Failed to complete FER draft task',
           variant: 'destructive',
         });
       }
     } catch (error) {
-      console.error('Error completing FER draft completion task:', error);
+      console.error('Error completing FER draft task:', error);
       toast({
         title: 'Error',
-        description: 'An error occurred while completing the FER draft completion task',
+        description: 'An error occurred while completing the FER draft task',
         variant: 'destructive',
       });
     }
   };
 
-  const handleFERFilingCompletion = async (fer: any) => {
+  const handleFERFilingCompletion = async (fer: FEREntry) => {
     if (!patent || !user) return;
 
     try {
-      const updatedPatent = await completeFilerTask(patent, user.full_name, formValues);
+      const success = await completeFilerTask(patent, user.full_name, formValues, fer.id);
 
-      if (updatedPatent) {
+      if (success) {
         toast({
           title: 'Success',
-          description: 'FER Filing Completion marked as completed and submitted for review',
+          description: 'FER Filing marked as completed and submitted for review',
         });
         await fetchPatentData();
       } else {
         toast({
           title: 'Error',
-          description: 'Failed to complete FER filing completion task',
+          description: 'Failed to complete FER filing task',
           variant: 'destructive',
         });
       }
     } catch (error) {
-      console.error('Error completing FER filing completion task:', error);
+      console.error('Error completing FER filing task:', error);
       toast({
         title: 'Error',
-        description: 'An error occurred while completing the FER filing completion task',
+        description: 'An error occurred while completing the FER filing task',
         variant: 'destructive',
       });
     }
   };
 
-  const handleFERDraftApproval = async (fer: any) => {
-    if (!patent || !user) return;
+  const handleFERDraftApproval = async (fer: FEREntry) => {
+    if (!patent || !user || user.role !== 'admin') return;
 
     try {
-      const updatedPatent = await completeDrafterTask(patent, user.full_name);
+      const success = await approveFERDraft(fer.id);
 
-      if (updatedPatent) {
+      if (success) {
         toast({
           title: 'Success',
-          description: 'FER Draft Approval marked as completed',
+          description: 'FER Draft approved successfully',
         });
         await fetchPatentData();
       } else {
         toast({
           title: 'Error',
-          description: 'Failed to complete FER draft approval task',
+          description: 'Failed to approve FER draft',
           variant: 'destructive',
         });
       }
     } catch (error) {
-      console.error('Error completing FER draft approval task:', error);
+      console.error('Error approving FER draft:', error);
       toast({
         title: 'Error',
-        description: 'An error occurred while completing the FER draft approval task',
+        description: 'An error occurred while approving the FER draft',
         variant: 'destructive',
       });
     }
   };
 
-  const handleFERFilingApproval = async (fer: any) => {
-    if (!patent || !user) return;
+  const handleFERFilingApproval = async (fer: FEREntry) => {
+    if (!patent || !user || user.role !== 'admin') return;
 
     try {
-      const updatedPatent = await completeFilerTask(patent, user.full_name, formValues);
+      const success = await approveFERFiling(fer.id);
 
-      if (updatedPatent) {
+      if (success) {
         toast({
           title: 'Success',
-          description: 'FER Filing Approval marked as completed',
+          description: 'FER Filing approved successfully',
         });
         await fetchPatentData();
       } else {
         toast({
           title: 'Error',
-          description: 'Failed to complete FER filing approval task',
+          description: 'Failed to approve FER filing',
           variant: 'destructive',
         });
       }
     } catch (error) {
-      console.error('Error completing FER filing approval task:', error);
+      console.error('Error approving FER filing:', error);
       toast({
         title: 'Error',
-        description: 'An error occurred while completing the FER filing approval task',
+        description: 'An error occurred while approving the FER filing',
         variant: 'destructive',
       });
     }

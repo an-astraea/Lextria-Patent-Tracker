@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { fetchPendingReviews, approvePatentReview, rejectPatentReview } from '@/lib/api';
@@ -18,6 +19,7 @@ const Approvals = () => {
   const [loading, setLoading] = useState(true);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [processingReview, setProcessingReview] = useState<{ patentId: string, type: ReviewType } | null>(null);
   const isMobile = useIsMobile();
 
   // Get user from localStorage
@@ -57,6 +59,7 @@ const Approvals = () => {
 
   const handleApprove = async (patent: Patent, reviewType: ReviewType) => {
     try {
+      setProcessingReview({ patentId: patent.id, type: reviewType });
       const success = await approvePatentReview(patent, reviewType);
       if (success) {
         toast.success('Review approved successfully');
@@ -95,11 +98,14 @@ const Approvals = () => {
     } catch (error) {
       console.error('Error approving review:', error);
       toast.error('Failed to approve review');
+    } finally {
+      setProcessingReview(null);
     }
   };
 
   const handleReject = async (patent: Patent, reviewType: ReviewType) => {
     try {
+      setProcessingReview({ patentId: patent.id, type: reviewType });
       const success = await rejectPatentReview(patent, reviewType);
       if (success) {
         toast.success('Review rejected and sent back to assignee');
@@ -138,6 +144,8 @@ const Approvals = () => {
     } catch (error) {
       console.error('Error rejecting review:', error);
       toast.error('Failed to reject review');
+    } finally {
+      setProcessingReview(null);
     }
   };
 
@@ -170,6 +178,7 @@ const Approvals = () => {
                 patent={patent} 
                 onApprove={handleApprove}
                 onReject={handleReject}
+                processingReview={processingReview}
               />
             ))}
           </div>
