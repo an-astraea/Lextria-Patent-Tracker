@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Plus } from 'lucide-react';
-import { FEREntry, Employee } from '@/lib/types';
+import { FEREntry } from '@/lib/types';
 import { createFEREntry } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -27,7 +27,7 @@ const FEREntryForm: React.FC<FEREntryFormProps> = ({
     
     try {
       setAdding(true);
-      // Pass only the patentId and nextFerNumber to createFEREntry
+      // Only pass the patentId and nextFerNumber to createFEREntry
       const result = await createFEREntry(patentId, nextFerNumber);
       
       if (result) {

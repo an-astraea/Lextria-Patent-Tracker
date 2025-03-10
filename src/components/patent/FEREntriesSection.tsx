@@ -1,36 +1,14 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Patent, FEREntry, Employee } from '@/lib/types';
-import { PencilIcon, FileType, CheckCircleIcon, PlusCircleIcon, Loader2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { format } from 'date-fns';
+import { PlusCircleIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { createFEREntry, updateFEREntry, deleteFEREntry } from '@/lib/api';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog";
+import FERCard from './FERCard';
+import FEREditDialog from './FEREditDialog';
+import FERDeleteDialog from './FERDeleteDialog';
+import FEREmptyState from './FEREmptyState';
 
 interface FEREntriesSectionProps {
   patent: Patent;
@@ -183,14 +161,6 @@ const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
     }
   };
 
-  const handleCompleteDraft = async (fer: FEREntry) => {
-    await onCompleteDraft(fer);
-  };
-
-  const handleCompleteFiling = async (fer: FEREntry) => {
-    await onCompleteFiling(fer);
-  };
-
   const handleApproveDraft = async (fer: FEREntry) => {
     setIsApprovingDraft(true);
     try {
@@ -209,14 +179,6 @@ const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
     }
   };
 
-  const canCompleteDraft = (fer: FEREntry) => {
-    return userName === fer.fer_drafter_assgn && fer.fer_drafter_status === 0;
-  };
-
-  const canCompleteFiling = (fer: FEREntry) => {
-    return userName === fer.fer_filer_assgn && fer.fer_filing_status === 0 && fer.fer_drafter_status === 1;
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -232,310 +194,56 @@ const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
       {patent.fer_entries && patent.fer_entries.length > 0 ? (
         <div className="space-y-6">
           {patent.fer_entries.map((fer) => (
-            <Card key={fer.id} className="overflow-hidden">
-              <CardHeader className="bg-muted/30">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">FER #{fer.fer_number || 1}</CardTitle>
-                  <div className="flex items-center gap-2">
-                    {fer.fer_date && (
-                      <Badge variant="outline">
-                        Date: {format(new Date(fer.fer_date), 'dd MMM yyyy')}
-                      </Badge>
-                    )}
-                    
-                    {userRole === 'admin' && (
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleEditFER(fer)}>
-                          <PencilIcon className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDeleteFER(fer)}>
-                          Delete
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-sm font-medium mb-1">Drafting Status</h3>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Badge variant={fer.fer_drafter_status === 1 ? "success" : "default"}>
-                            {fer.fer_drafter_status === 1 ? "Completed" : "Pending"}
-                          </Badge>
-                          <Badge variant={fer.fer_review_draft_status === 1 ? "success" : "default"} className="ml-2">
-                            {fer.fer_review_draft_status === 1 ? "Approved" : "Not Approved"}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {canCompleteDraft(fer) && (
-                            <Button size="sm" onClick={() => handleCompleteDraft(fer)}>
-                              <CheckCircleIcon className="h-4 w-4 mr-2" />
-                              Complete Draft
-                            </Button>
-                          )}
-                          
-                          {userRole === 'admin' && fer.fer_drafter_status === 1 && fer.fer_review_draft_status === 0 && (
-                            <Button size="sm" onClick={() => handleApproveDraft(fer)} disabled={isApprovingDraft}>
-                              {isApprovingDraft ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Approving...
-                                </>
-                              ) : (
-                                <>
-                                  <CheckCircleIcon className="h-4 w-4 mr-2" />
-                                  Approve Draft
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-2">
-                        <p className="text-sm text-muted-foreground">
-                          Drafter: <span className="font-medium">{fer.fer_drafter_assgn || 'Unassigned'}</span>
-                        </p>
-                        {fer.fer_drafter_deadline && (
-                          <p className="text-sm text-muted-foreground">
-                            Deadline: <span className="font-medium">{format(new Date(fer.fer_drafter_deadline), 'dd MMM yyyy')}</span>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div>
-                      <h3 className="text-sm font-medium mb-1">Filing Status</h3>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Badge variant={fer.fer_filing_status === 1 ? "success" : "default"}>
-                            {fer.fer_filing_status === 1 ? "Completed" : "Pending"}
-                          </Badge>
-                          <Badge variant={fer.fer_review_file_status === 1 ? "success" : "default"} className="ml-2">
-                            {fer.fer_review_file_status === 1 ? "Approved" : "Not Approved"}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {canCompleteFiling(fer) && (
-                            <Button size="sm" onClick={() => handleCompleteFiling(fer)}>
-                              <FileType className="h-4 w-4 mr-2" />
-                              Complete Filing
-                            </Button>
-                          )}
-                          
-                          {userRole === 'admin' && fer.fer_filing_status === 1 && fer.fer_review_file_status === 0 && (
-                            <Button size="sm" onClick={() => handleApproveFiling(fer)} disabled={isApprovingFiling}>
-                              {isApprovingFiling ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Approving...
-                                </>
-                              ) : (
-                                <>
-                                  <CheckCircleIcon className="h-4 w-4 mr-2" />
-                                  Approve Filing
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-2">
-                        <p className="text-sm text-muted-foreground">
-                          Filer: <span className="font-medium">{fer.fer_filer_assgn || 'Unassigned'}</span>
-                        </p>
-                        {fer.fer_filer_deadline && (
-                          <p className="text-sm text-muted-foreground">
-                            Deadline: <span className="font-medium">{format(new Date(fer.fer_filer_deadline), 'dd MMM yyyy')}</span>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-sm font-medium mb-1">Completion Status</h3>
-                      <Badge variant={fer.fer_completion_status === 1 ? "success" : "default"} className="text-base">
-                        {fer.fer_completion_status === 1 ? "Complete" : "Incomplete"}
-                      </Badge>
-                      
-                      {fer.fer_completion_status === 1 && (
-                        <p className="text-sm text-muted-foreground mt-2">
-                          All tasks for this FER have been completed and approved.
-                        </p>
-                      )}
-                      
-                      {fer.fer_completion_status === 0 && (
-                        <div className="mt-2 space-y-1">
-                          <p className="text-sm text-muted-foreground">
-                            Pending tasks:
-                          </p>
-                          <ul className="text-sm text-muted-foreground list-disc pl-5">
-                            {fer.fer_drafter_status === 0 && (
-                              <li>Drafting needs to be completed</li>
-                            )}
-                            {fer.fer_drafter_status === 1 && fer.fer_review_draft_status === 0 && (
-                              <li>Drafting needs to be approved</li>
-                            )}
-                            {fer.fer_filing_status === 0 && fer.fer_drafter_status === 1 && (
-                              <li>Filing needs to be completed</li>
-                            )}
-                            {fer.fer_filing_status === 1 && fer.fer_review_file_status === 0 && (
-                              <li>Filing needs to be approved</li>
-                            )}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <FERCard
+              key={fer.id}
+              fer={fer}
+              userRole={userRole}
+              userName={userName}
+              onEdit={handleEditFER}
+              onDelete={handleDeleteFER}
+              onCompleteDraft={onCompleteDraft}
+              onCompleteFiling={onCompleteFiling}
+              onApproveDraft={handleApproveDraft}
+              onApproveFiling={handleApproveFiling}
+              isApprovingDraft={isApprovingDraft}
+              isApprovingFiling={isApprovingFiling}
+            />
           ))}
         </div>
       ) : (
-        <Card>
-          <CardContent className="py-8">
-            <div className="text-center text-muted-foreground">
-              <p>No FER entries have been added yet.</p>
-              {userRole === 'admin' && (
-                <Button variant="outline" className="mt-4" onClick={handleAddFER}>
-                  <PlusCircleIcon className="h-4 w-4 mr-2" />
-                  Add FER Entry
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <FEREmptyState userRole={userRole} onAddFER={handleAddFER} />
       )}
       
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{isAddingFER ? 'Add FER Entry' : 'Edit FER Entry'}</DialogTitle>
-            <DialogDescription>
-              {isAddingFER ? 'Create a new FER entry with the required details.' : 'Update the FER entry details.'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="fer-number">FER Number</Label>
-                <Input
-                  id="fer-number"
-                  type="number"
-                  value={ferNumber}
-                  onChange={(e) => setFERNumber(parseInt(e.target.value) || 1)}
-                  min={1}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="fer-date">FER Date</Label>
-                <Input
-                  id="fer-date"
-                  type="date"
-                  value={ferDate}
-                  onChange={(e) => setFERDate(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="fer-drafter">Drafter</Label>
-              <Select value={ferDrafter} onValueChange={setFERDrafter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select drafter" />
-                </SelectTrigger>
-                <SelectContent>
-                  {drafters.map((drafter) => (
-                    <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="fer-drafter-deadline">Drafter Deadline</Label>
-              <Input
-                id="fer-drafter-deadline"
-                type="date"
-                value={ferDrafterDeadline}
-                onChange={(e) => setFERDrafterDeadline(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="fer-filer">Filer</Label>
-              <Select value={ferFiler} onValueChange={setFERFiler}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select filer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filers.map((filer) => (
-                    <SelectItem key={filer} value={filer}>{filer}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="fer-filer-deadline">Filer Deadline</Label>
-              <Input
-                id="fer-filer-deadline"
-                type="date"
-                value={ferFilerDeadline}
-                onChange={(e) => setFERFilerDeadline(e.target.value)}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveFER} disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FEREditDialog
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        selectedFER={selectedFER}
+        isAddingFER={isAddingFER}
+        ferNumber={ferNumber}
+        ferDrafter={ferDrafter}
+        ferDrafterDeadline={ferDrafterDeadline}
+        ferFiler={ferFiler}
+        ferFilerDeadline={ferFilerDeadline}
+        ferDate={ferDate}
+        isSubmitting={isSubmitting}
+        drafters={drafters}
+        filers={filers}
+        setFERNumber={setFERNumber}
+        setFERDrafter={setFERDrafter}
+        setFERDrafterDeadline={setFERDrafterDeadline}
+        setFERFiler={setFERFiler}
+        setFERFilerDeadline={setFERFilerDeadline}
+        setFERDate={setFERDate}
+        onSave={handleSaveFER}
+      />
       
-      <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the FER entry. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteFER} disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                'Delete'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <FERDeleteDialog
+        isOpen={isAlertDialogOpen}
+        onOpenChange={setIsAlertDialogOpen}
+        ferToDelete={ferToDelete}
+        isSubmitting={isSubmitting}
+        onConfirmDelete={confirmDeleteFER}
+      />
     </div>
   );
 };
