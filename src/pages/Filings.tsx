@@ -24,7 +24,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FormRequirementsList from '@/components/patent/FormRequirementsList';
@@ -158,19 +157,44 @@ const Filings = () => {
     setIsSubmitting(true);
     
     try {
-      const success = await completeFilerTask(
-        selectedFER.patent as Patent, 
-        user.full_name,
-        undefined,
-        selectedFER.id
-      );
+      console.log('Completing FER filing task for FER ID:', selectedFER.id);
       
-      if (success) {
-        toast.success('FER filing completed successfully');
+      if (!selectedFER.patent || !selectedFER.patent.id) {
+        const patentId = selectedFER.patent_id;
+        if (!patentId) {
+          throw new Error('Missing patent ID for FER entry');
+        }
         
-        setFEREntries(prev => prev.filter(fer => fer.id !== selectedFER.id));
+        const patent = patents.find(p => p.id === patentId);
+        if (!patent) {
+          throw new Error('Cannot find patent for FER entry');
+        }
         
-        setIsFERDialogOpen(false);
+        const success = await completeFilerTask(
+          patent,
+          user.full_name,
+          undefined,
+          selectedFER.id
+        );
+        
+        if (success) {
+          toast.success('FER filing completed successfully');
+          setFEREntries(prev => prev.filter(fer => fer.id !== selectedFER.id));
+          setIsFERDialogOpen(false);
+        }
+      } else {
+        const success = await completeFilerTask(
+          selectedFER.patent,
+          user.full_name,
+          undefined,
+          selectedFER.id
+        );
+        
+        if (success) {
+          toast.success('FER filing completed successfully');
+          setFEREntries(prev => prev.filter(fer => fer.id !== selectedFER.id));
+          setIsFERDialogOpen(false);
+        }
       }
     } catch (error) {
       console.error('Error completing FER filing:', error);
@@ -186,7 +210,11 @@ const Filings = () => {
   };
 
   const getPatentInfo = (fer: FEREntry) => {
-    return fer.patent?.tracking_id || 'Unknown';
+    if (fer.patent) {
+      return fer.patent.tracking_id || 'Unknown';
+    }
+    
+    return fer.patent_id || 'Unknown';
   };
 
   if (loading) {
@@ -297,7 +325,7 @@ const Filings = () => {
                       <div>
                         <CardTitle className="flex items-center">
                           <FileText className="h-5 w-5 mr-2" />
-                          {getPatentInfo(fer)}
+                          {fer.patent?.patent_title || `FER #${fer.fer_number}`}
                           {isLate && (
                             <Badge variant="destructive" className="ml-2">
                               <AlertCircle className="h-3 w-3 mr-1" /> Overdue
@@ -477,7 +505,7 @@ const Filings = () => {
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <div className="text-sm font-medium text-gray-500">Patent Title</div>
-                  <div className="font-semibold">{selectedFER.patent?.patent_title}</div>
+                  <div className="font-semibold">{selectedFER.patent?.patent_title || 'N/A'}</div>
                 </div>
                 <div>
                   <div className="text-sm font-medium text-gray-500">FER Number</div>
