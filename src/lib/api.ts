@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { FEREntry, InventorInfo, Patent, PatentFormData, Employee, EmployeeFormData } from './types';
 import { format } from 'date-fns';
@@ -39,13 +40,43 @@ export async function createPatent(patentData: PatentFormData): Promise<Patent |
     // Remove inventors array from the data as it's handled separately
     const { inventors, ...patentDataWithoutInventors } = patentData;
     
+    // Insert the patent record
     const { data, error } = await supabase
       .from('patents')
       .insert([patentDataWithoutInventors])
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error inserting patent:', error);
+      throw error;
+    }
+    
+    if (!data) {
+      throw new Error('No data returned from patent insertion');
+    }
+    
+    // Now insert the inventors
+    if (inventors && inventors.length > 0) {
+      const inventorsToInsert = inventors.filter(inv => inv.inventor_name.trim() !== '').map(inv => ({
+        tracking_id: patentData.tracking_id,
+        inventor_name: inv.inventor_name,
+        inventor_addr: inv.inventor_addr,
+        patent_id: data.id
+      }));
+      
+      if (inventorsToInsert.length > 0) {
+        const { error: inventorsError } = await supabase
+          .from('inventors')
+          .insert(inventorsToInsert);
+          
+        if (inventorsError) {
+          console.error('Error inserting inventors:', inventorsError);
+          // Continue anyway, as the patent was created
+        }
+      }
+    }
+    
     return data;
   } catch (error) {
     console.error('Error creating patent:', error);
@@ -64,6 +95,32 @@ export async function updatePatent(id: string, patentData: Partial<PatentFormDat
       .eq('id', id);
 
     if (error) throw error;
+    
+    // Handle inventors if provided
+    if (inventors && inventors.length > 0) {
+      // First delete existing inventors for this patent
+      await supabase
+        .from('inventors')
+        .delete()
+        .eq('patent_id', id);
+        
+      // Then insert the new inventors
+      const inventorsToInsert = inventors
+        .filter(inv => inv.inventor_name.trim() !== '')
+        .map(inv => ({
+          tracking_id: patentData.tracking_id,
+          inventor_name: inv.inventor_name,
+          inventor_addr: inv.inventor_addr,
+          patent_id: id
+        }));
+        
+      if (inventorsToInsert.length > 0) {
+        await supabase
+          .from('inventors')
+          .insert(inventorsToInsert);
+      }
+    }
+    
     return true;
   } catch (error) {
     console.error('Error updating patent:', error);
