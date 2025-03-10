@@ -1,378 +1,72 @@
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, ArrowLeft, FileText, AlertTriangle, Check } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { fetchPatentById, fetchEmployees, completeDrafterTask, completeFilerTask, updatePatentForms, approveFERDraft, approveFERFiling } from '@/lib/api';
-import { Patent, FEREntry } from '@/lib/types';
-import PatentBasicInfo from '@/components/patent/PatentBasicInfo';
-import InventorsList from '@/components/patent/InventorsList';
-import PatentStatusSection from '@/components/patent/PatentStatusSection';
-import PatentTimeline from '@/components/patent/PatentTimeline';
-import PatentNotes from '@/components/patent/PatentNotes';
-import AssignmentDetails from '@/components/patent/AssignmentDetails';
-import FormRequirementsList from '@/components/FormRequirementsList';
-import FEREntriesSection from '@/components/patent/FEREntriesSection';
+import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
+import { usePatentDetails } from '@/hooks/usePatentDetails';
+import PatentDetailsHeader from '@/components/patent/PatentDetailsHeader';
+import PatentDetailsTabs from '@/components/patent/PatentDetailsTabs';
+import PatentNotFound from '@/components/patent/PatentNotFound';
+import CompleteDraftingDialog from '@/components/patent/CompleteDraftingDialog';
+import CompleteFilingDialog from '@/components/patent/CompleteFilingDialog';
 import TimelineDialog from '@/components/TimelineDialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 const PatentDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { toast } = useToast();
   
-  const [user, setUser] = useState<any>(null);
-  
-  useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
-    } catch (error) {
-      console.error('Error getting user from localStorage:', error);
-    }
-  }, []);
-  
-  const [patent, setPatent] = useState<Patent | null>(null);
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('details');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<'complete-draft' | 'complete-file'>('complete-draft');
+  const [showFilingDialog, setShowFilingDialog] = useState(false);
   const [isCompletingDraft, setIsCompletingDraft] = useState(false);
   const [isCompletingFiling, setIsCompletingFiling] = useState(false);
-  const [timelineMilestones, setTimelineMilestones] = useState<any[]>([]);
   const [showTimelineDialog, setShowTimelineDialog] = useState(false);
   
-  const [formValues, setFormValues] = useState<Record<string, boolean>>({});
-  const [showFilingDialog, setShowFilingDialog] = useState(false);
-
-  const fetchPatentData = async () => {
-    if (!id) return;
-    
-    try {
-      setLoading(true);
-      const patentData = await fetchPatentById(id);
-      setPatent(patentData);
-      
-      if (patentData) {
-        const initialFormValues: Record<string, boolean> = {};
-        Object.entries(patentData).forEach(([key, value]) => {
-          if (key.startsWith('form_')) {
-            initialFormValues[key] = !!value;
-          }
-        });
-        setFormValues(initialFormValues);
-      }
-    } catch (error) {
-      console.error('Error fetching patent data:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load patent details',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadEmployees = async () => {
-    try {
-      const employeesData = await fetchEmployees();
-      setEmployees(employeesData);
-    } catch (error) {
-      console.error('Error fetching employees:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchPatentData();
-    loadEmployees();
-  }, [id]);
-
-  const handleFormUpdate = (formName: string, value: boolean) => {
-    console.log('Updating form value:', formName, value);
-    setFormValues(prev => ({
-      ...prev,
-      [formName]: value
-    }));
-  };
-
-  const saveFormValues = async () => {
-    if (!patent?.id) return;
-    
-    try {
-      console.log('Saving form values:', formValues);
-      await updatePatentForms(patent.id, formValues);
-      toast({
-        title: 'Success',
-        description: 'Form requirements updated successfully',
-      });
-      await fetchPatentData();
-    } catch (error) {
-      console.error('Error updating form requirements:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update form requirements',
-        variant: 'destructive',
-      });
-    }
-  };
+  const {
+    user,
+    patent,
+    employees,
+    loading,
+    formValues,
+    timelineMilestones,
+    setTimelineMilestones,
+    fetchPatentData,
+    handleFormUpdate,
+    saveFormValues,
+    completeDrafting,
+    completeFiling,
+    completeFERDraft,
+    completeFERFiling,
+    approveFERDraftSubmission,
+    approveFERFilingSubmission,
+    isAssignedDrafter,
+    isAssignedFiler,
+    getDrafterCompletionField,
+    getFilerCompletionField
+  } = usePatentDetails(id);
 
   const handleCompleteDrafting = () => {
-    setDialogType('complete-draft');
     setIsDialogOpen(true);
   };
 
   const handleCompleteFiling = () => {
-    setDialogType('complete-file');
     setShowFilingDialog(true);
   };
 
   const confirmCompleteDrafting = async () => {
-    if (!patent || !user) return;
-    
     setIsCompletingDraft(true);
-    try {
-      const success = await completeDrafterTask(patent, user.full_name);
-      if (success) {
-        toast({
-          title: 'Success',
-          description: 'Drafting marked as completed and submitted for review',
-        });
-        await fetchPatentData();
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to complete drafting task',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Error completing drafting task:', error);
-      toast({
-        title: 'Error',
-        description: 'An error occurred while completing the drafting task',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsCompletingDraft(false);
+    const success = await completeDrafting();
+    setIsCompletingDraft(false);
+    if (success) {
       setIsDialogOpen(false);
     }
   };
 
   const confirmCompleteFiling = async () => {
-    if (!patent || !user) return;
-    
     setIsCompletingFiling(true);
-    try {
-      console.log('Completing filing with form values:', formValues);
-      const success = await completeFilerTask(patent, user.full_name, formValues);
-      if (success) {
-        toast({
-          title: 'Success',
-          description: 'Filing marked as completed and submitted for review',
-        });
-        await fetchPatentData();
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to complete filing task',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Error completing filing task:', error);
-      toast({
-        title: 'Error',
-        description: 'An error occurred while completing the filing task',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsCompletingFiling(false);
+    const success = await completeFiling();
+    setIsCompletingFiling(false);
+    if (success) {
       setShowFilingDialog(false);
     }
-  };
-
-  const isAssignedDrafter = () => {
-    if (!patent || !user) return false;
-    
-    return (
-      user.role === 'drafter' && (
-        (patent.ps_drafter_assgn === user.full_name && patent.ps_drafting_status === 0 && patent.idf_received === true) ||
-        (patent.cs_drafter_assgn === user.full_name && patent.cs_drafting_status === 0 && patent.cs_data === true && patent.cs_data_received === true) ||
-        (patent.fer_drafter_assgn === user.full_name && patent.fer_drafter_status === 0)
-      )
-    );
-  };
-
-  const isAssignedFiler = () => {
-    if (!patent || !user) return false;
-    
-    return (
-      user.role === 'filer' && (
-        (patent.ps_filer_assgn === user.full_name && patent.ps_filing_status === 0 && patent.ps_drafting_status === 1 && patent.idf_received === true) ||
-        (patent.cs_filer_assgn === user.full_name && patent.cs_filing_status === 0 && patent.cs_drafting_status === 1 && patent.cs_data_received === true) ||
-        (patent.fer_filer_assgn === user.full_name && patent.fer_filing_status === 0 && patent.fer_drafter_status === 1)
-      )
-    );
-  };
-
-  const handleFERDraftCompletion = async (fer: FEREntry) => {
-    if (!patent || !user) return;
-
-    try {
-      const success = await completeDrafterTask(patent, user.full_name, fer.id);
-
-      if (success) {
-        toast({
-          title: 'Success',
-          description: 'FER Draft marked as completed and submitted for review',
-        });
-        await fetchPatentData();
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to complete FER draft task',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Error completing FER draft task:', error);
-      toast({
-        title: 'Error',
-        description: 'An error occurred while completing the FER draft task',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleFERFilingCompletion = async (fer: FEREntry) => {
-    if (!patent || !user) return;
-
-    try {
-      const success = await completeFilerTask(patent, user.full_name, formValues, fer.id);
-
-      if (success) {
-        toast({
-          title: 'Success',
-          description: 'FER Filing marked as completed and submitted for review',
-        });
-        await fetchPatentData();
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to complete FER filing task',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Error completing FER filing task:', error);
-      toast({
-        title: 'Error',
-        description: 'An error occurred while completing the FER filing task',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleFERDraftApproval = async (fer: FEREntry) => {
-    if (!patent || !user || user.role !== 'admin') return;
-
-    try {
-      const success = await approveFERDraft(fer.id);
-
-      if (success) {
-        toast({
-          title: 'Success',
-          description: 'FER Draft approved successfully',
-        });
-        await fetchPatentData();
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to approve FER draft',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Error approving FER draft:', error);
-      toast({
-        title: 'Error',
-        description: 'An error occurred while approving the FER draft',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleFERFilingApproval = async (fer: FEREntry) => {
-    if (!patent || !user || user.role !== 'admin') return;
-
-    try {
-      const success = await approveFERFiling(fer.id);
-
-      if (success) {
-        toast({
-          title: 'Success',
-          description: 'FER Filing approved successfully',
-        });
-        await fetchPatentData();
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to approve FER filing',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Error approving FER filing:', error);
-      toast({
-        title: 'Error',
-        description: 'An error occurred while approving the FER filing',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const getDrafterCompletionField = () => {
-    if (!patent || !user) return null;
-    
-    if (patent.ps_drafter_assgn === user.full_name && patent.ps_drafting_status === 0 && patent.idf_received === true) {
-      return 'PS Drafting';
-    } else if (patent.cs_drafter_assgn === user.full_name && patent.cs_drafting_status === 0 && patent.cs_data === true && patent.cs_data_received === true) {
-      return 'CS Drafting';
-    } else if (patent.fer_drafter_assgn === user.full_name && patent.fer_drafter_status === 0) {
-      return 'FER Drafting';
-    }
-    
-    return null;
-  };
-
-  const getFilerCompletionField = () => {
-    if (!patent || !user) return null;
-    
-    if (patent.ps_filer_assgn === user.full_name && patent.ps_filing_status === 0 && patent.ps_drafting_status === 1 && patent.idf_received === true) {
-      return 'PS Filing';
-    } else if (patent.cs_filer_assgn === user.full_name && patent.cs_filing_status === 0 && patent.cs_drafting_status === 1 && patent.cs_data_received === true) {
-      return 'CS Filing';
-    } else if (patent.fer_filer_assgn === user.full_name && patent.fer_filing_status === 0 && patent.fer_drafter_status === 1) {
-      return 'FER Filing';
-    }
-    
-    return null;
   };
 
   if (loading) {
@@ -387,217 +81,58 @@ const PatentDetails = () => {
   }
 
   if (!patent) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <AlertTriangle className="h-12 w-12 text-amber-500" />
-        <h2 className="text-xl font-semibold text-center">Patent Not Found</h2>
-        <p className="text-muted-foreground text-center max-w-md">
-          The patent you're looking for could not be found or has been removed from the system.
-        </p>
-        <Button onClick={() => navigate('/patents')}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Patents
-        </Button>
-      </div>
-    );
+    return <PatentNotFound />;
   }
 
   return (
     <div className="space-y-8 pb-10">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigate('/patents')}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back
-          </Button>
-          <h1 className="text-2xl font-bold tracking-tight">Patent Details</h1>
-        </div>
-        
-        <div className="flex gap-2">
-          {user?.role === 'admin' && (
-            <Button 
-              onClick={() => navigate(`/patents/edit/${patent.id}`)}
-              variant="outline"
-            >
-              Edit Patent
-            </Button>
-          )}
-          
-          {isAssignedDrafter() && (
-            <Button onClick={handleCompleteDrafting}>
-              <Check className="mr-2 h-4 w-4" /> Complete Drafting
-            </Button>
-          )}
-          
-          {isAssignedFiler() && (
-            <Button onClick={handleCompleteFiling}>
-              <FileText className="mr-2 h-4 w-4" /> Complete Filing
-            </Button>
-          )}
-        </div>
-      </div>
+      <PatentDetailsHeader 
+        patent={patent}
+        userRole={user?.role || 'viewer'}
+        isAssignedDrafter={isAssignedDrafter()}
+        isAssignedFiler={isAssignedFiler()}
+        onCompleteDrafting={handleCompleteDrafting}
+        onCompleteFiling={handleCompleteFiling}
+      />
       
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full border-b rounded-none justify-start">
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-          <TabsTrigger value="status">Status</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-          <TabsTrigger value="forms">Forms</TabsTrigger>
-          <TabsTrigger value="fer">FER</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="details" className="space-y-6 mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 space-y-6">
-              <PatentBasicInfo patent={patent} />
-              <InventorsList patent={patent} />
-            </div>
-            <div>
-              <AssignmentDetails patent={patent} />
-            </div>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="timeline" className="space-y-6 mt-6">
-          <PatentTimeline 
-            patentId={patent.id} 
-            setTimelineMilestones={setTimelineMilestones}
-            setShowTimelineDialog={setShowTimelineDialog}
-          />
-        </TabsContent>
-        
-        <TabsContent value="status" className="space-y-6 mt-6">
-          <PatentStatusSection 
-            patent={patent} 
-            userRole={user?.role || 'viewer'} 
-            refreshPatentData={fetchPatentData}
-          />
-        </TabsContent>
-        
-        <TabsContent value="notes" className="space-y-6 mt-6">
-          <PatentNotes 
-            patent={patent}
-            userRole={user?.role || 'viewer'}
-            refreshPatentData={fetchPatentData}
-          />
-        </TabsContent>
+      <PatentDetailsTabs
+        patent={patent}
+        userRole={user?.role || 'viewer'}
+        userName={user?.full_name || ''}
+        employees={employees}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        formValues={formValues}
+        handleFormUpdate={handleFormUpdate}
+        saveFormValues={saveFormValues}
+        refreshPatentData={fetchPatentData}
+        setTimelineMilestones={setTimelineMilestones}
+        setShowTimelineDialog={setShowTimelineDialog}
+        onApproveFERDraft={approveFERDraftSubmission}
+        onApproveFERFiling={approveFERFilingSubmission}
+        onCompleteFERDraft={completeFERDraft}
+        onCompleteFERFiling={completeFERFiling}
+      />
 
-        <TabsContent value="forms" className="space-y-6 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Required Forms</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FormRequirementsList 
-                patent={patent} 
-                userRole={user?.role || 'viewer'} 
-                onUpdate={handleFormUpdate}
-                formValues={formValues}
-              />
-              
-              {(user?.role === 'admin' || user?.role === 'filer') && (
-                <div className="mt-4 flex justify-end">
-                  <Button onClick={saveFormValues}>
-                    Save Form Requirements
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="fer" className="space-y-6 mt-6">
-          {patent.fer_status ? (
-            <FEREntriesSection 
-              patent={patent}
-              userRole={user?.role || 'viewer'}
-              userName={user?.full_name || ''}
-              employees={employees}
-              refreshPatentData={fetchPatentData}
-              onApproveDraft={handleFERDraftApproval}
-              onApproveFiling={handleFERFilingApproval}
-              onCompleteDraft={handleFERDraftCompletion}
-              onCompleteFiling={handleFERFilingCompletion}
-            />
-          ) : (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>FER Not Activated</AlertTitle>
-              <AlertDescription>
-                FER functionality is not currently activated for this patent. Contact an admin to activate it.
-              </AlertDescription>
-            </Alert>
-          )}
-        </TabsContent>
-      </Tabs>
+      <CompleteDraftingDialog
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        completionField={getDrafterCompletionField()}
+        isCompleting={isCompletingDraft}
+        onConfirm={confirmCompleteDrafting}
+      />
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Task Completion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to mark {dialogType === 'complete-draft' ? getDrafterCompletionField() : getFilerCompletionField()} as completed? 
-              This will submit your work for review by an admin.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isCompletingDraft}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={confirmCompleteDrafting} 
-              disabled={isCompletingDraft}
-            >
-              {isCompletingDraft ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Completing...
-                </>
-              ) : (
-                'Complete Task'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showFilingDialog} onOpenChange={setShowFilingDialog}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Complete Filing</DialogTitle>
-            <DialogDescription>
-              Before completing the {getFilerCompletionField()} task, please review and update the form requirements below.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="max-h-[60vh] overflow-y-auto">
-            <FormRequirementsList 
-              patent={patent} 
-              userRole={user?.role || 'viewer'} 
-              onUpdate={handleFormUpdate}
-              formValues={formValues}
-            />
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowFilingDialog(false)} disabled={isCompletingFiling}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={confirmCompleteFiling} 
-              disabled={isCompletingFiling}
-            >
-              {isCompletingFiling ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Completing Filing...
-                </>
-              ) : (
-                'Complete Filing'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CompleteFilingDialog
+        isOpen={showFilingDialog}
+        onOpenChange={setShowFilingDialog}
+        patent={patent}
+        userRole={user?.role || 'viewer'}
+        formValues={formValues}
+        onUpdateForm={handleFormUpdate}
+        completionField={getFilerCompletionField()}
+        isCompleting={isCompletingFiling}
+        onConfirm={confirmCompleteFiling}
+      />
 
       <TimelineDialog 
         open={showTimelineDialog} 
