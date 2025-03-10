@@ -1,121 +1,25 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Patent, FEREntry, EmployeeFormData } from './types';
+import { FEREntry, InventorInfo, Patent, PatentFormData, Employee, EmployeeFormData } from './types';
+import { format } from 'date-fns';
 
-/**
- * Approve a FER draft review
- * @param ferId - ID of the FER entry
- * @returns True if successfully approved
- */
-export const approveFERDraft = async (ferId: string): Promise<boolean> => {
-  try {
-    // Find the FER entry
-    const { data: ferEntry, error: ferError } = await supabase
-      .from('fer_entries')
-      .select('*')
-      .eq('id', ferId)
-      .single();
-      
-    if (ferError || !ferEntry) {
-      console.error('Error fetching FER entry:', ferError);
-      return false;
-    }
-    
-    // Update the FER entry to approve the draft
-    const { error: updateError } = await supabase
-      .from('fer_entries')
-      .update({
-        fer_review_draft_status: 0
-      })
-      .eq('id', ferId);
-    
-    if (updateError) {
-      console.error('Error approving FER draft:', updateError);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error approving FER draft:', error);
-    return false;
-  }
-};
-
-/**
- * Approve a FER filing review
- * @param ferId - ID of the FER entry
- * @returns True if successfully approved
- */
-export const approveFERFiling = async (ferId: string): Promise<boolean> => {
-  try {
-    // Find the FER entry
-    const { data: ferEntry, error: ferError } = await supabase
-      .from('fer_entries')
-      .select('*')
-      .eq('id', ferId)
-      .single();
-      
-    if (ferError || !ferEntry) {
-      console.error('Error fetching FER entry:', ferError);
-      return false;
-    }
-    
-    // Update the FER entry status
-    const { error: updateError } = await supabase
-      .from('fer_entries')
-      .update({
-        fer_review_file_status: 0
-      })
-      .eq('id', ferId);
-    
-    if (updateError) {
-      console.error('Error approving FER filing:', updateError);
-      return false;
-    }
-    
-    // Check if both draft and file are completed to update completion status
-    if (ferEntry.fer_drafter_status === 1 && ferEntry.fer_filing_status === 1) {
-      const { error: completionError } = await supabase
-        .from('fer_entries')
-        .update({
-          fer_completion_status: 1
-        })
-        .eq('id', ferId);
-      
-      if (completionError) {
-        console.error('Error updating FER completion status:', completionError);
-        // Still return true as the main approval was successful
-      }
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error approving FER filing:', error);
-    return false;
-  }
-};
-
-// Add all the missing API functions
-export const fetchPatents = async (): Promise<Patent[]> => {
+// Patent API functions
+export async function fetchPatents(): Promise<Patent[]> {
   try {
     const { data, error } = await supabase
       .from('patents')
       .select('*, fer_entries(*), inventors(*)')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching patents:', error);
-      return [];
-    }
-
+    if (error) throw error;
     return data || [];
   } catch (error) {
     console.error('Error fetching patents:', error);
     return [];
   }
-};
+}
 
-export const fetchPatentById = async (id: string): Promise<Patent | null> => {
+export async function fetchPatentById(id: string): Promise<Patent | null> {
   try {
     const { data, error } = await supabase
       .from('patents')
@@ -123,240 +27,267 @@ export const fetchPatentById = async (id: string): Promise<Patent | null> => {
       .eq('id', id)
       .single();
 
-    if (error) {
-      console.error('Error fetching patent by ID:', error);
-      return null;
-    }
-
+    if (error) throw error;
     return data;
   } catch (error) {
     console.error('Error fetching patent by ID:', error);
     return null;
   }
-};
+}
 
-export const updatePatentStatus = async (
-  patentId: string,
-  field: string,
-  value: number | boolean
-): Promise<boolean> => {
+export async function createPatent(patentData: PatentFormData): Promise<Patent | null> {
   try {
-    const { error } = await supabase
-      .from('patents')
-      .update({ [field]: value })
-      .eq('id', patentId);
-
-    if (error) {
-      console.error('Error updating patent status:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error updating patent status:', error);
-    return false;
-  }
-};
-
-export const updatePatentPayment = async (
-  patentId: string,
-  paymentData: {
-    payment_status: string;
-    payment_amount: number;
-    payment_received: number;
-    invoice_sent: boolean;
-  }
-): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('patents')
-      .update(paymentData)
-      .eq('id', patentId);
-
-    if (error) {
-      console.error('Error updating payment info:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error updating payment info:', error);
-    return false;
-  }
-};
-
-export const createPatent = async (
-  patentData: Partial<Patent>
-): Promise<string | null> => {
-  try {
+    // Remove inventors array from the data as it's handled separately
+    const { inventors, ...patentDataWithoutInventors } = patentData;
+    
     const { data, error } = await supabase
       .from('patents')
-      .insert([patentData])
-      .select();
+      .insert([patentDataWithoutInventors])
+      .select()
+      .single();
 
-    if (error) {
-      console.error('Error creating patent:', error);
-      return null;
-    }
-
-    return data?.[0]?.id || null;
+    if (error) throw error;
+    return data;
   } catch (error) {
     console.error('Error creating patent:', error);
     return null;
   }
-};
+}
 
-export const updatePatent = async (
-  id: string,
-  patentData: Partial<Patent>
-): Promise<boolean> => {
+export async function updatePatent(id: string, patentData: Partial<PatentFormData>): Promise<boolean> {
   try {
+    // Remove inventors array from the data as it's handled separately
+    const { inventors, ...patentDataWithoutInventors } = patentData;
+    
     const { error } = await supabase
       .from('patents')
-      .update(patentData)
+      .update(patentDataWithoutInventors)
       .eq('id', id);
 
-    if (error) {
-      console.error('Error updating patent:', error);
-      return false;
-    }
-
+    if (error) throw error;
     return true;
   } catch (error) {
     console.error('Error updating patent:', error);
     return false;
   }
-};
+}
 
-export const createInventor = async (
-  inventorData: {
-    tracking_id: string;
-    inventor_name: string;
-    inventor_addr: string;
-    patent_id: string;
+export async function deletePatent(id: string): Promise<boolean> {
+  try {
+    // Delete associated inventors first
+    const { error: inventorsError } = await supabase
+      .from('inventors')
+      .delete()
+      .eq('patent_id', id);
+
+    if (inventorsError) throw inventorsError;
+
+    // Delete associated FER entries
+    const { error: ferError } = await supabase
+      .from('fer_entries')
+      .delete()
+      .eq('patent_id', id);
+
+    if (ferError) throw ferError;
+
+    // Delete the patent
+    const { error } = await supabase
+      .from('patents')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting patent:', error);
+    return false;
   }
-): Promise<string | null> => {
+}
+
+export async function updatePatentStatus(id: string, statusData: Partial<Patent>): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('patents')
+      .update(statusData)
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error updating patent status:', error);
+    return false;
+  }
+}
+
+export async function updatePatentPayment(id: string, paymentData: Partial<Patent>): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('patents')
+      .update(paymentData)
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error updating patent payment:', error);
+    return false;
+  }
+}
+
+export async function updatePatentForms(id: string, forms: Record<string, boolean>): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('patents')
+      .update(forms)
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error updating patent forms:', error);
+    return false;
+  }
+}
+
+// Inventor API functions
+export async function createInventor(inventorData: { 
+  tracking_id: string; 
+  inventor_name: string; 
+  inventor_addr: string;
+  patent_id?: string;
+}): Promise<InventorInfo | null> {
   try {
     const { data, error } = await supabase
       .from('inventors')
       .insert([inventorData])
-      .select();
+      .select()
+      .single();
 
-    if (error) {
-      console.error('Error creating inventor:', error);
-      return null;
-    }
-
-    return data?.[0]?.id || null;
+    if (error) throw error;
+    return data;
   } catch (error) {
     console.error('Error creating inventor:', error);
     return null;
   }
-};
+}
 
-export const createFEREntry = async (
+// FER Entry API functions
+export async function createFEREntry(
   patentId: string,
   ferNumber: number,
-  ferDrafter: string | null,
-  ferDrafterDeadline: string | null,
-  ferFiler: string | null,
-  ferFilerDeadline: string | null,
-  ferDate: string | null
-): Promise<string | null> => {
+  drafterName?: string,
+  drafterDeadline?: string,
+  filerName?: string,
+  filerDeadline?: string,
+  ferDate?: string
+): Promise<FEREntry | null> {
   try {
     const ferData = {
       patent_id: patentId,
       fer_number: ferNumber,
-      fer_drafter_assgn: ferDrafter,
-      fer_drafter_deadline: ferDrafterDeadline,
-      fer_filer_assgn: ferFiler,
-      fer_filer_deadline: ferFilerDeadline,
-      fer_date: ferDate,
-      fer_drafter_status: 0,
-      fer_filing_status: 0,
-      fer_review_draft_status: 0,
-      fer_review_file_status: 0,
-      fer_completion_status: 0
+      fer_drafter_assgn: drafterName || null,
+      fer_drafter_deadline: drafterDeadline || null,
+      fer_filer_assgn: filerName || null,
+      fer_filer_deadline: filerDeadline || null,
+      fer_date: ferDate || null
     };
 
     const { data, error } = await supabase
       .from('fer_entries')
       .insert([ferData])
-      .select();
+      .select()
+      .single();
 
-    if (error) {
-      console.error('Error creating FER entry:', error);
-      return null;
-    }
-
-    return data?.[0]?.id || null;
+    if (error) throw error;
+    return data;
   } catch (error) {
     console.error('Error creating FER entry:', error);
     return null;
   }
-};
+}
 
-export const updateFEREntry = async (
-  ferId: string,
-  ferData: Partial<FEREntry>
-): Promise<boolean> => {
+export async function updateFEREntry(id: string, ferData: Partial<FEREntry>): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('fer_entries')
       .update(ferData)
-      .eq('id', ferId);
+      .eq('id', id);
 
-    if (error) {
-      console.error('Error updating FER entry:', error);
-      return false;
-    }
-
+    if (error) throw error;
     return true;
   } catch (error) {
     console.error('Error updating FER entry:', error);
     return false;
   }
-};
+}
 
-export const deleteFEREntry = async (ferId: string): Promise<boolean> => {
+export async function deleteFEREntry(id: string): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('fer_entries')
       .delete()
-      .eq('id', ferId);
+      .eq('id', id);
 
-    if (error) {
-      console.error('Error deleting FER entry:', error);
-      return false;
-    }
-
+    if (error) throw error;
     return true;
   } catch (error) {
     console.error('Error deleting FER entry:', error);
     return false;
   }
-};
+}
 
-export const fetchEmployees = async () => {
+export async function approveFERDraft(ferId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('fer_entries')
+      .update({
+        fer_review_draft_status: 1
+      })
+      .eq('id', ferId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error approving FER draft:', error);
+    return false;
+  }
+}
+
+export async function approveFERFiling(ferId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('fer_entries')
+      .update({
+        fer_review_file_status: 1,
+        fer_completion_status: 1
+      })
+      .eq('id', ferId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error approving FER filing:', error);
+    return false;
+  }
+}
+
+// Employee API functions
+export async function fetchEmployees(): Promise<Employee[]> {
   try {
     const { data, error } = await supabase
       .from('employees')
       .select('*')
       .order('full_name', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching employees:', error);
-      return [];
-    }
-
+    if (error) throw error;
     return data || [];
   } catch (error) {
     console.error('Error fetching employees:', error);
     return [];
   }
-};
+}
 
-export const fetchEmployeeById = async (id: string) => {
+export async function fetchEmployeeById(id: string): Promise<Employee | null> {
   try {
     const { data, error } = await supabase
       .from('employees')
@@ -364,180 +295,62 @@ export const fetchEmployeeById = async (id: string) => {
       .eq('id', id)
       .single();
 
-    if (error) {
-      console.error('Error fetching employee:', error);
-      return null;
-    }
-
+    if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error fetching employee:', error);
+    console.error('Error fetching employee by ID:', error);
     return null;
   }
-};
+}
 
-export const createEmployee = async (employeeData: EmployeeFormData) => {
+export async function createEmployee(employeeData: EmployeeFormData): Promise<Employee | null> {
   try {
     const { data, error } = await supabase
       .from('employees')
       .insert([employeeData])
-      .select();
+      .select()
+      .single();
 
-    if (error) {
-      console.error('Error creating employee:', error);
-      return null;
-    }
-
-    return data?.[0] || null;
+    if (error) throw error;
+    return data;
   } catch (error) {
     console.error('Error creating employee:', error);
     return null;
   }
-};
+}
 
-export const updateEmployee = async (id: string, employeeData: Partial<EmployeeFormData>) => {
+export async function updateEmployee(id: string, employeeData: Partial<EmployeeFormData>): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('employees')
       .update(employeeData)
       .eq('id', id);
 
-    if (error) {
-      console.error('Error updating employee:', error);
-      return false;
-    }
-
+    if (error) throw error;
     return true;
   } catch (error) {
     console.error('Error updating employee:', error);
     return false;
   }
-};
+}
 
-export const deleteEmployee = async (id: string) => {
+export async function deleteEmployee(id: string): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('employees')
       .delete()
       .eq('id', id);
 
-    if (error) {
-      console.error('Error deleting employee:', error);
-      return false;
-    }
-
+    if (error) throw error;
     return true;
   } catch (error) {
     console.error('Error deleting employee:', error);
     return false;
   }
-};
+}
 
-export const updatePatentForms = async (
-  patentId: string,
-  forms: {
-    form_18?: boolean;
-    form_18a?: boolean;
-    form_26?: boolean;
-    form_9?: boolean;
-    form_9a?: boolean;
-    form_13?: boolean;
-  }
-) => {
-  try {
-    const { error } = await supabase
-      .from('patents')
-      .update(forms)
-      .eq('id', patentId);
-
-    if (error) {
-      console.error('Error updating patent forms:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error updating patent forms:', error);
-    return false;
-  }
-};
-
-export const fetchPatentsAndEmployees = async () => {
-  try {
-    const { data: patents, error: patentsError } = await supabase
-      .from('patents')
-      .select('*, fer_entries(*), inventors(*)')
-      .order('created_at', { ascending: false });
-
-    const { data: employees, error: employeesError } = await supabase
-      .from('employees')
-      .select('*')
-      .order('full_name', { ascending: true });
-
-    if (patentsError) {
-      console.error('Error fetching patents:', patentsError);
-    }
-
-    if (employeesError) {
-      console.error('Error fetching employees:', employeesError);
-    }
-
-    return {
-      patents: patents || [],
-      employees: employees || []
-    };
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    return {
-      patents: [],
-      employees: []
-    };
-  }
-};
-
-export const deletePatent = async (id: string) => {
-  try {
-    // First delete related FER entries
-    const { error: ferError } = await supabase
-      .from('fer_entries')
-      .delete()
-      .eq('patent_id', id);
-
-    if (ferError) {
-      console.error('Error deleting related FER entries:', ferError);
-      return false;
-    }
-
-    // Then delete related inventors
-    const { error: inventorError } = await supabase
-      .from('inventors')
-      .delete()
-      .eq('patent_id', id);
-
-    if (inventorError) {
-      console.error('Error deleting related inventors:', inventorError);
-      return false;
-    }
-
-    // Finally delete the patent
-    const { error } = await supabase
-      .from('patents')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting patent:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error deleting patent:', error);
-    return false;
-  }
-};
-
-export const fetchDrafterAssignments = async (drafterName: string) => {
+// Task Management API functions
+export async function fetchDrafterAssignments(drafterName: string): Promise<Patent[]> {
   try {
     const { data, error } = await supabase
       .from('patents')
@@ -545,28 +358,15 @@ export const fetchDrafterAssignments = async (drafterName: string) => {
       .or(`ps_drafter_assgn.eq.${drafterName},cs_drafter_assgn.eq.${drafterName}`)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching drafter assignments:', error);
-      return [];
-    }
-
-    // Filter to only include active assignments (not completed or under review)
-    return (data || []).filter(patent => {
-      const psDrafterAssigned = patent.ps_drafter_assgn === drafterName;
-      const csDrafterAssigned = patent.cs_drafter_assgn === drafterName;
-      
-      return (
-        (psDrafterAssigned && patent.ps_drafting_status === 0) ||
-        (csDrafterAssigned && patent.cs_drafting_status === 0)
-      );
-    });
+    if (error) throw error;
+    return data || [];
   } catch (error) {
     console.error('Error fetching drafter assignments:', error);
     return [];
   }
-};
+}
 
-export const fetchDrafterCompletedAssignments = async (drafterName: string) => {
+export async function fetchDrafterCompletedAssignments(drafterName: string): Promise<Patent[]> {
   try {
     const { data, error } = await supabase
       .from('patents')
@@ -574,28 +374,15 @@ export const fetchDrafterCompletedAssignments = async (drafterName: string) => {
       .or(`ps_drafter_assgn.eq.${drafterName},cs_drafter_assgn.eq.${drafterName}`)
       .order('updated_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching completed drafter assignments:', error);
-      return [];
-    }
-
-    // Filter to only include completed assignments
-    return (data || []).filter(patent => {
-      const psDrafterAssigned = patent.ps_drafter_assgn === drafterName;
-      const csDrafterAssigned = patent.cs_drafter_assgn === drafterName;
-      
-      return (
-        (psDrafterAssigned && patent.ps_drafting_status === 1) ||
-        (csDrafterAssigned && patent.cs_drafting_status === 1)
-      );
-    });
+    if (error) throw error;
+    return data || [];
   } catch (error) {
-    console.error('Error fetching completed drafter assignments:', error);
+    console.error('Error fetching drafter completed assignments:', error);
     return [];
   }
-};
+}
 
-export const fetchFilerAssignments = async (filerName: string) => {
+export async function fetchFilerAssignments(filerName: string): Promise<Patent[]> {
   try {
     const { data, error } = await supabase
       .from('patents')
@@ -603,28 +390,15 @@ export const fetchFilerAssignments = async (filerName: string) => {
       .or(`ps_filer_assgn.eq.${filerName},cs_filer_assgn.eq.${filerName}`)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching filer assignments:', error);
-      return [];
-    }
-
-    // Filter to only include active assignments (not completed or under review)
-    return (data || []).filter(patent => {
-      const psFilerAssigned = patent.ps_filer_assgn === filerName;
-      const csFilerAssigned = patent.cs_filer_assgn === filerName;
-      
-      return (
-        (psFilerAssigned && patent.ps_filing_status === 0 && patent.ps_drafting_status === 1) ||
-        (csFilerAssigned && patent.cs_filing_status === 0 && patent.cs_drafting_status === 1)
-      );
-    });
+    if (error) throw error;
+    return data || [];
   } catch (error) {
     console.error('Error fetching filer assignments:', error);
     return [];
   }
-};
+}
 
-export const fetchFilerCompletedAssignments = async (filerName: string) => {
+export async function fetchFilerCompletedAssignments(filerName: string): Promise<Patent[]> {
   try {
     const { data, error } = await supabase
       .from('patents')
@@ -632,383 +406,392 @@ export const fetchFilerCompletedAssignments = async (filerName: string) => {
       .or(`ps_filer_assgn.eq.${filerName},cs_filer_assgn.eq.${filerName}`)
       .order('updated_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching completed filer assignments:', error);
-      return [];
-    }
-
-    // Filter to only include completed assignments
-    return (data || []).filter(patent => {
-      const psFilerAssigned = patent.ps_filer_assgn === filerName;
-      const csFilerAssigned = patent.cs_filer_assgn === filerName;
-      
-      return (
-        (psFilerAssigned && patent.ps_filing_status === 1) ||
-        (csFilerAssigned && patent.cs_filing_status === 1)
-      );
-    });
+    if (error) throw error;
+    return data || [];
   } catch (error) {
-    console.error('Error fetching completed filer assignments:', error);
+    console.error('Error fetching filer completed assignments:', error);
     return [];
   }
-};
+}
 
-export const fetchFilerFERAssignments = async (filerName: string) => {
+export async function fetchFilerFERAssignments(filerName: string): Promise<FEREntry[]> {
   try {
     const { data, error } = await supabase
-      .from('patents')
-      .select('*, fer_entries(*)')
+      .from('fer_entries')
+      .select('*')
+      .eq('fer_filer_assgn', filerName)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching FER filer assignments:', error);
-      return [];
-    }
-
-    // Filter to patents with FER entries assigned to this filer
-    return (data || []).filter(patent => {
-      if (!patent.fer_entries || patent.fer_entries.length === 0) {
-        return false;
-      }
-      
-      return patent.fer_entries.some(fer => 
-        fer.fer_filer_assgn === filerName && 
-        fer.fer_filing_status === 0 && 
-        fer.fer_drafter_status === 1 &&
-        fer.fer_review_draft_status === 0
-      );
-    });
+    if (error) throw error;
+    return data || [];
   } catch (error) {
-    console.error('Error fetching FER filer assignments:', error);
+    console.error('Error fetching filer FER assignments:', error);
     return [];
   }
-};
+}
 
-export const fetchPendingReviews = async () => {
+export async function completeDrafterTask(patent: Patent, drafterName: string, ferId?: string): Promise<boolean> {
+  try {
+    // If FER task
+    if (ferId) {
+      const { error } = await supabase
+        .from('fer_entries')
+        .update({
+          fer_drafter_status: 1
+        })
+        .eq('id', ferId);
+
+      if (error) throw error;
+      
+      // Add timeline entry
+      await addTimelineEntry(patent.id, {
+        event_type: 'fer_drafting_completed',
+        event_description: `FER drafting completed by ${drafterName}`,
+        employee_name: drafterName,
+        status: 1
+      });
+      
+      return true;
+    }
+    
+    // If PS task
+    if (patent.ps_drafter_assgn === drafterName && patent.ps_drafting_status === 0) {
+      const { error } = await supabase
+        .from('patents')
+        .update({
+          ps_drafting_status: 1
+        })
+        .eq('id', patent.id);
+
+      if (error) throw error;
+      
+      // Add timeline entry
+      await addTimelineEntry(patent.id, {
+        event_type: 'ps_drafting_completed',
+        event_description: `Provisional Specification drafting completed by ${drafterName}`,
+        employee_name: drafterName,
+        status: 1
+      });
+      
+      return true;
+    }
+    
+    // If CS task
+    if (patent.cs_drafter_assgn === drafterName && patent.cs_drafting_status === 0) {
+      const { error } = await supabase
+        .from('patents')
+        .update({
+          cs_drafting_status: 1
+        })
+        .eq('id', patent.id);
+
+      if (error) throw error;
+      
+      // Add timeline entry
+      await addTimelineEntry(patent.id, {
+        event_type: 'cs_drafting_completed',
+        event_description: `Complete Specification drafting completed by ${drafterName}`,
+        employee_name: drafterName,
+        status: 1
+      });
+      
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error(`Error completing ${drafterName} drafting task:`, error);
+    return false;
+  }
+}
+
+export async function completeFilerTask(
+  patent: Patent, 
+  filerName: string, 
+  formValues?: Record<string, boolean>,
+  ferId?: string
+): Promise<boolean> {
+  try {
+    // If FER task
+    if (ferId) {
+      console.log(`Completing FER filing task for FER ID: ${ferId}`);
+      const { error } = await supabase
+        .from('fer_entries')
+        .update({
+          fer_filing_status: 1
+        })
+        .eq('id', ferId);
+
+      if (error) throw error;
+      
+      // Add timeline entry
+      await addTimelineEntry(patent.id, {
+        event_type: 'fer_filing_completed',
+        event_description: `FER filing completed by ${filerName}`,
+        employee_name: filerName,
+        status: 1
+      });
+      
+      return true;
+    }
+    
+    // If PS task
+    if (patent.ps_filer_assgn === filerName && patent.ps_filing_status === 0) {
+      const updates: any = {
+        ps_filing_status: 1
+      };
+      
+      // Add in form values if provided
+      if (formValues) {
+        Object.assign(updates, formValues);
+      }
+      
+      // Set date of filing if it's not already set
+      if (!patent.date_of_filing) {
+        updates.date_of_filing = format(new Date(), 'yyyy-MM-dd');
+      }
+      
+      const { error } = await supabase
+        .from('patents')
+        .update(updates)
+        .eq('id', patent.id);
+
+      if (error) throw error;
+      
+      // Add timeline entry
+      await addTimelineEntry(patent.id, {
+        event_type: 'ps_filing_completed',
+        event_description: `Provisional Specification filing completed by ${filerName}`,
+        employee_name: filerName,
+        status: 1
+      });
+      
+      // Update completion status if both PS drafting and filing are complete
+      if (patent.ps_drafting_status === 1) {
+        await supabase
+          .from('patents')
+          .update({
+            ps_completion_status: 1
+          })
+          .eq('id', patent.id);
+      }
+      
+      return true;
+    }
+    
+    // If CS task
+    if (patent.cs_filer_assgn === filerName && patent.cs_filing_status === 0) {
+      const updates: any = {
+        cs_filing_status: 1
+      };
+      
+      // Add in form values if provided
+      if (formValues) {
+        Object.assign(updates, formValues);
+      }
+      
+      const { error } = await supabase
+        .from('patents')
+        .update(updates)
+        .eq('id', patent.id);
+
+      if (error) throw error;
+      
+      // Add timeline entry
+      await addTimelineEntry(patent.id, {
+        event_type: 'cs_filing_completed',
+        event_description: `Complete Specification filing completed by ${filerName}`,
+        employee_name: filerName,
+        status: 1
+      });
+      
+      // Update completion status if both CS drafting and filing are complete
+      if (patent.cs_drafting_status === 1) {
+        await supabase
+          .from('patents')
+          .update({
+            cs_completion_status: 1
+          })
+          .eq('id', patent.id);
+      }
+      
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error(`Error completing ${filerName} filing task:`, error);
+    return false;
+  }
+}
+
+// Approval API functions
+export async function fetchPendingReviews(): Promise<Patent[]> {
   try {
     const { data, error } = await supabase
       .from('patents')
-      .select('*, fer_entries(*)')
-      .or('ps_review_draft_status.eq.1,ps_review_file_status.eq.1,cs_review_draft_status.eq.1,cs_review_file_status.eq.1')
+      .select('*, fer_entries(*), inventors(*)')
+      .or(
+        'ps_drafting_status.eq.1,cs_drafting_status.eq.1,ps_filing_status.eq.1,cs_filing_status.eq.1'
+      )
       .order('updated_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching pending reviews:', error);
-      return [];
-    }
-
-    // Also get patents with FER entries under review
-    const { data: ferData, error: ferError } = await supabase
-      .from('patents')
-      .select('*, fer_entries(*)')
-      .not('fer_entries', 'is', null)
-      .order('updated_at', { ascending: false });
-
-    if (ferError) {
-      console.error('Error fetching FER reviews:', ferError);
-    }
-
-    // Filter FER patents to only those with entries under review
-    const ferReviews = (ferData || []).filter(patent => {
-      if (!patent.fer_entries || patent.fer_entries.length === 0) {
-        return false;
-      }
-      
-      return patent.fer_entries.some(fer => 
-        fer.fer_review_draft_status === 1 || 
-        fer.fer_review_file_status === 1
-      );
-    });
-
-    // Combine regular reviews and FER reviews, removing duplicates
-    const allPatents = [...(data || [])];
-    
-    for (const ferPatent of ferReviews) {
-      if (!allPatents.some(p => p.id === ferPatent.id)) {
-        allPatents.push(ferPatent);
-      }
-    }
-
-    return allPatents;
+    if (error) throw error;
+    return data || [];
   } catch (error) {
     console.error('Error fetching pending reviews:', error);
     return [];
   }
-};
+}
 
-export const completeDrafterTask = async (
-  patentId: string,
-  taskType: 'ps' | 'cs' | 'fer',
-  ferId?: string
-) => {
+export async function approvePatentReview(patent: Patent, reviewType: string): Promise<boolean> {
   try {
-    if (taskType === 'fer' && ferId) {
-      const { error } = await supabase
-        .from('fer_entries')
-        .update({
-          fer_drafter_status: 1,
-          fer_review_draft_status: 1
-        })
-        .eq('id', ferId);
-
-      if (error) {
-        console.error('Error completing FER draft task:', error);
-        return false;
-      }
-      
-      return true;
-    }
-    
-    const field = 
-      taskType === 'ps' 
-        ? { ps_drafting_status: 1, ps_review_draft_status: 1 } 
-        : { cs_drafting_status: 1, cs_review_draft_status: 1 };
-    
-    const { error } = await supabase
-      .from('patents')
-      .update(field)
-      .eq('id', patentId);
-
-    if (error) {
-      console.error(`Error completing ${taskType} drafting task:`, error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error(`Error completing ${taskType} drafting task:`, error);
-    return false;
-  }
-};
-
-export const completeFilerTask = async (
-  patentId: string,
-  taskType: 'ps' | 'cs'
-) => {
-  try {
-    const field = 
-      taskType === 'ps' 
-        ? { ps_filing_status: 1, ps_review_file_status: 1 } 
-        : { cs_filing_status: 1, cs_review_file_status: 1 };
-    
-    const { error } = await supabase
-      .from('patents')
-      .update(field)
-      .eq('id', patentId);
-
-    if (error) {
-      console.error(`Error completing ${taskType} filing task:`, error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error(`Error completing ${taskType} filing task:`, error);
-    return false;
-  }
-};
-
-export const completeFERFilerTask = async (ferId: string) => {
-  try {
-    const { error } = await supabase
-      .from('fer_entries')
-      .update({
-        fer_filing_status: 1,
-        fer_review_file_status: 1
-      })
-      .eq('id', ferId);
-
-    if (error) {
-      console.error('Error completing FER filing task:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error completing FER filing task:', error);
-    return false;
-  }
-};
-
-export const approvePatentReview = async (
-  patent: Patent,
-  reviewType: string
-) => {
-  try {
-    if (reviewType === 'fer_draft' || reviewType === 'fer_file') {
-      // Find the FER entry under review
-      const ferEntry = patent.fer_entries?.find(fer => 
-        (reviewType === 'fer_draft' && fer.fer_review_draft_status === 1) ||
-        (reviewType === 'fer_file' && fer.fer_review_file_status === 1)
-      );
-      
-      if (!ferEntry) {
-        console.error('No FER entry found under review');
-        return false;
-      }
-      
-      if (reviewType === 'fer_draft') {
-        return await approveFERDraft(ferEntry.id);
-      } else {
-        return await approveFERFiling(ferEntry.id);
-      }
-    }
-    
-    // Regular patent review approval
-    const field = {} as Record<string, number>;
+    const updates: Record<string, any> = {};
     
     switch (reviewType) {
-      case 'ps_draft':
-        field.ps_review_draft_status = 0;
+      case 'ps_drafting':
+        updates.ps_review_draft_status = 1;
         break;
-      case 'ps_file':
-        field.ps_review_file_status = 0;
-        field.ps_completion_status = 1;
+      case 'cs_drafting':
+        updates.cs_review_draft_status = 1;
         break;
-      case 'cs_draft':
-        field.cs_review_draft_status = 0;
+      case 'ps_filing':
+        updates.ps_review_file_status = 1;
+        updates.ps_completion_status = 1;
         break;
-      case 'cs_file':
-        field.cs_review_file_status = 0;
-        field.cs_completion_status = 1;
+      case 'cs_filing':
+        updates.cs_review_file_status = 1;
+        updates.cs_completion_status = 1;
         break;
       default:
-        return false;
+        throw new Error(`Invalid review type: ${reviewType}`);
     }
     
     const { error } = await supabase
       .from('patents')
-      .update(field)
+      .update(updates)
       .eq('id', patent.id);
 
-    if (error) {
-      console.error(`Error approving ${reviewType} review:`, error);
-      return false;
-    }
-
+    if (error) throw error;
+    
+    // Add timeline entry
+    await addTimelineEntry(patent.id, {
+      event_type: `${reviewType}_approved`,
+      event_description: `${reviewType.replace('_', ' ')} approved by admin`,
+      status: 1
+    });
+    
     return true;
   } catch (error) {
-    console.error(`Error approving ${reviewType} review:`, error);
+    console.error('Error approving patent review:', error);
     return false;
   }
-};
+}
 
-export const rejectPatentReview = async (
-  patent: Patent,
-  reviewType: string
-) => {
+export async function rejectPatentReview(patent: Patent, reviewType: string, reason: string): Promise<boolean> {
   try {
-    if (reviewType === 'fer_draft' || reviewType === 'fer_file') {
-      // Find the FER entry under review
-      const ferEntry = patent.fer_entries?.find(fer => 
-        (reviewType === 'fer_draft' && fer.fer_review_draft_status === 1) ||
-        (reviewType === 'fer_file' && fer.fer_review_file_status === 1)
-      );
-      
-      if (!ferEntry) {
-        console.error('No FER entry found under review');
-        return false;
-      }
-      
-      const field = {} as Record<string, number>;
-      
-      if (reviewType === 'fer_draft') {
-        field.fer_review_draft_status = 0;
-        field.fer_drafter_status = 0;
-      } else {
-        field.fer_review_file_status = 0;
-        field.fer_filing_status = 0;
-      }
-      
-      const { error } = await supabase
-        .from('fer_entries')
-        .update(field)
-        .eq('id', ferEntry.id);
-
-      if (error) {
-        console.error(`Error rejecting FER ${reviewType} review:`, error);
-        return false;
-      }
-      
-      return true;
-    }
-    
-    // Regular patent review rejection
-    const field = {} as Record<string, number>;
+    const updates: Record<string, any> = {};
     
     switch (reviewType) {
-      case 'ps_draft':
-        field.ps_review_draft_status = 0;
-        field.ps_drafting_status = 0;
+      case 'ps_drafting':
+        updates.ps_drafting_status = 0;
         break;
-      case 'ps_file':
-        field.ps_review_file_status = 0;
-        field.ps_filing_status = 0;
+      case 'cs_drafting':
+        updates.cs_drafting_status = 0;
         break;
-      case 'cs_draft':
-        field.cs_review_draft_status = 0;
-        field.cs_drafting_status = 0;
+      case 'ps_filing':
+        updates.ps_filing_status = 0;
         break;
-      case 'cs_file':
-        field.cs_review_file_status = 0;
-        field.cs_filing_status = 0;
+      case 'cs_filing':
+        updates.cs_filing_status = 0;
         break;
       default:
-        return false;
+        throw new Error(`Invalid review type: ${reviewType}`);
     }
     
     const { error } = await supabase
       .from('patents')
-      .update(field)
+      .update(updates)
       .eq('id', patent.id);
 
-    if (error) {
-      console.error(`Error rejecting ${reviewType} review:`, error);
-      return false;
-    }
-
+    if (error) throw error;
+    
+    // Add timeline entry
+    await addTimelineEntry(patent.id, {
+      event_type: `${reviewType}_rejected`,
+      event_description: `${reviewType.replace('_', ' ')} rejected by admin. Reason: ${reason}`,
+      status: 0
+    });
+    
     return true;
   } catch (error) {
-    console.error(`Error rejecting ${reviewType} review:`, error);
+    console.error('Error rejecting patent review:', error);
     return false;
   }
-};
+}
 
-export const loginUser = async (email: string, password: string) => {
+// Authentication API functions
+export async function loginUser(email: string, password: string): Promise<Employee | null> {
   try {
     const { data, error } = await supabase
       .from('employees')
       .select('*')
       .eq('email', email)
       .single();
+
+    if (error) throw error;
     
-    if (error || !data) {
-      return {
-        success: false,
-        message: 'Invalid credentials'
-      };
+    if (data && data.password === password) {
+      // Store user in localStorage
+      localStorage.setItem('user', JSON.stringify(data));
+      return data;
     }
     
-    // In a real app, this would use proper password hashing
-    if (data.password !== password) {
-      return {
-        success: false,
-        message: 'Invalid credentials'
-      };
-    }
-    
-    // Return user data without the password
-    const { password: _, ...userData } = data;
-    
-    return {
-      success: true,
-      user: userData
-    };
+    return null;
   } catch (error) {
-    console.error('Login error:', error);
-    return {
-      success: false,
-      message: 'An error occurred during login'
-    };
+    console.error('Error logging in:', error);
+    return null;
   }
-};
+}
+
+// Helper function to add timeline entries
+export async function addTimelineEntry(
+  patentId: string, 
+  entryData: {
+    event_type: string;
+    event_description: string;
+    employee_name?: string;
+    deadline_date?: string;
+    status?: number;
+  }
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('patent_timeline')
+      .insert([{
+        patent_id: patentId,
+        ...entryData
+      }]);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error adding timeline entry:', error);
+    return false;
+  }
+}
+
+// Fetch combined data for dashboard
+export async function fetchPatentsAndEmployees(): Promise<{ patents: Patent[]; employees: Employee[] }> {
+  try {
+    const [patents, employees] = await Promise.all([
+      fetchPatents(),
+      fetchEmployees()
+    ]);
+    
+    return { patents, employees };
+  } catch (error) {
+    console.error('Error fetching patents and employees:', error);
+    return { patents: [], employees: [] };
+  }
+}
