@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { fetchPendingReviews, approvePatentReview, rejectPatentReview } from '@/
 import { Patent } from '@/lib/types';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,

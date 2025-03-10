@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,24 +43,24 @@ const Index = () => {
       setLoading(true);
       
       // Use the loginUser function from the API to authenticate the user
-      const response = await loginUser(email, password);
+      const userData = await loginUser(email, password);
       
-      if (response.success && response.user) {
+      if (userData) {
         // Store user in localStorage
-        localStorage.setItem('user', JSON.stringify(response.user));
+        localStorage.setItem('user', JSON.stringify(userData));
         
         toast.success('Login successful');
         
         // Redirect based on role
-        if (response.user.role === 'drafter') {
+        if (userData.role === 'drafter') {
           navigate('/drafts');
-        } else if (response.user.role === 'filer') {
+        } else if (userData.role === 'filer') {
           navigate('/filings');
         } else {
           navigate('/dashboard');
         }
       } else {
-        toast.error(response.message || 'Invalid credentials');
+        toast.error('Invalid credentials');
       }
       
     } catch (error) {

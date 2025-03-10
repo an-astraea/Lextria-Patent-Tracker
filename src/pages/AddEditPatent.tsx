@@ -219,16 +219,16 @@ const AddEditPatent = () => {
   };
 
   const addFER = () => {
-    // Fix the createFEREntry call by providing all required arguments
     if (id) {
       createFEREntry(
         id,
-        nextFerNumber,
-        formValues.fer_drafter_assgn || undefined,
-        formValues.fer_drafter_deadline || undefined,
-        formValues.fer_filer_assgn || undefined,
-        formValues.fer_filer_deadline || undefined,
-        undefined // fer_date parameter
+        {
+          fer_number: nextFerNumber,
+          fer_drafter_assgn: formValues.fer_drafter_assgn || undefined,
+          fer_drafter_deadline: formValues.fer_drafter_deadline || undefined,
+          fer_filer_assgn: formValues.fer_filer_assgn || undefined,
+          fer_filer_deadline: formValues.fer_filer_deadline || undefined,
+        }
       ).then(newFer => {
         if (newFer) {
           setFerEntries(prev => [...prev, newFer]);
@@ -276,7 +276,7 @@ const AddEditPatent = () => {
     try {
       if (id) {
         // Update existing patent
-        const success = await updatePatent(id, formValues as any);
+        const success = await updatePatent(id, formValues);
         
         if (success) {
           toast.success('Patent updated successfully');
@@ -485,7 +485,9 @@ const AddEditPatent = () => {
                 <Label htmlFor="ps_drafter_assgn">PS Drafter Assigned</Label>
                 <Select onValueChange={(value) => handleSelectChange('ps_drafter_assgn', value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select drafter" value={formValues.ps_drafter_assgn} />
+                    <SelectValue>
+                      {formValues.ps_drafter_assgn || "Select drafter"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {employees.map((employee) => (
@@ -506,7 +508,9 @@ const AddEditPatent = () => {
                 <Label htmlFor="ps_filer_assgn">PS Filer Assigned</Label>
                 <Select onValueChange={(value) => handleSelectChange('ps_filer_assgn', value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select filer" value={formValues.ps_filer_assgn} />
+                    <SelectValue>
+                      {formValues.ps_filer_assgn || "Select filer"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {employees.map((employee) => (
@@ -527,7 +531,9 @@ const AddEditPatent = () => {
                 <Label htmlFor="cs_drafter_assgn">CS Drafter Assigned</Label>
                 <Select onValueChange={(value) => handleSelectChange('cs_drafter_assgn', value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select drafter" value={formValues.cs_drafter_assgn} />
+                    <SelectValue>
+                      {formValues.cs_drafter_assgn || "Select drafter"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {employees.map((employee) => (
@@ -548,7 +554,9 @@ const AddEditPatent = () => {
                 <Label htmlFor="cs_filer_assgn">CS Filer Assigned</Label>
                 <Select onValueChange={(value) => handleSelectChange('cs_filer_assgn', value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select filer" value={formValues.cs_filer_assgn} />
+                    <SelectValue>
+                      {formValues.cs_filer_assgn || "Select filer"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {employees.map((employee) => (
@@ -569,7 +577,9 @@ const AddEditPatent = () => {
                 <Label htmlFor="fer_status">FER Status</Label>
                 <Select onValueChange={(value) => handleSelectChange('fer_status', value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select status" value={formValues.fer_status.toString()} />
+                    <SelectValue>
+                      {formValues.fer_status === 1 ? "Active" : "Inactive"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="0">Inactive</SelectItem>
@@ -581,7 +591,9 @@ const AddEditPatent = () => {
                 <Label htmlFor="fer_drafter_assgn">FER Drafter Assigned</Label>
                 <Select onValueChange={(value) => handleSelectChange('fer_drafter_assgn', value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select drafter" value={formValues.fer_drafter_assgn} />
+                    <SelectValue>
+                      {formValues.fer_drafter_assgn || "Select drafter"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {employees.map((employee) => (
@@ -602,7 +614,9 @@ const AddEditPatent = () => {
                 <Label htmlFor="fer_filer_assgn">FER Filer Assigned</Label>
                 <Select onValueChange={(value) => handleSelectChange('fer_filer_assgn', value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select filer" value={formValues.fer_filer_assgn} />
+                    <SelectValue>
+                      {formValues.fer_filer_assgn || "Select filer"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {employees.map((employee) => (

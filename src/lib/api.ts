@@ -307,6 +307,25 @@ export async function updateEmployee(id: string, employeeData: Partial<EmployeeF
   }
 }
 
+export const deletePatent = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('patents')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Error deleting patent:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting patent:', error);
+    return false;
+  }
+};
+
 export async function deleteEmployee(id: string): Promise<boolean> {
   try {
     const { error } = await supabase
