@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Patent, FEREntry, Employee } from '@/lib/types';
@@ -15,10 +16,10 @@ interface FEREntriesSectionProps {
   userName: string;
   employees: Employee[];
   refreshPatentData: () => Promise<void>;
-  onApproveDraft: (fer: FEREntry) => Promise<boolean>;
-  onApproveFiling: (fer: FEREntry) => Promise<boolean>;
-  onCompleteDraft: (fer: FEREntry) => Promise<boolean>;
-  onCompleteFiling: (fer: FEREntry) => Promise<boolean>;
+  onApproveDraft: (fer: FEREntry) => Promise<void>;
+  onApproveFiling: (fer: FEREntry) => Promise<void>;
+  onCompleteDraft: (fer: FEREntry) => Promise<void>;
+  onCompleteFiling: (fer: FEREntry) => Promise<void>;
 }
 
 const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
@@ -160,21 +161,19 @@ const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
     }
   };
 
-  const handleApproveDraft = async (fer: FEREntry): Promise<boolean> => {
+  const handleApproveDraft = async (fer: FEREntry) => {
     setIsApprovingDraft(true);
     try {
-      const result = await onApproveDraft(fer);
-      return result;
+      await onApproveDraft(fer);
     } finally {
       setIsApprovingDraft(false);
     }
   };
 
-  const handleApproveFiling = async (fer: FEREntry): Promise<boolean> => {
+  const handleApproveFiling = async (fer: FEREntry) => {
     setIsApprovingFiling(true);
     try {
-      const result = await onApproveFiling(fer);
-      return result;
+      await onApproveFiling(fer);
     } finally {
       setIsApprovingFiling(false);
     }
