@@ -24,9 +24,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 
 const Approvals = () => {
   const navigate = useNavigate();
@@ -37,24 +35,23 @@ const Approvals = () => {
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [selectedPatent, setSelectedPatent] = useState<Patent | null>(null);
   const [selectedReviewType, setSelectedReviewType] = useState<string>('');
-  const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => {
-    const fetchReviews = async () => {
-      try {
-        setLoading(true);
-        const reviews = await fetchPendingReviews();
-        setPatents(reviews);
-      } catch (error) {
-        console.error('Error fetching pending reviews:', error);
-        toast.error('Failed to load pending reviews');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchReviews();
-  }, [navigate]);
+  }, []);
+
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      const reviews = await fetchPendingReviews();
+      setPatents(reviews);
+    } catch (error) {
+      console.error('Error fetching pending reviews:', error);
+      toast.error('Failed to load pending reviews');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleApprovePatent = async (patent: Patent, reviewType: string) => {
     try {
@@ -62,7 +59,7 @@ const Approvals = () => {
       await approvePatentReview(patent, reviewType);
 
       toast.success('Patent review approved successfully');
-      fetchPendingReviews();
+      fetchReviews();
     } catch (error) {
       console.error('Error approving patent review:', error);
       toast.error('Failed to approve patent review');
@@ -72,20 +69,14 @@ const Approvals = () => {
   };
 
   const handleRejectPatent = async (patent: Patent, reviewType: string) => {
-    if (!rejectReason) {
-      toast.error('Please provide a reason for rejection');
-      return;
-    }
-    
     try {
       setIsRejecting(true);
-      // Pass rejectReason as the third parameter
-      await rejectPatentReview(patent, reviewType, rejectReason);
+      // Removed the reason parameter from the rejectPatentReview call
+      await rejectPatentReview(patent, reviewType);
       
       toast.success('Patent review rejected successfully');
-      fetchPendingReviews();
+      fetchReviews();
       setRejectModalOpen(false);
-      setRejectReason('');
     } catch (error) {
       console.error('Error rejecting patent review:', error);
       toast.error('Failed to reject patent review');
@@ -102,7 +93,6 @@ const Approvals = () => {
 
   const closeRejectModal = () => {
     setRejectModalOpen(false);
-    setRejectReason('');
     setSelectedPatent(null);
     setSelectedReviewType('');
   };
@@ -205,22 +195,9 @@ const Approvals = () => {
           <DialogHeader>
             <DialogTitle>Reject Review</DialogTitle>
             <DialogDescription>
-              Please provide a reason for rejecting this review.
+              Are you sure you want to reject this review?
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="reason" className="text-right">
-                Reason
-              </Label>
-              <Input
-                id="reason"
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-          </div>
           <DialogFooter>
             <Button variant="secondary" onClick={closeRejectModal}>
               Cancel

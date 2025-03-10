@@ -726,7 +726,7 @@ export async function approvePatentReview(patent: Patent, reviewType: string): P
   }
 }
 
-export async function rejectPatentReview(patent: Patent, reviewType: string, reason: string): Promise<boolean> {
+export async function rejectPatentReview(patent: Patent, reviewType: string, reason?: string): Promise<boolean> {
   try {
     const updates: Record<string, any> = {};
     
@@ -755,9 +755,13 @@ export async function rejectPatentReview(patent: Patent, reviewType: string, rea
     if (error) throw error;
     
     // Add timeline entry
+    const rejectMessage = reason 
+      ? `${reviewType.replace('_', ' ')} rejected by admin. Reason: ${reason}`
+      : `${reviewType.replace('_', ' ')} rejected by admin`;
+      
     await addTimelineEntry(patent.id, {
       event_type: `${reviewType}_rejected`,
-      event_description: `${reviewType.replace('_', ' ')} rejected by admin. Reason: ${reason}`,
+      event_description: rejectMessage,
       status: 0
     });
     
