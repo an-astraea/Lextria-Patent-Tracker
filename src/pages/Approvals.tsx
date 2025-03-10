@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
 import { fetchPendingReviews, approvePatentReview, rejectPatentReview } from '@/lib/api';
 import { Patent } from '@/lib/types';
 import { toast } from 'sonner';
@@ -8,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import PatentReviewItem from '@/components/approvals/PatentReviewItem';
 import RejectReviewDialog from '@/components/approvals/RejectReviewDialog';
 import NoReviewsCard from '@/components/approvals/NoReviewsCard';
-import LoadingSpinner from '@/components/approvals/LoadingSpinner';
+import LoadingState from '@/components/common/LoadingState';
 
 const Approvals = () => {
   const navigate = useNavigate();
@@ -22,10 +21,11 @@ const Approvals = () => {
   const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => {
-    const fetchReviews = async () => {
+    const loadReviews = async () => {
       try {
         setLoading(true);
         const reviews = await fetchPendingReviews();
+        console.log('Fetched pending reviews:', reviews);
         setPatents(reviews);
       } catch (error) {
         console.error('Error fetching pending reviews:', error);
@@ -35,16 +35,20 @@ const Approvals = () => {
       }
     };
 
-    fetchReviews();
-  }, [navigate]);
+    loadReviews();
+  }, []);
 
   const handleApprovePatent = async (patent: Patent, reviewType: string) => {
     try {
       setIsApproving(true);
       await approvePatentReview(patent, reviewType);
-
+      
+      // Remove the approved patent from the list
+      setPatents(prev => prev.filter(p => 
+        p.id !== patent.id || determineReviewType(p) !== reviewType
+      ));
+      
       toast.success('Patent review approved successfully');
-      fetchPendingReviews();
     } catch (error) {
       console.error('Error approving patent review:', error);
       toast.error('Failed to approve patent review');
@@ -63,8 +67,12 @@ const Approvals = () => {
       setIsRejecting(true);
       await rejectPatentReview(patent, reviewType, rejectReason);
       
+      // Remove the rejected patent from the list
+      setPatents(prev => prev.filter(p => 
+        p.id !== patent.id || determineReviewType(p) !== reviewType
+      ));
+      
       toast.success('Patent review rejected successfully');
-      fetchPendingReviews();
       setRejectModalOpen(false);
       setRejectReason('');
     } catch (error) {
@@ -98,12 +106,28 @@ const Approvals = () => {
       return 'ps_filing';
     } else if (patent.cs_filing_status === 1 && patent.cs_review_file_status !== 1) {
       return 'cs_filing';
+    } else if (patent.fer_entries && patent.fer_entries.length > 0) {
+      // Check if any FER entries need review
+      const ferEntries = patent.fer_entries || [];
+      for (const fer of ferEntries) {
+        if (fer.fer_drafter_status === 1 && fer.fer_review_draft_status !== 1) {
+          return `fer_drafting_${fer.id}`;
+        } else if (fer.fer_filing_status === 1 && fer.fer_review_file_status !== 1) {
+          return `fer_filing_${fer.id}`;
+        }
+      }
     }
     return '';
   };
 
   // Helper function to format review type for display
   const formatReviewType = (reviewType: string) => {
+    if (reviewType.startsWith('fer_drafting_')) {
+      return 'FER Drafting';
+    } else if (reviewType.startsWith('fer_filing_')) {
+      return 'FER Filing';
+    }
+    
     switch (reviewType) {
       case 'ps_drafting': return 'PS Drafting';
       case 'cs_drafting': return 'CS Drafting';
@@ -113,29 +137,32 @@ const Approvals = () => {
     }
   };
 
+  // Filter patents that have at least one pending review
+  const patentsWithPendingReviews = patents.filter(patent => determineReviewType(patent) !== '');
+
   if (loading) {
-    return <LoadingSpinner />;
+    return <LoadingState text="Loading pending reviews..." className="py-20" />;
   }
 
   return (
     <div className="container mx-auto py-6 space-y-8">
       <h1 className="text-3xl font-bold">Pending Reviews</h1>
 
-      {patents.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {patents.map(patent => {
+      {patentsWithPendingReviews.length > 0 ? (
+        <div className="grid grid-cols-1 gap-6">
+          {patentsWithPendingReviews.map(patent => {
             const reviewType = determineReviewType(patent);
             if (!reviewType) return null; // Skip patents with no pending reviews
             
             return (
               <PatentReviewItem
-                key={patent.id}
+                key={`${patent.id}-${reviewType}`}
                 patent={patent}
                 reviewType={reviewType}
                 isApproving={isApproving}
                 formatReviewType={formatReviewType}
                 onApprove={handleApprovePatent}
-                onReject={(patent, reviewType) => openRejectModal(patent, reviewType)}
+                onReject={openRejectModal}
               />
             );
           })}
