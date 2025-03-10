@@ -637,6 +637,7 @@ export async function completeFERFilerTask(fer: FEREntry, filerName: string): Pr
       return false;
     }
     
+    // Update the FER entry status
     const { error } = await supabase
       .from('fer_entries')
       .update({
@@ -644,7 +645,10 @@ export async function completeFERFilerTask(fer: FEREntry, filerName: string): Pr
       })
       .eq('id', fer.id);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating FER filing status:', error);
+      throw error;
+    }
     
     // Add timeline entry if a patent_id is provided
     if (fer.patent_id) {

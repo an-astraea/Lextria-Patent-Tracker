@@ -5,7 +5,8 @@ import {
   fetchFilerAssignments, 
   fetchFilerCompletedAssignments, 
   fetchFilerFERAssignments, 
-  completeFilerTask 
+  completeFilerTask,
+  completeFERFilerTask
 } from '@/lib/api';
 import { FEREntry, Patent } from '@/lib/types';
 import { toast } from 'sonner';
@@ -43,9 +44,12 @@ export const useFilingsData = () => {
             fetchFilerFERAssignments(parsedUser.full_name)
           ]);
           
+          // Filter FER assignments to only include those that are pending
+          const pendingFERs = ferData.filter(fer => fer.fer_filing_status === 0);
+          
           setPatents(patentsData);
           setCompletedPatents(completedData);
-          setFEREntries(ferData);
+          setFEREntries(pendingFERs);
         } catch (error) {
           console.error('Error fetching data:', error);
           toast.error('Failed to load assignments');
@@ -112,8 +116,6 @@ export const useFilingsData = () => {
         filingType = 'PS';
       } else if (selectedPatent.cs_filer_assgn === user.full_name && selectedPatent.cs_filing_status === 0) {
         filingType = 'CS';
-      } else if (selectedPatent.fer_filer_assgn === user.full_name && selectedPatent.fer_filing_status === 0) {
-        filingType = 'FER';
       }
       
       const success = await completeFilerTask(
@@ -146,42 +148,15 @@ export const useFilingsData = () => {
     try {
       console.log('Completing FER filing task for FER ID:', selectedFER.id);
       
-      if (!selectedFER.patent || !selectedFER.patent.id) {
-        const patentId = selectedFER.patent_id;
-        if (!patentId) {
-          throw new Error('Missing patent ID for FER entry');
-        }
-        
-        const patent = patents.find(p => p.id === patentId);
-        if (!patent) {
-          throw new Error('Cannot find patent for FER entry');
-        }
-        
-        const success = await completeFilerTask(
-          patent,
-          user.full_name,
-          undefined,
-          selectedFER.id
-        );
-        
-        if (success) {
-          toast.success('FER filing completed successfully');
-          setFEREntries(prev => prev.filter(fer => fer.id !== selectedFER.id));
-          setIsFERDialogOpen(false);
-        }
+      // Use the dedicated FER filing completion function
+      const success = await completeFERFilerTask(selectedFER, user.full_name);
+      
+      if (success) {
+        toast.success('FER filing completed successfully');
+        setFEREntries(prev => prev.filter(fer => fer.id !== selectedFER.id));
+        setIsFERDialogOpen(false);
       } else {
-        const success = await completeFilerTask(
-          selectedFER.patent,
-          user.full_name,
-          undefined,
-          selectedFER.id
-        );
-        
-        if (success) {
-          toast.success('FER filing completed successfully');
-          setFEREntries(prev => prev.filter(fer => fer.id !== selectedFER.id));
-          setIsFERDialogOpen(false);
-        }
+        toast.error('Failed to complete FER filing');
       }
     } catch (error) {
       console.error('Error completing FER filing:', error);

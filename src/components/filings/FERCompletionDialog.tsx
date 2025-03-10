@@ -34,34 +34,34 @@ const FERCompletionDialog: React.FC<FERCompletionDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Complete FER Filing</DialogTitle>
           <DialogDescription>
-            Confirm that you have completed the FER filing
+            Confirm that you have completed the filing for this FER
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <div className="text-sm font-medium text-gray-500">Patent Title</div>
-              <div className="font-semibold">{fer.patent?.patent_title || 'N/A'}</div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <div className="text-sm font-medium text-gray-500">FER Number</div>
-              <div className="font-semibold">FER #{fer.fer_number}</div>
+              <div className="font-semibold">#{fer.fer_number}</div>
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-500">FER Date</div>
-              <div className="font-semibold">
-                {fer.fer_date ? format(new Date(fer.fer_date), 'PPP') : 'Not set'}
-              </div>
+              <div className="text-sm font-medium text-gray-500">Assigned To</div>
+              <div className="font-semibold">{fer.fer_filer_assgn}</div>
             </div>
             <div>
               <div className="text-sm font-medium text-gray-500">Deadline</div>
               <div className="font-semibold">
                 {fer.fer_filer_deadline ? format(new Date(fer.fer_filer_deadline), 'PPP') : 'Not set'}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-medium text-gray-500">FER Date</div>
+              <div className="font-semibold">
+                {fer.fer_date ? format(new Date(fer.fer_date), 'PPP') : 'Not set'}
               </div>
             </div>
           </div>
