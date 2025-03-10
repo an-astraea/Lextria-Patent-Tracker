@@ -43,24 +43,24 @@ const Index = () => {
       setLoading(true);
       
       // Use the loginUser function from the API to authenticate the user
-      const userData = await loginUser(email, password);
+      const result = await loginUser(email, password);
       
-      if (userData) {
+      if (result.success && result.user) {
         // Store user in localStorage
-        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('user', JSON.stringify(result.user));
         
         toast.success('Login successful');
         
         // Redirect based on role
-        if (userData.role === 'drafter') {
+        if (result.user.role === 'drafter') {
           navigate('/drafts');
-        } else if (userData.role === 'filer') {
+        } else if (result.user.role === 'filer') {
           navigate('/filings');
         } else {
           navigate('/dashboard');
         }
       } else {
-        toast.error('Invalid credentials');
+        toast.error(result.message || 'Invalid credentials');
       }
       
     } catch (error) {

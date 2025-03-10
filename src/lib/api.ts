@@ -141,34 +141,47 @@ export async function createInventor(inventorData: {
 // FER Entry API functions
 export async function createFEREntry(
   patentId: string,
-  ferNumber: number,
-  drafterName?: string,
-  drafterDeadline?: string,
-  filerName?: string,
-  filerDeadline?: string,
-  ferDate?: string
+  ferNumber?: number
 ): Promise<FEREntry | null> {
   try {
-    const ferData = {
-      patent_id: patentId,
-      fer_number: ferNumber,
-      fer_drafter_assgn: drafterName || null,
-      fer_drafter_deadline: drafterDeadline || null,
-      fer_filer_assgn: filerName || null,
-      fer_filer_deadline: filerDeadline || null,
-      fer_date: ferDate || null
-    };
-
+    // Gets the next FER number if not provided
+    let nextFerNumber = ferNumber;
+    if (!nextFerNumber) {
+      // Query to find the max FER number for this patent
+      const { data: existingEntries } = await supabase
+        .from('fer_entries')
+        .select('fer_number')
+        .eq('patent_id', patentId);
+      
+      nextFerNumber = existingEntries && existingEntries.length > 0 
+        ? Math.max(...existingEntries.map(entry => entry.fer_number || 0)) + 1 
+        : 1;
+    }
+    
     const { data, error } = await supabase
       .from('fer_entries')
-      .insert([ferData])
+      .insert([
+        {
+          patent_id: patentId,
+          fer_number: nextFerNumber,
+          fer_drafter_status: 0,
+          fer_filing_status: 0,
+          fer_review_draft_status: 0,
+          fer_review_file_status: 0,
+          fer_completion_status: 0
+        }
+      ])
       .select()
       .single();
-
-    if (error) throw error;
+    
+    if (error) {
+      console.error('Error creating FER entry:', error);
+      return null;
+    }
+    
     return data;
   } catch (error) {
-    console.error('Error creating FER entry:', error);
+    console.error('Error in createFEREntry:', error);
     return null;
   }
 }
@@ -760,30 +773,23 @@ export async function loginUser(email: string, password: string): Promise<{ succ
   try {
     const { data, error } = await supabase
       .from('employees')
-      .select('*')
+      .select()
       .eq('email', email)
+      .eq('password', password)
       .single();
-
-    if (error) throw error;
     
-    if (data && data.password === password) {
-      // Return success with user data
-      return { 
-        success: true, 
-        user: data 
-      };
+    if (error || !data) {
+      return { success: false, message: 'Invalid credentials' };
     }
     
+    // Return user data with success flag
     return { 
-      success: false, 
-      message: 'Invalid credentials' 
+      success: true, 
+      user: data 
     };
   } catch (error) {
     console.error('Error logging in:', error);
-    return { 
-      success: false, 
-      message: 'Login failed. Please try again.' 
-    };
+    return { success: false, message: 'An error occurred during login' };
   }
 }
 
@@ -828,3 +834,4 @@ export async function fetchPatentsAndEmployees(): Promise<{ patents: Patent[]; e
     return { patents: [], employees: [] };
   }
 }
+
