@@ -9,15 +9,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import PatentCard from '@/components/PatentCard';
 import {
   Dialog,
   DialogContent,
@@ -107,6 +99,31 @@ const Approvals = () => {
     setSelectedReviewType('');
   };
 
+  // Helper function to determine the review type for a patent
+  const determineReviewType = (patent: Patent) => {
+    if (patent.ps_drafting_status === 1 && patent.ps_review_draft_status !== 1) {
+      return 'ps_drafting';
+    } else if (patent.cs_drafting_status === 1 && patent.cs_review_draft_status !== 1) {
+      return 'cs_drafting';
+    } else if (patent.ps_filing_status === 1 && patent.ps_review_file_status !== 1) {
+      return 'ps_filing';
+    } else if (patent.cs_filing_status === 1 && patent.cs_review_file_status !== 1) {
+      return 'cs_filing';
+    }
+    return '';
+  };
+
+  // Helper function to format review type for display
+  const formatReviewType = (reviewType: string) => {
+    switch (reviewType) {
+      case 'ps_drafting': return 'PS Drafting';
+      case 'cs_drafting': return 'CS Drafting';
+      case 'ps_filing': return 'PS Filing';
+      case 'cs_filing': return 'CS Filing';
+      default: return 'Unknown';
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -121,75 +138,66 @@ const Approvals = () => {
       <h1 className="text-3xl font-bold">Pending Reviews</h1>
 
       {patents.length > 0 ? (
-        <Table>
-          <TableCaption>List of patents awaiting review</TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tracking ID</TableHead>
-              <TableHead>Patent Title</TableHead>
-              <TableHead>Applicant</TableHead>
-              <TableHead>Review Type</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {patents.map(patent => {
-              let reviewType = '';
-              if (patent.ps_drafting_status === 1 && patent.ps_review_draft_status !== 1) {
-                reviewType = 'ps_drafting';
-              } else if (patent.cs_drafting_status === 1 && patent.cs_review_draft_status !== 1) {
-                reviewType = 'cs_drafting';
-              } else if (patent.ps_filing_status === 1 && patent.ps_review_file_status !== 1) {
-                reviewType = 'ps_filing';
-              } else if (patent.cs_filing_status === 1 && patent.cs_review_file_status !== 1) {
-                reviewType = 'cs_filing';
-              }
-
-              return (
-                <TableRow key={patent.id}>
-                  <TableCell>{patent.tracking_id}</TableCell>
-                  <TableCell>{patent.patent_title}</TableCell>
-                  <TableCell>{patent.patent_applicant}</TableCell>
-                  <TableCell>
-                    {reviewType === 'ps_drafting' && 'PS Drafting'}
-                    {reviewType === 'cs_drafting' && 'CS Drafting'}
-                    {reviewType === 'ps_filing' && 'PS Filing'}
-                    {reviewType === 'cs_filing' && 'CS Filing'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" onClick={() => navigate(`/patents/${patent.id}`)}>
-                      View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleApprovePatent(patent, reviewType)}
-                      disabled={isApproving}
-                    >
-                      {isApproving ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                      )}
-                      Approve
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => openRejectModal(patent, reviewType)}
-                      disabled={isRejecting}
-                    >
-                      {isRejecting ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <XCircle className="mr-2 h-4 w-4" />
-                      )}
-                      Reject
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {patents.map(patent => {
+            const reviewType = determineReviewType(patent);
+            if (!reviewType) return null; // Skip patents with no pending reviews
+            
+            return (
+              <div key={patent.id} className="relative">
+                {/* Show the review type as a badge */}
+                <div className="absolute top-2 right-2 z-10">
+                  <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                    {formatReviewType(reviewType)}
+                  </span>
+                </div>
+                
+                {/* Patent Card */}
+                <PatentCard patent={patent} />
+                
+                {/* Action Buttons */}
+                <div className="mt-4 flex space-x-2 justify-between">
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/patents/${patent.id}`)}
+                    className="flex-1"
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    View Patent
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => handleApprovePatent(patent, reviewType)}
+                    disabled={isApproving}
+                    className="flex-1 text-green-600 border-green-600 hover:bg-green-50"
+                  >
+                    {isApproving ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                    )}
+                    Approve
+                  </Button>
+                  
+                  <Button
+                    variant="outline" 
+                    onClick={() => openRejectModal(patent, reviewType)}
+                    disabled={isRejecting}
+                    className="flex-1 text-red-600 border-red-600 hover:bg-red-50"
+                  >
+                    {isRejecting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <XCircle className="mr-2 h-4 w-4" />
+                    )}
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-8">
