@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { FEREntry, InventorInfo, Patent, PatentFormData, Employee, EmployeeFormData } from './types';
 import { format } from 'date-fns';
@@ -72,49 +71,17 @@ export async function updatePatent(id: string, patentData: Partial<PatentFormDat
   }
 }
 
-export async function deletePatent(id: string): Promise<boolean> {
+export async function updatePatentStatus(id: string, field: string, value: number | boolean): Promise<boolean> {
   try {
-    // Delete associated inventors first
-    const { error: inventorsError } = await supabase
-      .from('inventors')
-      .delete()
-      .eq('patent_id', id);
-
-    if (inventorsError) throw inventorsError;
-
-    // Delete associated FER entries
-    const { error: ferError } = await supabase
-      .from('fer_entries')
-      .delete()
-      .eq('patent_id', id);
-
-    if (ferError) throw ferError;
-
-    // Delete the patent
     const { error } = await supabase
       .from('patents')
-      .delete()
+      .update({ [field]: value })
       .eq('id', id);
 
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Error deleting patent:', error);
-    return false;
-  }
-}
-
-export async function updatePatentStatus(id: string, statusData: Partial<Patent>): Promise<boolean> {
-  try {
-    const { error } = await supabase
-      .from('patents')
-      .update(statusData)
-      .eq('id', id);
-
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error('Error updating patent status:', error);
+    console.error(`Error updating patent status for ${field}:`, error);
     return false;
   }
 }
@@ -305,9 +272,15 @@ export async function fetchEmployeeById(id: string): Promise<Employee | null> {
 
 export async function createEmployee(employeeData: EmployeeFormData): Promise<Employee | null> {
   try {
+    // Handle optional password, defaulting to a simple one if not provided
+    const dataToInsert = {
+      ...employeeData,
+      password: employeeData.password || 'password123' // Default password if not provided
+    };
+    
     const { data, error } = await supabase
       .from('employees')
-      .insert([employeeData])
+      .insert([dataToInsert])
       .select()
       .single();
 
@@ -625,6 +598,39 @@ export async function completeFilerTask(
   }
 }
 
+export async function completeFERFilerTask(fer: FEREntry, filerName: string): Promise<boolean> {
+  try {
+    if (!fer || !fer.id) {
+      console.error('Invalid FER entry provided');
+      return false;
+    }
+    
+    const { error } = await supabase
+      .from('fer_entries')
+      .update({
+        fer_filing_status: 1
+      })
+      .eq('id', fer.id);
+
+    if (error) throw error;
+    
+    // Add timeline entry if a patent_id is provided
+    if (fer.patent_id) {
+      await addTimelineEntry(fer.patent_id, {
+        event_type: 'fer_filing_completed',
+        event_description: `FER filing completed by ${filerName}`,
+        employee_name: filerName,
+        status: 1
+      });
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`Error completing FER filing task:`, error);
+    return false;
+  }
+}
+
 // Approval API functions
 export async function fetchPendingReviews(): Promise<Patent[]> {
   try {
@@ -731,7 +737,7 @@ export async function rejectPatentReview(patent: Patent, reviewType: string, rea
 }
 
 // Authentication API functions
-export async function loginUser(email: string, password: string): Promise<Employee | null> {
+export async function loginUser(email: string, password: string): Promise<{ success: boolean; user?: Employee; message?: string }> {
   try {
     const { data, error } = await supabase
       .from('employees')
@@ -742,15 +748,23 @@ export async function loginUser(email: string, password: string): Promise<Employ
     if (error) throw error;
     
     if (data && data.password === password) {
-      // Store user in localStorage
-      localStorage.setItem('user', JSON.stringify(data));
-      return data;
+      // Return success with user data
+      return { 
+        success: true, 
+        user: data 
+      };
     }
     
-    return null;
+    return { 
+      success: false, 
+      message: 'Invalid credentials' 
+    };
   } catch (error) {
     console.error('Error logging in:', error);
-    return null;
+    return { 
+      success: false, 
+      message: 'Login failed. Please try again.' 
+    };
   }
 }
 

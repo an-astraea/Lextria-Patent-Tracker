@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, FileText, CheckCircle, AlertCircle } from 'lucide-react';
-import { fetchFilerAssignments, fetchFilerCompletedAssignments, fetchFilerFERAssignments, completeFilerTask, completeFERFilerTask } from '@/lib/api';
+import { fetchFilerAssignments, fetchFilerCompletedAssignments, fetchFilerFERAssignments, completeFilerTask } from '@/lib/api';
 import { FEREntry, Patent } from '@/lib/types';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -158,7 +158,12 @@ const Filings = () => {
     setIsSubmitting(true);
     
     try {
-      const success = await completeFERFilerTask(selectedFER, user.full_name);
+      const success = await completeFilerTask(
+        selectedFER.patent as Patent, 
+        user.full_name,
+        undefined,
+        selectedFER.id
+      );
       
       if (success) {
         toast.success('FER filing completed successfully');
