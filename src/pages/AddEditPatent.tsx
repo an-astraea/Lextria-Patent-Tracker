@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +12,7 @@ import {
   fetchPatentById,
   updatePatent,
   fetchEmployees,
+  createInventor,
 } from '@/lib/api';
 import { PatentFormData, FEREntry, Employee } from '@/lib/types';
 import PatentBasicInfoForm from '@/components/patent/PatentBasicInfoForm';
@@ -256,8 +256,24 @@ const AddEditPatent = () => {
         // Create new patent
         const newPatent = await createPatent(formValues);
         
-        if (newPatent) {
+        if (newPatent && newPatent.id) {
           toast.success('Patent created successfully');
+          
+          // If we have inventors, ensure they're associated with the patent
+          if (formValues.inventors && formValues.inventors.length > 0) {
+            const validInventors = formValues.inventors.filter(inv => inv.inventor_name.trim());
+            if (validInventors.length > 0) {
+              for (const inventor of validInventors) {
+                await createInventor({
+                  tracking_id: formValues.tracking_id,
+                  inventor_name: inventor.inventor_name,
+                  inventor_addr: inventor.inventor_addr,
+                  patent_id: newPatent.id
+                });
+              }
+            }
+          }
+          
           navigate(`/patents/${newPatent.id}`);
         } else {
           toast.error('Failed to create patent');
@@ -265,7 +281,7 @@ const AddEditPatent = () => {
       }
     } catch (error) {
       console.error('Error saving patent:', error);
-      toast.error('Error saving patent');
+      toast.error('Error saving patent: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setSaving(false);
     }
