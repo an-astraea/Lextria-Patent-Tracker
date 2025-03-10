@@ -834,4 +834,3 @@ export async function fetchPatentsAndEmployees(): Promise<{ patents: Patent[]; e
     return { patents: [], employees: [] };
   }
 }
-

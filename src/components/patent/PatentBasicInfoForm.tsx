@@ -4,19 +4,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/date-picker';
 import { format } from 'date-fns';
+import { PatentFormData } from '@/lib/types';
 
 interface PatentBasicInfoFormProps {
-  formValues: {
-    tracking_id: string;
-    patent_applicant: string;
-    client_id: string;
-    application_no: string;
-    date_of_filing: string;
-    patent_title: string;
-    applicant_addr: string;
-    inventor_ph_no: string;
-    inventor_email: string;
-  };
+  formValues: Pick<PatentFormData, 'tracking_id' | 'patent_applicant' | 'client_id' | 
+    'application_no' | 'date_of_filing' | 'patent_title' | 'applicant_addr' | 
+    'inventor_ph_no' | 'inventor_email'>;
   formErrors: Record<string, string>;
   handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   handleDateChange: (name: string, date: Date | undefined) => void;

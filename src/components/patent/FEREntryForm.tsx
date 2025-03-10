@@ -27,6 +27,7 @@ const FEREntryForm: React.FC<FEREntryFormProps> = ({
     
     try {
       setAdding(true);
+      // Pass only the patentId and nextFerNumber to createFEREntry
       const result = await createFEREntry(patentId, nextFerNumber);
       
       if (result) {

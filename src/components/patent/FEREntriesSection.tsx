@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -135,25 +134,28 @@ const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
       setIsSubmitting(true);
       
       if (isAddingFER) {
-        // Create new FER entry
         const newFER = await createFEREntry(
           patent.id,
-          ferNumber,
-          ferDrafter,
-          ferDrafterDeadline,
-          ferFiler,
-          ferFilerDeadline,
-          ferDate
+          ferNumber
         );
         
         if (newFER) {
+          const ferData: Partial<FEREntry> = {
+            fer_drafter_assgn: ferDrafter || null,
+            fer_drafter_deadline: ferDrafterDeadline || null,
+            fer_filer_assgn: ferFiler || null,
+            fer_filer_deadline: ferFilerDeadline || null,
+            fer_date: ferDate || null
+          };
+          
+          await updateFEREntry(newFER.id, ferData);
+          
           toast.success('FER entry created successfully');
           await refreshPatentData();
         } else {
           toast.error('Failed to create FER entry');
         }
       } else if (selectedFER) {
-        // Update existing FER entry
         const ferData: Partial<FEREntry> = {
           fer_number: ferNumber,
           fer_drafter_assgn: ferDrafter || null,
