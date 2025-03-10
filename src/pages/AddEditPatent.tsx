@@ -1,4 +1,4 @@
-<lov-code>
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,7 @@ import {
   deleteFEREntry,
   updatePatentForms
 } from '@/lib/api';
-import { Patent, PatentFormData, Employee, FEREntry } from '@/lib/types';
+import { Patent, PatentFormData, Employee, FEREntry, InventorInfo } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Table,
@@ -321,15 +321,15 @@ const AddEditPatent = () => {
           ? Math.max(...ferEntries.map(fer => fer.fer_number)) + 1 
           : 1;
         
-        const newFER = await createFEREntry(
-          id, 
-          nextFERNumber, 
-          ferDrafter, 
-          ferDrafterDeadline,
-          ferFiler,
-          ferFilerDeadline,
-          ferDate
-        );
+        const newFER = await createFEREntry({
+          patent_id: id,
+          fer_number: nextFERNumber,
+          fer_drafter_assgn: ferDrafter,
+          fer_drafter_deadline: ferDrafterDeadline,
+          fer_filer_assgn: ferFiler,
+          fer_filer_deadline: ferFilerDeadline,
+          fer_date: ferDate
+        });
         
         if (newFER) {
           setFerEntries(prev => [...prev, newFER]);
@@ -363,18 +363,18 @@ const AddEditPatent = () => {
     return true;
   };
   
-  const cleanFormData = (data: PatentFormData): PatentFormData => {
-    const cleanedData = { ...data, inventors: [...data.inventors] };
+  const cleanFormData = (data: PatentFormData): Partial<Patent> => {
+    const { inventors, ...patentData } = data;
     
-    if (!cleanedData.date_of_filing) cleanedData.date_of_filing = null;
-    if (!cleanedData.ps_drafter_deadline) cleanedData.ps_drafter_deadline = null;
-    if (!cleanedData.ps_filer_deadline) cleanedData.ps_filer_deadline = null;
-    if (!cleanedData.cs_drafter_deadline) cleanedData.cs_drafter_deadline = null;
-    if (!cleanedData.cs_filer_deadline) cleanedData.cs_filer_deadline = null;
-    if (!cleanedData.fer_drafter_deadline) cleanedData.fer_drafter_deadline = null;
-    if (!cleanedData.fer_filer_deadline) cleanedData.fer_filer_deadline = null;
+    // Convert empty strings to null
+    Object.keys(patentData).forEach(key => {
+      const typedKey = key as keyof typeof patentData;
+      if (patentData[typedKey] === '') {
+        patentData[typedKey] = null as any;
+      }
+    });
     
-    return cleanedData;
+    return patentData;
   };
   
   const handleFormValueChange = (formName: string, value: boolean) => {
@@ -395,10 +395,9 @@ const AddEditPatent = () => {
       setLoading(true);
       
       const cleanedFormData = cleanFormData(formData);
-      const { inventors, ...formDataWithoutInventors } = cleanedFormData;
       
       if (isEditMode && id) {
-        const success = await updatePatent(id, formDataWithoutInventors);
+        const success = await updatePatent(id, cleanedFormData);
         
         if (success && Object.keys(formValues).length > 0) {
           await updatePatentForms(id, formValues);
@@ -409,8 +408,8 @@ const AddEditPatent = () => {
           navigate('/patents');
         }
       } else {
-        const newPatent = await createPatent(formDataWithoutInventors);
-        if (newPatent) {
+        const newPatent = await createPatent(cleanedFormData);
+        if (newPatent && newPatent.id) {
           for (const inventor of formData.inventors) {
             await createInventor({
               tracking_id: newPatent.tracking_id,
@@ -420,15 +419,15 @@ const AddEditPatent = () => {
             });
           }
           
-          if (newPatent.fer_status === 1 && newPatent.id) {
-            await createFEREntry(
-              newPatent.id, 
-              1, 
-              newPatent.fer_drafter_assgn || undefined,
-              newPatent.fer_drafter_deadline || undefined,
-              newPatent.fer_filer_assgn || undefined,
-              newPatent.fer_filer_deadline || undefined
-            );
+          if (cleanedFormData.fer_status === 1 && newPatent.id) {
+            await createFEREntry({
+              patent_id: newPatent.id,
+              fer_number: 1,
+              fer_drafter_assgn: cleanedFormData.fer_drafter_assgn || undefined,
+              fer_drafter_deadline: cleanedFormData.fer_drafter_deadline || undefined,
+              fer_filer_assgn: cleanedFormData.fer_filer_assgn || undefined,
+              fer_filer_deadline: cleanedFormData.fer_filer_deadline || undefined
+            });
           }
           
           toast.success('Patent created successfully');
@@ -850,3 +849,348 @@ const AddEditPatent = () => {
           <CardHeader>
             <CardTitle>First Examination Report (FER)</CardTitle>
             <CardDescription>Enable and assign FER if needed</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="fer_status"
+                  checked={formData.fer_status === 1}
+                  onChange={(e) => setFormData(prev => ({ ...prev, fer_status: e.target.checked ? 1 : 0 }))}
+                  className="rounded border-gray-300"
+                />
+                <Label htmlFor="fer_status">Enable FER</Label>
+              </div>
+              
+              {formData.fer_status === 1 && !isEditMode && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="fer_drafter_assgn">FER Drafter</Label>
+                    <Select 
+                      value={formData.fer_drafter_assgn || undefined}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, fer_drafter_assgn: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select drafter" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {drafters.length > 0 ? (
+                          drafters.map(drafter => (
+                            <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-drafters">No drafters available</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="fer_drafter_deadline">FER Drafter Deadline</Label>
+                    <Input 
+                      id="fer_drafter_deadline" 
+                      name="fer_drafter_deadline" 
+                      type="date" 
+                      value={formData.fer_drafter_deadline || ''} 
+                      onChange={(e) => setFormData(prev => ({ ...prev, fer_drafter_deadline: e.target.value }))}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="fer_filer_assgn">FER Filer</Label>
+                    <Select 
+                      value={formData.fer_filer_assgn || undefined}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, fer_filer_assgn: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select filer" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filers.length > 0 ? (
+                          filers.map(filer => (
+                            <SelectItem key={filer} value={filer}>{filer}</SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-filers">No filers available</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="fer_filer_deadline">FER Filer Deadline</Label>
+                    <Input 
+                      id="fer_filer_deadline" 
+                      name="fer_filer_deadline" 
+                      type="date" 
+                      value={formData.fer_filer_deadline || ''} 
+                      onChange={(e) => setFormData(prev => ({ ...prev, fer_filer_deadline: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {isEditMode && formData.fer_status === 1 && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-lg font-semibold">FER Entries</h3>
+                      <p className="text-sm text-muted-foreground">Manage all FER entries for this patent</p>
+                    </div>
+                    <Button 
+                      onClick={handleAddFER} 
+                      size="sm" 
+                      variant="outline"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add FER
+                    </Button>
+                  </div>
+                  
+                  {ferEntries.length > 0 ? (
+                    <ScrollArea className="h-[300px] rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>FER #</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Drafter</TableHead>
+                            <TableHead>Deadline</TableHead>
+                            <TableHead>Filer</TableHead>
+                            <TableHead>Deadline</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {ferEntries.map((fer) => (
+                            <TableRow key={fer.id}>
+                              <TableCell>{fer.fer_number}</TableCell>
+                              <TableCell>{fer.fer_date ? format(new Date(fer.fer_date), 'PP') : '-'}</TableCell>
+                              <TableCell>{fer.fer_drafter_assgn || '-'}</TableCell>
+                              <TableCell>
+                                {fer.fer_drafter_deadline 
+                                  ? format(new Date(fer.fer_drafter_deadline), 'PP') 
+                                  : '-'
+                                }
+                              </TableCell>
+                              <TableCell>{fer.fer_filer_assgn || '-'}</TableCell>
+                              <TableCell>
+                                {fer.fer_filer_deadline 
+                                  ? format(new Date(fer.fer_filer_deadline), 'PP') 
+                                  : '-'
+                                }
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={fer.fer_completion_status === 1 ? "success" : "secondary"}>
+                                  {fer.fer_completion_status === 1 ? 'Completed' : 'In Progress'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    onClick={() => handleEditFER(fer)}
+                                  >
+                                    <span className="sr-only">Edit</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => handleDeleteFER(fer)}
+                                  >
+                                    <span className="sr-only">Delete</span>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
+                  ) : (
+                    <div className="py-8 text-center border rounded-md">
+                      <p className="text-muted-foreground">No FER entries added yet</p>
+                      <Button 
+                        onClick={handleAddFER} 
+                        variant="link" 
+                        className="mt-2"
+                      >
+                        Add your first FER entry
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        
+        {isEditMode && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Forms</CardTitle>
+              <CardDescription>Required forms for patent filing</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FormRequirementsList 
+                patent={{} as Patent} // Placeholder, using formValues instead
+                userRole={user?.role || 'viewer'}
+                onUpdate={handleFormValueChange}
+                formValues={formValues}
+              />
+            </CardContent>
+          </Card>
+        )}
+        
+        <div className="flex justify-end space-x-4">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => navigate(-1)}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {isEditMode ? 'Updating...' : 'Creating...'}
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                {isEditMode ? 'Update Patent' : 'Create Patent'}
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+      
+      <Dialog open={isFERDialogOpen} onOpenChange={setIsFERDialogOpen}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>{isEditingFER ? 'Edit FER Entry' : 'Add New FER Entry'}</DialogTitle>
+            <DialogDescription>
+              Enter the details for this FER entry
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="fer_date">FER Date</Label>
+              <Input
+                id="fer_date"
+                type="date"
+                value={ferDate}
+                onChange={(e) => setFERDate(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="fer_drafter">Drafter</Label>
+                <Select
+                  value={ferDrafter}
+                  onValueChange={setFERDrafter}
+                >
+                  <SelectTrigger id="fer_drafter">
+                    <SelectValue placeholder="Select drafter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {drafters.map(drafter => (
+                      <SelectItem key={drafter} value={drafter}>{drafter}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fer_drafter_deadline">Drafter Deadline</Label>
+                <Input
+                  id="fer_drafter_deadline"
+                  type="date"
+                  value={ferDrafterDeadline}
+                  onChange={(e) => setFERDrafterDeadline(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="fer_filer">Filer</Label>
+                <Select
+                  value={ferFiler}
+                  onValueChange={setFERFiler}
+                >
+                  <SelectTrigger id="fer_filer">
+                    <SelectValue placeholder="Select filer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {filers.map(filer => (
+                      <SelectItem key={filer} value={filer}>{filer}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fer_filer_deadline">Filer Deadline</Label>
+                <Input
+                  id="fer_filer_deadline"
+                  type="date"
+                  value={ferFilerDeadline}
+                  onChange={(e) => setFERFilerDeadline(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsFERDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveFER}
+              disabled={isProcessingFER}
+            >
+              {isProcessingFER ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save FER'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <AlertDialog open={deleteFERDialogOpen} onOpenChange={setDeleteFERDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the FER entry.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteFER}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default AddEditPatent;
