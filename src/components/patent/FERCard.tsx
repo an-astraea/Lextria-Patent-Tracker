@@ -14,10 +14,10 @@ interface FERCardProps {
   userName: string;
   onEdit: (fer: FEREntry) => void;
   onDelete: (fer: FEREntry) => void;
-  onCompleteDraft: (fer: FEREntry) => Promise<void>;
-  onCompleteFiling: (fer: FEREntry) => Promise<void>;
-  onApproveDraft: (fer: FEREntry) => Promise<void>;
-  onApproveFiling: (fer: FEREntry) => Promise<void>;
+  onCompleteDraft: (fer: FEREntry) => Promise<boolean>;
+  onCompleteFiling: (fer: FEREntry) => Promise<boolean>;
+  onApproveDraft: (fer: FEREntry) => Promise<boolean>;
+  onApproveFiling: (fer: FEREntry) => Promise<boolean>;
   isApprovingDraft: boolean;
   isApprovingFiling: boolean;
 }

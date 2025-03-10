@@ -16,10 +16,10 @@ interface FEREntriesSectionProps {
   userName: string;
   employees: Employee[];
   refreshPatentData: () => Promise<void>;
-  onApproveDraft: (fer: FEREntry) => Promise<void>;
-  onApproveFiling: (fer: FEREntry) => Promise<void>;
-  onCompleteDraft: (fer: FEREntry) => Promise<void>;
-  onCompleteFiling: (fer: FEREntry) => Promise<void>;
+  onApproveDraft: (fer: FEREntry) => Promise<boolean>;
+  onApproveFiling: (fer: FEREntry) => Promise<boolean>;
+  onCompleteDraft: (fer: FEREntry) => Promise<boolean>;
+  onCompleteFiling: (fer: FEREntry) => Promise<boolean>;
 }
 
 const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
