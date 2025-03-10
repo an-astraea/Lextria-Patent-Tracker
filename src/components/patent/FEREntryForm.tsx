@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import FEREmptyState from './FEREmptyState';
 import FERDeleteDialog from './FERDeleteDialog';
 import FEREditDialog from './FEREditDialog';
+import { useAuth } from '@/hooks/useAuth';
 
 interface FERFormData {
   fer_drafter_assgn: string;
@@ -33,6 +34,7 @@ const FEREntryForm: React.FC<FEREntryFormProps> = ({
   nextFerNumber,
   refreshPatentData
 }) => {
+  const { user } = useAuth();
   const [employees, setEmployees] = useState<{ id: string; full_name: string; role: string }[]>([]);
   const [formData, setFormData] = useState<FERFormData>({
     fer_drafter_assgn: '',
@@ -44,6 +46,7 @@ const FEREntryForm: React.FC<FEREntryFormProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [ferToDelete, setFerToDelete] = useState<FEREntry | null>(null);
   const [ferToEdit, setFerToEdit] = useState<FEREntry | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const loadEmployees = async () => {
@@ -126,6 +129,7 @@ const FEREntryForm: React.FC<FEREntryFormProps> = ({
     if (!ferToDelete || !ferToDelete.id) return;
     
     try {
+      setIsDeleting(true);
       const success = await deleteFEREntry(ferToDelete.id);
       
       if (success) {
@@ -138,6 +142,7 @@ const FEREntryForm: React.FC<FEREntryFormProps> = ({
       console.error('Error deleting FER entry:', error);
       toast.error('Error deleting FER entry');
     } finally {
+      setIsDeleting(false);
       setFerToDelete(null);
     }
   };
@@ -211,7 +216,10 @@ const FEREntryForm: React.FC<FEREntryFormProps> = ({
           ))}
         </div>
       ) : (
-        <FEREmptyState />
+        <FEREmptyState 
+          userRole={user?.role || 'admin'} 
+          onAddFER={() => setShowForm(true)} 
+        />
       )}
 
       {/* Add FER button or form */}
@@ -321,10 +329,11 @@ const FEREntryForm: React.FC<FEREntryFormProps> = ({
 
       {/* Delete confirmation dialog */}
       <FERDeleteDialog
-        open={!!ferToDelete}
-        onClose={cancelDelete}
-        onConfirm={confirmDelete}
+        isOpen={!!ferToDelete}
         ferNumber={ferToDelete?.fer_number || 0}
+        isSubmitting={isDeleting}
+        onConfirmDelete={confirmDelete}
+        onClose={cancelDelete}
       />
 
       {/* Edit dialog */}

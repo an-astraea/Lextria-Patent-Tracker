@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { PlusCircleIcon } from 'lucide-react';
 
 interface FEREmptyStateProps {
-  userRole: string;
-  onAddFER: () => void;
+  userRole?: string;
+  onAddFER?: () => void;
 }
 
-const FEREmptyState: React.FC<FEREmptyStateProps> = ({ userRole, onAddFER }) => {
+const FEREmptyState: React.FC<FEREmptyStateProps> = ({ userRole = 'admin', onAddFER = () => {} }) => {
   return (
     <Card>
       <CardContent className="py-8">

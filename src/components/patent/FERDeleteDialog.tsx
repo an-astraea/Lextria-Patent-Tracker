@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { FEREntry } from '@/lib/types';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,31 +14,49 @@ import { Loader2 } from 'lucide-react';
 
 interface FERDeleteDialogProps {
   isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  ferToDelete: FEREntry | null;
-  isSubmitting: boolean;
-  onConfirmDelete: () => Promise<void>;
+  open?: boolean; // For backward compatibility
+  onOpenChange?: (open: boolean) => void;
+  onClose?: () => void; // For backward compatibility
+  ferToDelete?: any;
+  ferNumber: number;
+  isSubmitting?: boolean;
+  onConfirmDelete?: () => Promise<void>;
+  onConfirm?: () => Promise<void>; // For backward compatibility
 }
 
 const FERDeleteDialog: React.FC<FERDeleteDialogProps> = ({
   isOpen,
+  open,
   onOpenChange,
-  ferToDelete,
-  isSubmitting,
-  onConfirmDelete
+  onClose,
+  ferNumber,
+  isSubmitting = false,
+  onConfirmDelete,
+  onConfirm
 }) => {
+  // Use either the new or old prop pattern
+  const dialogOpen = open !== undefined ? open : isOpen;
+  const handleOpenChange = onOpenChange || (onClose ? (isOpen) => !isOpen && onClose() : undefined);
+  const handleConfirm = async () => {
+    if (onConfirmDelete) {
+      await onConfirmDelete();
+    } else if (onConfirm) {
+      await onConfirm();
+    }
+  };
+
   return (
-    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
+    <AlertDialog open={dialogOpen} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently delete the FER entry. This action cannot be undone.
+            This will permanently delete the FER entry #{ferNumber}. This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirmDelete} disabled={isSubmitting}>
+          <AlertDialogAction onClick={handleConfirm} disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
