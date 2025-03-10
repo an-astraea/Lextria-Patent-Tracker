@@ -241,6 +241,7 @@ const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
         isOpen={isAlertDialogOpen}
         onOpenChange={setIsAlertDialogOpen}
         ferToDelete={ferToDelete}
+        ferNumber={ferToDelete?.fer_number || 0}
         isSubmitting={isSubmitting}
         onConfirmDelete={confirmDeleteFER}
       />

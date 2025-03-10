@@ -147,7 +147,8 @@ const FEREntryForm: React.FC<FEREntryFormProps> = ({
     }
   };
 
-  const cancelDelete = () => {
+  // Convert cancelDelete to return a Promise
+  const cancelDelete = async (): Promise<void> => {
     setFerToDelete(null);
   };
 
