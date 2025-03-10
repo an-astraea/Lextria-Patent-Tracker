@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Patent, FEREntry, Employee } from '@/lib/types';
@@ -161,19 +160,21 @@ const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
     }
   };
 
-  const handleApproveDraft = async (fer: FEREntry) => {
+  const handleApproveDraft = async (fer: FEREntry): Promise<boolean> => {
     setIsApprovingDraft(true);
     try {
-      await onApproveDraft(fer);
+      const result = await onApproveDraft(fer);
+      return result;
     } finally {
       setIsApprovingDraft(false);
     }
   };
 
-  const handleApproveFiling = async (fer: FEREntry) => {
+  const handleApproveFiling = async (fer: FEREntry): Promise<boolean> => {
     setIsApprovingFiling(true);
     try {
-      await onApproveFiling(fer);
+      const result = await onApproveFiling(fer);
+      return result;
     } finally {
       setIsApprovingFiling(false);
     }
