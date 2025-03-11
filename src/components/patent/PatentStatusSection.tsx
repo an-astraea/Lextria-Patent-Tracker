@@ -159,7 +159,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
   };
 
   const canEditStatus = userRole === 'admin' || userRole === 'filer';
-  const canEditPayment = userRole === 'admin';
+  const canEditPayment = userRole === 'admin' || userRole === 'filer';
 
   const isAssignedDrafter = () => {
     if (!patent) return false;
