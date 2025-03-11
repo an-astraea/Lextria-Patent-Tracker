@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Patent } from '@/lib/types';
-import { Check, Eye, Loader2, X } from 'lucide-react';
+import { Check, Eye, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export type ReviewType = 'ps_draft' | 'ps_file' | 'cs_draft' | 'cs_file' | 'fer_draft' | 'fer_file';
@@ -19,7 +19,6 @@ interface PendingReviewCardProps {
   patent: Patent;
   onApprove: (patent: Patent, reviewType: ReviewType) => Promise<void>;
   onReject: (patent: Patent, reviewType: ReviewType) => Promise<void>;
-  processingReview: { patentId: string, type: ReviewType } | null;
 }
 
 // Format date for display
@@ -36,7 +35,7 @@ export const getPendingReviewTypes = (patent: Patent): ReviewItem[] => {
     reviews.push({
       type: 'ps_draft' as const,
       label: 'PS Drafting',
-      person: patent.ps_drafter_assgn || ''
+      person: patent.ps_drafter_assgn
     });
   }
   
@@ -44,7 +43,7 @@ export const getPendingReviewTypes = (patent: Patent): ReviewItem[] => {
     reviews.push({
       type: 'ps_file' as const,
       label: 'PS Filing',
-      person: patent.ps_filer_assgn || ''
+      person: patent.ps_filer_assgn
     });
   }
   
@@ -52,7 +51,7 @@ export const getPendingReviewTypes = (patent: Patent): ReviewItem[] => {
     reviews.push({
       type: 'cs_draft' as const,
       label: 'CS Drafting',
-      person: patent.cs_drafter_assgn || ''
+      person: patent.cs_drafter_assgn
     });
   }
   
@@ -60,7 +59,7 @@ export const getPendingReviewTypes = (patent: Patent): ReviewItem[] => {
     reviews.push({
       type: 'cs_file' as const,
       label: 'CS Filing',
-      person: patent.cs_filer_assgn || ''
+      person: patent.cs_filer_assgn
     });
   }
   
@@ -68,7 +67,7 @@ export const getPendingReviewTypes = (patent: Patent): ReviewItem[] => {
     reviews.push({
       type: 'fer_draft' as const,
       label: 'FER Drafting',
-      person: patent.fer_drafter_assgn || ''
+      person: patent.fer_drafter_assgn
     });
   }
   
@@ -76,27 +75,16 @@ export const getPendingReviewTypes = (patent: Patent): ReviewItem[] => {
     reviews.push({
       type: 'fer_file' as const,
       label: 'FER Filing',
-      person: patent.fer_filer_assgn || ''
+      person: patent.fer_filer_assgn
     });
   }
   
   return reviews;
 };
 
-const PendingReviewCard: React.FC<PendingReviewCardProps> = ({ 
-  patent, 
-  onApprove, 
-  onReject,
-  processingReview
-}) => {
+const PendingReviewCard: React.FC<PendingReviewCardProps> = ({ patent, onApprove, onReject }) => {
   const navigate = useNavigate();
   const reviews = getPendingReviewTypes(patent);
-
-  const isProcessing = (reviewType: ReviewType) => {
-    return processingReview && 
-           processingReview.patentId === patent.id && 
-           processingReview.type === reviewType;
-  };
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -124,32 +112,18 @@ const PendingReviewCard: React.FC<PendingReviewCardProps> = ({
                       size="sm" 
                       variant="outline"
                       onClick={() => onReject(patent, review.type)}
-                      disabled={isProcessing(review.type)}
                       className="text-red-500 hover:bg-red-50"
                     >
-                      {isProcessing(review.type) ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <X className="h-4 w-4 mr-1" />
-                          Reject
-                        </>
-                      )}
+                      <X className="h-4 w-4 mr-1" />
+                      Reject
                     </Button>
                     <Button 
                       size="sm" 
                       variant="ghost"
                       onClick={() => onApprove(patent, review.type)}
-                      disabled={isProcessing(review.type)}
                     >
-                      {isProcessing(review.type) ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Check className="h-4 w-4 mr-1" />
-                          Approve
-                        </>
-                      )}
+                      <Check className="h-4 w-4 mr-1" />
+                      Approve
                     </Button>
                   </div>
                 </div>

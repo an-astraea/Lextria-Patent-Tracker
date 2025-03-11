@@ -1,244 +1,213 @@
-
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Loader2, FileText, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { fetchPendingReviews, approvePatentReview, rejectPatentReview } from '@/lib/api';
 import { Patent } from '@/lib/types';
-import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import PendingReviewCard, { ReviewType, getPendingReviewTypes } from '@/components/approvals/PendingReviewCard';
+import RefreshButton from '@/components/approvals/RefreshButton';
+import EmptyApprovals from '@/components/approvals/EmptyApprovals';
+import LoadingSpinner from '@/components/approvals/LoadingSpinner';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+const ITEMS_PER_PAGE = 6; // Number of items to show per page
 
 const Approvals = () => {
   const navigate = useNavigate();
-  const [patents, setPatents] = useState<Patent[]>([]);
+  const [pendingReviews, setPendingReviews] = useState<Patent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isApproving, setIsApproving] = useState(false);
-  const [isRejecting, setIsRejecting] = useState(false);
-  const [rejectModalOpen, setRejectModalOpen] = useState(false);
-  const [selectedPatent, setSelectedPatent] = useState<Patent | null>(null);
-  const [selectedReviewType, setSelectedReviewType] = useState<string>('');
-  const [rejectReason, setRejectReason] = useState('');
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const isMobile = useIsMobile();
 
+  // Get user from localStorage
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
+
+  // Redirect if not admin
+  React.useEffect(() => {
+    if (!user || user.role !== 'admin') {
+      toast.error('Access denied. Admin privileges required.');
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
+  // Load data only once on initial mount
   useEffect(() => {
-    const fetchReviews = async () => {
+    if (user && user.role === 'admin' && !initialLoadDone) {
+      loadReviews();
+      setInitialLoadDone(true);
+    }
+  }, [user, initialLoadDone]);
+
+  const loadReviews = async () => {
+    if (user && user.role === 'admin') {
       try {
         setLoading(true);
         const reviews = await fetchPendingReviews();
-        setPatents(reviews);
+        setPendingReviews(reviews);
       } catch (error) {
-        console.error('Error fetching pending reviews:', error);
+        console.error('Error loading reviews:', error);
         toast.error('Failed to load pending reviews');
       } finally {
         setLoading(false);
       }
-    };
+    }
+  };
 
-    fetchReviews();
-  }, [navigate]);
-
-  const handleApprovePatent = async (patent: Patent, reviewType: string) => {
+  const handleApprove = async (patent: Patent, reviewType: ReviewType) => {
     try {
-      setIsApproving(true);
-      await approvePatentReview(patent, reviewType);
-
-      toast.success('Patent review approved successfully');
-      fetchPendingReviews();
+      const success = await approvePatentReview(patent, reviewType);
+      if (success) {
+        toast.success('Review approved successfully');
+        
+        // Optimistic UI update - Remove the approved review from the list
+        setPendingReviews(prevReviews => {
+          const updatedReviews = [...prevReviews];
+          // If this is the last review for this patent, remove the patent
+          const reviewsForPatent = getPendingReviewTypes(patent);
+          if (reviewsForPatent.length <= 1) {
+            return updatedReviews.filter(p => p.id !== patent.id);
+          }
+          
+          // Otherwise, keep the patent but update its review status
+          return updatedReviews.map(p => {
+            if (p.id === patent.id) {
+              const updatedPatent = { ...p };
+              switch(reviewType) {
+                case 'ps_draft': updatedPatent.ps_review_draft_status = 0; break;
+                case 'ps_file': updatedPatent.ps_review_file_status = 0; break;
+                case 'cs_draft': updatedPatent.cs_review_draft_status = 0; break;
+                case 'cs_file': updatedPatent.cs_review_file_status = 0; break;
+                case 'fer_draft': updatedPatent.fer_review_draft_status = 0; break;
+                case 'fer_file': updatedPatent.fer_review_file_status = 0; break;
+              }
+              return updatedPatent;
+            }
+            return p;
+          });
+        });
+        
+        // Dispatch custom event to notify other components about the approval
+        const approvalEvent = new CustomEvent('approval-complete');
+        window.dispatchEvent(approvalEvent);
+      }
     } catch (error) {
-      console.error('Error approving patent review:', error);
-      toast.error('Failed to approve patent review');
-    } finally {
-      setIsApproving(false);
+      console.error('Error approving review:', error);
+      toast.error('Failed to approve review');
     }
   };
 
-  const handleRejectPatent = async (patent: Patent, reviewType: string) => {
-    if (!rejectReason) {
-      toast.error('Please provide a reason for rejection');
-      return;
-    }
-    
+  const handleReject = async (patent: Patent, reviewType: ReviewType) => {
     try {
-      setIsRejecting(true);
-      // Pass rejectReason as the third parameter
-      await rejectPatentReview(patent, reviewType, rejectReason);
-      
-      toast.success('Patent review rejected successfully');
-      fetchPendingReviews();
-      setRejectModalOpen(false);
-      setRejectReason('');
+      const success = await rejectPatentReview(patent, reviewType);
+      if (success) {
+        toast.success('Review rejected and sent back to assignee');
+        
+        // Optimistic UI update - Remove the rejected review from the list
+        setPendingReviews(prevReviews => {
+          const updatedReviews = [...prevReviews];
+          // If this is the last review for this patent, remove the patent
+          const reviewsForPatent = getPendingReviewTypes(patent);
+          if (reviewsForPatent.length <= 1) {
+            return updatedReviews.filter(p => p.id !== patent.id);
+          }
+          
+          // Otherwise, keep the patent but update its review status
+          return updatedReviews.map(p => {
+            if (p.id === patent.id) {
+              const updatedPatent = { ...p };
+              switch(reviewType) {
+                case 'ps_draft': updatedPatent.ps_review_draft_status = 0; break;
+                case 'ps_file': updatedPatent.ps_review_file_status = 0; break;
+                case 'cs_draft': updatedPatent.cs_review_draft_status = 0; break;
+                case 'cs_file': updatedPatent.cs_review_file_status = 0; break;
+                case 'fer_draft': updatedPatent.fer_review_draft_status = 0; break;
+                case 'fer_file': updatedPatent.fer_review_file_status = 0; break;
+              }
+              return updatedPatent;
+            }
+            return p;
+          });
+        });
+        
+        // Dispatch custom event to notify other components about the rejection
+        const rejectionEvent = new CustomEvent('rejection-complete');
+        window.dispatchEvent(rejectionEvent);
+      }
     } catch (error) {
-      console.error('Error rejecting patent review:', error);
-      toast.error('Failed to reject patent review');
-    } finally {
-      setIsRejecting(false);
+      console.error('Error rejecting review:', error);
+      toast.error('Failed to reject review');
     }
   };
 
-  const openRejectModal = (patent: Patent, reviewType: string) => {
-    setSelectedPatent(patent);
-    setSelectedReviewType(reviewType);
-    setRejectModalOpen(true);
+  const handleRefresh = () => {
+    loadReviews();
   };
 
-  const closeRejectModal = () => {
-    setRejectModalOpen(false);
-    setRejectReason('');
-    setSelectedPatent(null);
-    setSelectedReviewType('');
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-        Loading pending reviews...
-      </div>
-    );
-  }
+  // Pagination logic
+  const totalPages = Math.ceil(pendingReviews.length / ITEMS_PER_PAGE);
+  const paginatedReviews = pendingReviews.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   return (
-    <div className="container mx-auto py-6 space-y-8">
-      <h1 className="text-3xl font-bold">Pending Reviews</h1>
-
-      {patents.length > 0 ? (
-        <Table>
-          <TableCaption>List of patents awaiting review</TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tracking ID</TableHead>
-              <TableHead>Patent Title</TableHead>
-              <TableHead>Applicant</TableHead>
-              <TableHead>Review Type</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {patents.map(patent => {
-              let reviewType = '';
-              if (patent.ps_drafting_status === 1 && patent.ps_review_draft_status !== 1) {
-                reviewType = 'ps_drafting';
-              } else if (patent.cs_drafting_status === 1 && patent.cs_review_draft_status !== 1) {
-                reviewType = 'cs_drafting';
-              } else if (patent.ps_filing_status === 1 && patent.ps_review_file_status !== 1) {
-                reviewType = 'ps_filing';
-              } else if (patent.cs_filing_status === 1 && patent.cs_review_file_status !== 1) {
-                reviewType = 'cs_filing';
-              }
-
-              return (
-                <TableRow key={patent.id}>
-                  <TableCell>{patent.tracking_id}</TableCell>
-                  <TableCell>{patent.patent_title}</TableCell>
-                  <TableCell>{patent.patent_applicant}</TableCell>
-                  <TableCell>
-                    {reviewType === 'ps_drafting' && 'PS Drafting'}
-                    {reviewType === 'cs_drafting' && 'CS Drafting'}
-                    {reviewType === 'ps_filing' && 'PS Filing'}
-                    {reviewType === 'cs_filing' && 'CS Filing'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" onClick={() => navigate(`/patents/${patent.id}`)}>
-                      View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleApprovePatent(patent, reviewType)}
-                      disabled={isApproving}
-                    >
-                      {isApproving ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                      )}
-                      Approve
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => openRejectModal(patent, reviewType)}
-                      disabled={isRejecting}
-                    >
-                      {isRejecting ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <XCircle className="mr-2 h-4 w-4" />
-                      )}
-                      Reject
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-8">
-            <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
-            <p className="text-xl font-medium">No pending reviews at this time</p>
-            <p className="text-gray-500">Check back later for new submissions</p>
-          </CardContent>
-        </Card>
-      )}
-
-      <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Reject Review</DialogTitle>
-            <DialogDescription>
-              Please provide a reason for rejecting this review.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="reason" className="text-right">
-                Reason
-              </Label>
-              <Input
-                id="reason"
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                className="col-span-3"
+    <div className="container mx-auto py-6 px-4 sm:px-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
+        <h1 className="text-2xl font-bold">Pending Approvals</h1>
+        <RefreshButton onRefresh={handleRefresh} loading={loading} />
+      </div>
+      
+      {loading && !pendingReviews.length ? (
+        <LoadingSpinner />
+      ) : pendingReviews.length > 0 ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {paginatedReviews.map(patent => (
+              <PendingReviewCard 
+                key={patent.id} 
+                patent={patent} 
+                onApprove={handleApprove}
+                onReject={handleReject}
               />
-            </div>
+            ))}
           </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={closeRejectModal}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => handleRejectPatent(selectedPatent as Patent, selectedReviewType)}
-              disabled={isRejecting}
-            >
-              {isRejecting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                'Reject Review'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          
+          {totalPages > 1 && (
+            <Pagination className="mt-4">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <PaginationItem key={i} className={isMobile && totalPages > 5 && ![0, 1, totalPages - 2, totalPages - 1].includes(i) && i !== currentPage - 1 ? "hidden" : ""}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(i + 1)}
+                      isActive={currentPage === i + 1}
+                    >
+                      {i + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </div>
+      ) : (
+        <EmptyApprovals />
+      )}
     </div>
   );
 };
