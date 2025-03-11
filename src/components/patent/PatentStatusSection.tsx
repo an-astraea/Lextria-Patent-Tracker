@@ -158,6 +158,27 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
     }
   };
 
+  const canEditStatus = userRole === 'admin' || userRole === 'filer';
+  const canEditPayment = userRole === 'admin';
+
+  const isAssignedDrafter = () => {
+    if (!patent) return false;
+    
+    return (
+      (patent.ps_drafter_assgn && patent.ps_drafting_status === 0 && patent.idf_received === true) ||
+      (patent.cs_drafter_assgn && patent.cs_drafting_status === 0 && patent.cs_data === true && patent.cs_data_received === true)
+    );
+  };
+
+  const isAssignedFiler = () => {
+    if (!patent) return false;
+    
+    return (
+      (patent.ps_filer_assgn && patent.ps_filing_status === 0 && patent.ps_drafting_status === 1 && patent.idf_received === true) ||
+      (patent.cs_filer_assgn && patent.cs_filing_status === 0 && patent.cs_drafting_status === 1 && patent.cs_data_received === true)
+    );
+  };
+
   const patentStatuses = [
     { label: 'Withdrawn', field: 'withdrawn', value: patent.withdrawn },
     { label: 'IDF Sent', field: 'idf_sent', value: patent.idf_sent },
@@ -199,8 +220,6 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
     return 'Invoice Sent, Payment Not Received';
   };
 
-  const canEditPayment = userRole === 'admin';
-
   const canStartPSDrafting = patent.idf_received === true;
   const canStartCSDrafting = patent.cs_data_received === true && patent.cs_data === true;
 
@@ -223,9 +242,6 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
     return "";
   };
 
-  const isPSAssigned = patent.ps_drafter_assgn && patent.idf_received === true;
-  const isCSAssigned = patent.cs_drafter_assgn && patent.cs_data_received === true && patent.cs_data === true;
-
   return (
     <div className="space-y-6">
       <Card>
@@ -245,7 +261,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                         variant={patent.ps_drafting_status === 1 ? "default" : "outline"} 
                         size="sm"
                         onClick={() => handleStatusToggle('ps_drafting_status')}
-                        disabled={isUpdating || userRole !== 'admin' || !canStartPSDrafting}
+                        disabled={isUpdating || !canEditStatus || !canStartPSDrafting}
                         className="text-xs px-3 py-1 h-7"
                       >
                         {patent.ps_drafting_status === 1 ? (
@@ -262,7 +278,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                     </TooltipContent>
                   )}
                 </Tooltip>
-                {userRole === 'admin' && patent.ps_drafting_status === 1 && (
+                {canEditStatus && patent.ps_drafting_status === 1 && (
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -279,8 +295,8 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <User className="h-3 w-3" /> 
-                Assigned to: {isPSAssigned ? patent.ps_drafter_assgn : 'Not assigned'}
-                {patent.ps_drafter_assgn && !isPSAssigned && (
+                Assigned to: {isAssignedDrafter() && patent.ps_drafter_assgn ? patent.ps_drafter_assgn : 'Not assigned'}
+                {patent.ps_drafter_assgn && !isAssignedDrafter() && (
                   <span className="text-amber-500 text-xs"> (Waiting for IDF)</span>
                 )}
               </div>
@@ -301,7 +317,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                   variant={patent.ps_filing_status === 1 ? "default" : "outline"} 
                   size="sm"
                   onClick={() => handleStatusToggle('ps_filing_status')}
-                  disabled={isUpdating || userRole !== 'admin' || patent.ps_drafting_status !== 1}
+                  disabled={isUpdating || !canEditStatus || patent.ps_drafting_status !== 1}
                   className="text-xs px-3 py-1 h-7"
                 >
                   {patent.ps_filing_status === 1 ? (
@@ -310,7 +326,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                     'Mark Complete'
                   )}
                 </Button>
-                {userRole === 'admin' && patent.ps_filing_status === 1 && (
+                {canEditStatus && patent.ps_filing_status === 1 && (
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -327,8 +343,8 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <User className="h-3 w-3" /> 
-                Assigned to: {isPSAssigned ? patent.ps_filer_assgn : 'Not assigned'}
-                {patent.ps_filer_assgn && !isPSAssigned && (
+                Assigned to: {isAssignedFiler() && patent.ps_filer_assgn ? patent.ps_filer_assgn : 'Not assigned'}
+                {patent.ps_filer_assgn && !isAssignedFiler() && (
                   <span className="text-amber-500 text-xs"> (Waiting for IDF)</span>
                 )}
               </div>
@@ -376,7 +392,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                         variant={patent.cs_drafting_status === 1 ? "default" : "outline"} 
                         size="sm"
                         onClick={() => handleStatusToggle('cs_drafting_status')}
-                        disabled={isUpdating || userRole !== 'admin' || !canStartCSDrafting}
+                        disabled={isUpdating || !canEditStatus || !canStartCSDrafting}
                         className="text-xs px-3 py-1 h-7"
                       >
                         {patent.cs_drafting_status === 1 ? (
@@ -393,7 +409,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                     </TooltipContent>
                   )}
                 </Tooltip>
-                {userRole === 'admin' && patent.cs_drafting_status === 1 && (
+                {canEditStatus && patent.cs_drafting_status === 1 && (
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -410,8 +426,8 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <User className="h-3 w-3" /> 
-                Assigned to: {isCSAssigned ? patent.cs_drafter_assgn : 'Not assigned'}
-                {patent.cs_drafter_assgn && !isCSAssigned && (
+                Assigned to: {isAssignedDrafter() && patent.cs_drafter_assgn ? patent.cs_drafter_assgn : 'Not assigned'}
+                {patent.cs_drafter_assgn && !isAssignedDrafter() && (
                   <span className="text-amber-500 text-xs"> (Waiting for CS Data)</span>
                 )}
               </div>
@@ -432,7 +448,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                   variant={patent.cs_filing_status === 1 ? "default" : "outline"} 
                   size="sm"
                   onClick={() => handleStatusToggle('cs_filing_status')}
-                  disabled={isUpdating || userRole !== 'admin' || patent.cs_drafting_status !== 1}
+                  disabled={isUpdating || !canEditStatus || patent.cs_drafting_status !== 1}
                   className="text-xs px-3 py-1 h-7"
                 >
                   {patent.cs_filing_status === 1 ? (
@@ -441,7 +457,7 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
                     'Mark Complete'
                   )}
                 </Button>
-                {userRole === 'admin' && patent.cs_filing_status === 1 && (
+                {canEditStatus && patent.cs_filing_status === 1 && (
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -458,8 +474,8 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <User className="h-3 w-3" /> 
-                Assigned to: {isCSAssigned ? patent.cs_filer_assgn : 'Not assigned'}
-                {patent.cs_filer_assgn && !isCSAssigned && (
+                Assigned to: {isAssignedFiler() && patent.cs_filer_assgn ? patent.cs_filer_assgn : 'Not assigned'}
+                {patent.cs_filer_assgn && !isAssignedFiler() && (
                   <span className="text-amber-500 text-xs"> (Waiting for CS Data)</span>
                 )}
               </div>
@@ -531,12 +547,12 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
             </div>
           </div>
 
-          {userRole === 'admin' && (
+          {(userRole === 'admin' || userRole === 'filer') && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-sm text-gray-700 font-medium">Admin Note:</p>
+              <p className="text-sm text-gray-700 font-medium">Note:</p>
               <p className="text-sm text-gray-600">
-                You can manually update any status by clicking the buttons next to each status. 
-                This allows you to override the workflow when necessary. Note the following workflow rules:
+                You can update any status by clicking the buttons next to each status. 
+                Note the following workflow rules:
               </p>
               <ul className="list-disc pl-5 text-sm text-gray-600 mt-2 space-y-1">
                 <li>PS Drafting requires IDF to be received first</li>
