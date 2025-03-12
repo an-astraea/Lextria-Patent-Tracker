@@ -223,6 +223,7 @@ export type Database = {
           completed: boolean | null
           created_at: string | null
           cs_completion_status: number
+          cs_confirmed: boolean | null
           cs_data: boolean | null
           cs_data_received: boolean | null
           cs_drafter_assgn: string | null
@@ -296,7 +297,10 @@ export type Database = {
           payment_amount: number | null
           payment_received: number | null
           payment_status: string | null
+          pending_cs_confirmation: boolean | null
+          pending_ps_confirmation: boolean | null
           ps_completion_status: number
+          ps_confirmed: boolean | null
           ps_drafter_assgn: string | null
           ps_drafter_deadline: string | null
           ps_drafting_status: number
@@ -316,6 +320,7 @@ export type Database = {
           completed?: boolean | null
           created_at?: string | null
           cs_completion_status?: number
+          cs_confirmed?: boolean | null
           cs_data?: boolean | null
           cs_data_received?: boolean | null
           cs_drafter_assgn?: string | null
@@ -389,7 +394,10 @@ export type Database = {
           payment_amount?: number | null
           payment_received?: number | null
           payment_status?: string | null
+          pending_cs_confirmation?: boolean | null
+          pending_ps_confirmation?: boolean | null
           ps_completion_status?: number
+          ps_confirmed?: boolean | null
           ps_drafter_assgn?: string | null
           ps_drafter_deadline?: string | null
           ps_drafting_status?: number
@@ -409,6 +417,7 @@ export type Database = {
           completed?: boolean | null
           created_at?: string | null
           cs_completion_status?: number
+          cs_confirmed?: boolean | null
           cs_data?: boolean | null
           cs_data_received?: boolean | null
           cs_drafter_assgn?: string | null
@@ -482,7 +491,10 @@ export type Database = {
           payment_amount?: number | null
           payment_received?: number | null
           payment_status?: string | null
+          pending_cs_confirmation?: boolean | null
+          pending_ps_confirmation?: boolean | null
           ps_completion_status?: number
+          ps_confirmed?: boolean | null
           ps_drafter_assgn?: string | null
           ps_drafter_deadline?: string | null
           ps_drafting_status?: number

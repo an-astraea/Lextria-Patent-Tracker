@@ -185,6 +185,10 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
     { label: 'IDF Received', field: 'idf_received', value: patent.idf_received },
     { label: 'CS Data Sent', field: 'cs_data', value: patent.cs_data },
     { label: 'CS Data Received', field: 'cs_data_received', value: patent.cs_data_received },
+    { label: 'Pending CS Confirmation', field: 'pending_cs_confirmation', value: patent.pending_cs_confirmation },
+    { label: 'CS Confirmed', field: 'cs_confirmed', value: patent.cs_confirmed },
+    { label: 'Pending PS Confirmation', field: 'pending_ps_confirmation', value: patent.pending_ps_confirmation },
+    { label: 'PS Confirmed', field: 'ps_confirmed', value: patent.ps_confirmed },
     { label: 'Completed', field: 'completed', value: patent.completed }
   ];
 

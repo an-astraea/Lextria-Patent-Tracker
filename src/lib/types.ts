@@ -38,6 +38,11 @@ export interface Patent {
   fer_filer_deadline?: string | null;
   fer_review_file_status?: number;
   fer_completion_status?: number;
+  // New status fields
+  pending_cs_confirmation?: boolean;
+  cs_confirmed?: boolean;
+  pending_ps_confirmation?: boolean;
+  ps_confirmed?: boolean;
   // Form fields
   form_1?: boolean;
   form_2?: boolean; // Adding the missing form_2 field
