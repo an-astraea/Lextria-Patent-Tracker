@@ -84,42 +84,61 @@ const PatentNotes: React.FC<PatentNotesProps> = ({
     // Regex to match URLs
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     
-    // Split content by URLs
-    const parts = content.split(urlRegex);
-    
     // Find all URLs in content
     const urls = content.match(urlRegex) || [];
     
-    // Create an array where text and URL components alternate
-    const result = [];
-    let urlIndex = 0;
+    // If no URLs, just return the content
+    if (urls.length === 0) {
+      return <span className="whitespace-pre-wrap">{content}</span>;
+    }
     
-    for (let i = 0; i < parts.length; i++) {
-      // Add text part
-      if (parts[i]) {
-        result.push(<span key={`text-${i}`}>{parts[i]}</span>);
+    // Create an array with the parts
+    const parts = [];
+    let lastIndex = 0;
+    
+    // Process each URL match
+    urls.forEach((url, index) => {
+      // Get the index where this URL appears in the content
+      const urlIndex = content.indexOf(url, lastIndex);
+      
+      // Add text before the URL
+      if (urlIndex > lastIndex) {
+        parts.push(
+          <span key={`text-${index}`}>
+            {content.substring(lastIndex, urlIndex)}
+          </span>
+        );
       }
       
-      // Add URL part if available
-      if (urls[urlIndex]) {
-        result.push(
-          <a 
-            href={urls[urlIndex]} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            key={`url-${i}`} 
-            className="text-blue-500 hover:underline"
-          >
-            {urls[urlIndex]}
-          </a>
-        );
-        urlIndex++;
-      }
+      // Add the URL as a link
+      parts.push(
+        <a 
+          href={url} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          key={`url-${index}`} 
+          className="text-blue-500 hover:underline"
+        >
+          {url}
+        </a>
+      );
+      
+      // Update lastIndex to after this URL
+      lastIndex = urlIndex + url.length;
+    });
+    
+    // Add any remaining text after the last URL
+    if (lastIndex < content.length) {
+      parts.push(
+        <span key="text-last">
+          {content.substring(lastIndex)}
+        </span>
+      );
     }
     
     return (
       <div className="whitespace-pre-wrap">
-        {result}
+        {parts}
       </div>
     );
   };
