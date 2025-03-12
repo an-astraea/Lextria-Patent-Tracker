@@ -7,7 +7,10 @@ import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   MessageCircle, 
-  Loader2
+  Loader2,
+  Edit,
+  Check,
+  X
 } from 'lucide-react';
 import { Patent } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,12 +30,14 @@ const PatentNotes: React.FC<PatentNotesProps> = ({
   const [notesContent, setNotesContent] = useState<string>(patent.notes || '');
   const [isSaving, setIsSaving] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     // Update notes content when patent changes or on initial load
     if (initialLoad || (patent.notes !== notesContent && !isSaving)) {
       setNotesContent(patent.notes || '');
       setInitialLoad(false);
+      setIsEditing(false); // Reset editing mode when patent data changes
     }
   }, [patent.notes, initialLoad]);
 
@@ -54,6 +59,7 @@ const PatentNotes: React.FC<PatentNotesProps> = ({
       });
       
       await refreshPatentData();
+      setIsEditing(false); // Exit edit mode after saving
     } catch (error) {
       console.error('Error saving notes:', error);
       toast({
@@ -64,6 +70,11 @@ const PatentNotes: React.FC<PatentNotesProps> = ({
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleCancelEdit = () => {
+    setNotesContent(patent.notes || '');
+    setIsEditing(false);
   };
 
   // Function to convert text with URLs to clickable links
@@ -117,14 +128,25 @@ const PatentNotes: React.FC<PatentNotesProps> = ({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <MessageCircle className="h-5 w-5" />
           Shared Notes
         </CardTitle>
+        {canEdit && !isEditing && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setIsEditing(true)}
+            className="flex items-center gap-1"
+          >
+            <Edit className="h-4 w-4" />
+            Edit Notes
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {canEdit ? (
+        {canEdit && isEditing ? (
           <>
             <Textarea
               placeholder="Add notes or comments... URLs will be automatically converted to clickable links."
@@ -132,7 +154,15 @@ const PatentNotes: React.FC<PatentNotesProps> = ({
               onChange={(e) => setNotesContent(e.target.value)}
               className="min-h-[200px]"
             />
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={handleCancelEdit}
+                disabled={isSaving}
+              >
+                <X className="mr-2 h-4 w-4" />
+                Cancel
+              </Button>
               <Button
                 onClick={handleSaveNotes}
                 disabled={isSaving}
@@ -142,7 +172,12 @@ const PatentNotes: React.FC<PatentNotesProps> = ({
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Saving...
                   </>
-                ) : 'Save Notes'}
+                ) : (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    Save Notes
+                  </>
+                )}
               </Button>
             </div>
           </>
