@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Badge, BadgeProps } from '@/components/ui/badge';
 import { CheckCircle, Clock, AlertCircle, XCircle, DollarSign, FileBox, FileText } from 'lucide-react';
 
-type Status = 'completed' | 'pending' | 'inProgress' | 'notStarted' | 'withdrawn' | 'sent' | 'received' | 'notSent' | 'partialPayment' | 'fullPayment';
+type Status = 'completed' | 'pending' | 'inProgress' | 'notStarted' | 'withdrawn' | 'sent' | 'received' | 'notSent' | 'partialPayment' | 'fullPayment' | 'sentCSForConfirmation' | 'csConfirmed' | 'sentPSForConfirmation' | 'psConfirmed';
 
 interface StatusBadgeProps {
   status: Status | string;
@@ -76,6 +76,26 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
     case 'fullPayment':
       defaultLabel = 'Full Payment';
       icon = DollarSign;
+      color = 'bg-green-100 text-green-800 border-green-200';
+      break;
+    case 'sentCSForConfirmation':
+      defaultLabel = 'Sent CS for Confirmation';
+      icon = FileText;
+      color = 'bg-blue-100 text-blue-800 border-blue-200';
+      break;
+    case 'csConfirmed':
+      defaultLabel = 'CS Confirmed';
+      icon = CheckCircle;
+      color = 'bg-green-100 text-green-800 border-green-200';
+      break;
+    case 'sentPSForConfirmation':
+      defaultLabel = 'Sent PS for Confirmation';
+      icon = FileText;
+      color = 'bg-blue-100 text-blue-800 border-blue-200';
+      break;
+    case 'psConfirmed':
+      defaultLabel = 'PS Confirmed';
+      icon = CheckCircle;
       color = 'bg-green-100 text-green-800 border-green-200';
       break;
     case 'PS Draft':

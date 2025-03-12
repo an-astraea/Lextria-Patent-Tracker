@@ -20,14 +20,6 @@ const PatentBasicInfo: React.FC<PatentBasicInfoProps> = ({ patent }) => {
     }
   };
 
-  // Determine task prerequisites status
-  const hasIDFReceived = patent.idf_received === true;
-  const hasCSDataReceived = patent.cs_data_received === true && patent.cs_data === true;
-  
-  // Determine assignment status
-  const isPSAssigned = patent.ps_drafter_assgn && !hasIDFReceived;
-  const isCSAssigned = patent.cs_drafter_assgn && !hasCSDataReceived;
-
   return (
     <Card>
       <CardHeader>
@@ -76,12 +68,12 @@ const PatentBasicInfo: React.FC<PatentBasicInfoProps> = ({ patent }) => {
             <div className="text-sm font-medium text-gray-500">PS Drafter</div>
             <div className="font-semibold flex items-center gap-1">
               {patent.ps_drafter_assgn || 'N/A'}
-              {patent.ps_drafter_assgn && !hasIDFReceived && (
+              {patent.ps_drafter_assgn && patent.idf_received !== true && (
                 <div className="flex items-center gap-1 text-amber-500 text-xs">
                   <AlertCircle className="h-3 w-3" /> Waiting for IDF
                 </div>
               )}
-              {patent.ps_drafter_assgn && hasIDFReceived && (
+              {patent.ps_drafter_assgn && patent.idf_received === true && (
                 <div className="flex items-center gap-1 text-green-500 text-xs">
                   <CheckCircle2 className="h-3 w-3" /> IDF Received
                 </div>
@@ -92,12 +84,12 @@ const PatentBasicInfo: React.FC<PatentBasicInfoProps> = ({ patent }) => {
             <div className="text-sm font-medium text-gray-500">CS Drafter</div>
             <div className="font-semibold flex items-center gap-1">
               {patent.cs_drafter_assgn || 'N/A'}
-              {patent.cs_drafter_assgn && !hasCSDataReceived && (
+              {patent.cs_drafter_assgn && (patent.cs_data !== true || patent.cs_data_received !== true) && (
                 <div className="flex items-center gap-1 text-amber-500 text-xs">
                   <AlertCircle className="h-3 w-3" /> Waiting for CS Data
                 </div>
               )}
-              {patent.cs_drafter_assgn && hasCSDataReceived && (
+              {patent.cs_drafter_assgn && patent.cs_data === true && patent.cs_data_received === true && (
                 <div className="flex items-center gap-1 text-green-500 text-xs">
                   <CheckCircle2 className="h-3 w-3" /> CS Data Received
                 </div>
