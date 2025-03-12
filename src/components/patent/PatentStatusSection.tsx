@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import StatusBadge from "@/components/StatusBadge";
@@ -162,22 +161,40 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
   const canEditStatus = userRole === 'admin' || userRole === 'filer';
   const canEditPayment = userRole === 'admin' || userRole === 'filer';
 
-  const isAssignedDrafter = () => {
+  const isPSDrafterAssigned = () => {
     if (!patent) return false;
     
-    return (
-      (patent.ps_drafter_assgn && patent.ps_drafting_status === 0 && patent.idf_received === true) ||
-      (patent.cs_drafter_assgn && patent.cs_drafting_status === 0 && patent.cs_data === true && patent.cs_data_received === true)
-    );
+    return (patent.ps_drafter_assgn && patent.ps_drafter_assgn.trim() !== '');
   };
 
-  const isAssignedFiler = () => {
+  const isCSDrafterAssigned = () => {
     if (!patent) return false;
     
-    return (
-      (patent.ps_filer_assgn && patent.ps_filing_status === 0 && patent.ps_drafting_status === 1 && patent.idf_received === true) ||
-      (patent.cs_filer_assgn && patent.cs_filing_status === 0 && patent.cs_drafting_status === 1 && patent.cs_data_received === true)
-    );
+    return (patent.cs_drafter_assgn && patent.cs_drafter_assgn.trim() !== '');
+  };
+
+  const isPSFilerAssigned = () => {
+    if (!patent) return false;
+    
+    return (patent.ps_filer_assgn && patent.ps_filer_assgn.trim() !== '');
+  };
+
+  const isCSFilerAssigned = () => {
+    if (!patent) return false;
+    
+    return (patent.cs_filer_assgn && patent.cs_filer_assgn.trim() !== '');
+  };
+
+  const canWorkOnPSDrafting = () => {
+    if (!patent) return false;
+    
+    return patent.idf_received === true;
+  };
+
+  const canWorkOnCSDrafting = () => {
+    if (!patent) return false;
+    
+    return patent.cs_data === true && patent.cs_data_received === true;
   };
 
   const patentStatuses = [
@@ -300,8 +317,8 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <User className="h-3 w-3" /> 
-                Assigned to: {isAssignedDrafter() && patent.ps_drafter_assgn ? patent.ps_drafter_assgn : 'Not assigned'}
-                {patent.ps_drafter_assgn && !isAssignedDrafter() && (
+                Assigned to: {isPSDrafterAssigned() ? patent.ps_drafter_assgn : 'Not assigned'}
+                {isPSDrafterAssigned() && !canWorkOnPSDrafting() && (
                   <span className="text-amber-500 text-xs"> (Waiting for IDF)</span>
                 )}
               </div>
@@ -348,8 +365,8 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <User className="h-3 w-3" /> 
-                Assigned to: {isAssignedFiler() && patent.ps_filer_assgn ? patent.ps_filer_assgn : 'Not assigned'}
-                {patent.ps_filer_assgn && !isAssignedFiler() && (
+                Assigned to: {isPSFilerAssigned() ? patent.ps_filer_assgn : 'Not assigned'}
+                {isPSFilerAssigned() && !canWorkOnPSDrafting() && (
                   <span className="text-amber-500 text-xs"> (Waiting for IDF)</span>
                 )}
               </div>
@@ -431,8 +448,8 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <User className="h-3 w-3" /> 
-                Assigned to: {isAssignedDrafter() && patent.cs_drafter_assgn ? patent.cs_drafter_assgn : 'Not assigned'}
-                {patent.cs_drafter_assgn && !isAssignedDrafter() && (
+                Assigned to: {isCSDrafterAssigned() ? patent.cs_drafter_assgn : 'Not assigned'}
+                {isCSDrafterAssigned() && !canWorkOnCSDrafting() && (
                   <span className="text-amber-500 text-xs"> (Waiting for CS Data)</span>
                 )}
               </div>
@@ -479,8 +496,8 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <User className="h-3 w-3" /> 
-                Assigned to: {isAssignedFiler() && patent.cs_filer_assgn ? patent.cs_filer_assgn : 'Not assigned'}
-                {patent.cs_filer_assgn && !isAssignedFiler() && (
+                Assigned to: {isCSFilerAssigned() ? patent.cs_filer_assgn : 'Not assigned'}
+                {isCSFilerAssigned() && !canWorkOnCSDrafting() && (
                   <span className="text-amber-500 text-xs"> (Waiting for CS Data)</span>
                 )}
               </div>

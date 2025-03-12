@@ -211,8 +211,8 @@ const PatentDetails = () => {
     
     return (
       user.role === 'drafter' && (
-        (patent.ps_drafter_assgn === user.full_name && patent.ps_drafting_status === 0 && patent.idf_received === true) ||
-        (patent.cs_drafter_assgn === user.full_name && patent.cs_drafting_status === 0 && patent.cs_data === true && patent.cs_data_received === true) ||
+        (patent.ps_drafter_assgn === user.full_name && patent.ps_drafting_status === 0) ||
+        (patent.cs_drafter_assgn === user.full_name && patent.cs_drafting_status === 0) ||
         (patent.fer_drafter_assgn === user.full_name && patent.fer_drafter_status === 0)
       )
     );
@@ -223,8 +223,8 @@ const PatentDetails = () => {
     
     return (
       user.role === 'filer' && (
-        (patent.ps_filer_assgn === user.full_name && patent.ps_filing_status === 0 && patent.ps_drafting_status === 1 && patent.idf_received === true) ||
-        (patent.cs_filer_assgn === user.full_name && patent.cs_filing_status === 0 && patent.cs_drafting_status === 1 && patent.cs_data_received === true) ||
+        (patent.ps_filer_assgn === user.full_name && patent.ps_filing_status === 0 && patent.ps_drafting_status === 1) ||
+        (patent.cs_filer_assgn === user.full_name && patent.cs_filing_status === 0 && patent.cs_drafting_status === 1) ||
         (patent.fer_filer_assgn === user.full_name && patent.fer_filing_status === 0 && patent.fer_drafter_status === 1)
       )
     );
@@ -349,9 +349,9 @@ const PatentDetails = () => {
   const getDrafterCompletionField = () => {
     if (!patent || !user) return null;
     
-    if (patent.ps_drafter_assgn === user.full_name && patent.ps_drafting_status === 0 && patent.idf_received === true) {
+    if (patent.ps_drafter_assgn === user.full_name && patent.ps_drafting_status === 0) {
       return 'PS Drafting';
-    } else if (patent.cs_drafter_assgn === user.full_name && patent.cs_drafting_status === 0 && patent.cs_data === true && patent.cs_data_received === true) {
+    } else if (patent.cs_drafter_assgn === user.full_name && patent.cs_drafting_status === 0) {
       return 'CS Drafting';
     } else if (patent.fer_drafter_assgn === user.full_name && patent.fer_drafter_status === 0) {
       return 'FER Drafting';
@@ -363,9 +363,9 @@ const PatentDetails = () => {
   const getFilerCompletionField = () => {
     if (!patent || !user) return null;
     
-    if (patent.ps_filer_assgn === user.full_name && patent.ps_filing_status === 0 && patent.ps_drafting_status === 1 && patent.idf_received === true) {
+    if (patent.ps_filer_assgn === user.full_name && patent.ps_filing_status === 0 && patent.ps_drafting_status === 1) {
       return 'PS Filing';
-    } else if (patent.cs_filer_assgn === user.full_name && patent.cs_filing_status === 0 && patent.cs_drafting_status === 1 && patent.cs_data_received === true) {
+    } else if (patent.cs_filer_assgn === user.full_name && patent.cs_filing_status === 0 && patent.cs_drafting_status === 1) {
       return 'CS Filing';
     } else if (patent.fer_filer_assgn === user.full_name && patent.fer_filing_status === 0 && patent.fer_drafter_status === 1) {
       return 'FER Filing';
