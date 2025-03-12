@@ -1,4 +1,3 @@
-
 export interface Patent {
   id: string;
   tracking_id: string;
@@ -38,14 +37,14 @@ export interface Patent {
   fer_filer_deadline?: string | null;
   fer_review_file_status?: number;
   fer_completion_status?: number;
-  // New status fields
-  pending_cs_confirmation?: boolean;
-  cs_confirmed?: boolean;
-  pending_ps_confirmation?: boolean;
-  ps_confirmed?: boolean;
+  // Status flow fields
+  pending_cs_confirmation?: boolean; // Sent CS for confirmation
+  cs_confirmed?: boolean;            // CS confirmed 
+  pending_ps_confirmation?: boolean; // Sent PS for confirmation
+  ps_confirmed?: boolean;            // PS confirmed
   // Form fields
   form_1?: boolean;
-  form_2?: boolean; // Adding the missing form_2 field
+  form_2?: boolean;
   form_2_ps?: boolean;
   form_2_cs?: boolean;
   form_3?: boolean;
