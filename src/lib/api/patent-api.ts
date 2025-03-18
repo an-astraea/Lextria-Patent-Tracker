@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Patent, EmployeeFormData, PatentFormData, FEREntry } from "@/lib/types";
 
@@ -79,6 +80,7 @@ export const createPatent = async (patentData: PatentFormData) => {
       .insert([
         {
           tracking_id: patentData.tracking_id,
+          internal_tracking_id: patentData.internal_tracking_id || patentData.tracking_id,
           patent_applicant: patentData.patent_applicant,
           client_id: patentData.client_id,
           application_no: patentData.application_no,

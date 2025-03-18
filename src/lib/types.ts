@@ -1,6 +1,8 @@
+
 export interface Patent {
   id: string;
   tracking_id: string;
+  internal_tracking_id?: string | null;
   patent_applicant: string;
   client_id: string;
   application_no?: string | null;
@@ -114,6 +116,7 @@ export interface Patent {
 
 export interface PatentFormData {
   tracking_id: string;
+  internal_tracking_id?: string | null;
   patent_applicant: string;
   client_id: string;
   application_no?: string | null;

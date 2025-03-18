@@ -65,11 +65,9 @@ const AddEditPatent = () => {
   const navigate = useNavigate();
   const isEditMode = !!id;
   
-  // Get user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
-  // Redirect if not admin or filer
   React.useEffect(() => {
     if (user?.role !== 'admin' && user?.role !== 'filer') {
       toast.error('Access denied. Admin or filer privileges required.');
@@ -81,6 +79,7 @@ const AddEditPatent = () => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<PatentFormData>({
     tracking_id: '',
+    internal_tracking_id: '',
     patent_applicant: '',
     client_id: '',
     application_no: '',
@@ -129,7 +128,12 @@ const AddEditPatent = () => {
     if (!isEditMode) {
       const timestamp = new Date().getTime();
       const randomNum = Math.floor(Math.random() * 1000);
-      setFormData(prev => ({ ...prev, tracking_id: `PAT-${timestamp}-${randomNum}` }));
+      const newTrackingId = `PAT-${timestamp}-${randomNum}`;
+      setFormData(prev => ({ 
+        ...prev, 
+        tracking_id: newTrackingId,
+        internal_tracking_id: newTrackingId
+      }));
     }
   }, [isEditMode]);
   
@@ -156,6 +160,7 @@ const AddEditPatent = () => {
           if (patent) {
             setFormData({
               tracking_id: patent.tracking_id,
+              internal_tracking_id: patent.internal_tracking_id || patent.tracking_id,
               patent_applicant: patent.patent_applicant,
               client_id: patent.client_id,
               application_no: patent.application_no || '',
@@ -467,7 +472,27 @@ const AddEditPatent = () => {
                   value={formData.tracking_id} 
                   onChange={handleChange} 
                   required
+                  readOnly={isEditMode}
                 />
+                {isEditMode && (
+                  <p className="text-sm text-gray-500">
+                    The tracking ID cannot be changed after creation. Use Internal Tracking ID for editable reference.
+                  </p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="internal_tracking_id">Internal Tracking ID</Label>
+                <Input 
+                  id="internal_tracking_id" 
+                  name="internal_tracking_id" 
+                  value={formData.internal_tracking_id || ''} 
+                  onChange={handleChange} 
+                  placeholder="Optional internal reference ID"
+                />
+                <p className="text-sm text-gray-500">
+                  This ID can be modified at any time for internal reference.
+                </p>
               </div>
               
               <div className="space-y-2">
@@ -1141,4 +1166,3 @@ const AddEditPatent = () => {
 };
 
 export default AddEditPatent;
-
