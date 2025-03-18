@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Patent, EmployeeFormData, PatentFormData, FEREntry } from "@/lib/types";
 
@@ -252,10 +253,10 @@ export const updateFEREntry = async (ferEntryId: string, ferData: Partial<FEREnt
   
   if (error) {
     console.error('Error updating FER entry:', error);
-    return false;
+    return { success: false, message: error.message };
   }
   
-  return true;
+  return { success: true, message: 'FER entry updated successfully' };
 };
 
 // Function to update patent payment information
@@ -276,12 +277,12 @@ export const updatePatentPayment = async (
 
     if (error) {
       console.error("Error updating patent payment:", error);
-      return false;
+      return { success: false, message: error.message };
     }
 
-    return true;
-  } catch (error) {
+    return { success: true, message: "Payment information updated successfully" };
+  } catch (error: any) {
     console.error("Error in updatePatentPayment:", error);
-    return false;
+    return { success: false, message: error.message || "An unexpected error occurred" };
   }
 };
