@@ -467,7 +467,6 @@ const AddEditPatent = () => {
                   value={formData.tracking_id} 
                   onChange={handleChange} 
                   required
-                  readOnly={isEditMode}
                 />
               </div>
               
@@ -1142,3 +1141,4 @@ const AddEditPatent = () => {
 };
 
 export default AddEditPatent;
+
