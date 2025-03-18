@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { toast } from 'sonner';
@@ -926,26 +927,22 @@ import {
   RadioGroupItem as ReactNativeRadioGroupItem,
 } from "@radix-ui/react-radio-group"
 import {
-  RadioGroup as ReactRadioGroup,
-  RadioGroupItem as ReactRadioGroupItem,
-} from "@radix-ui/react-radio-group"
-import {
-  RangeCalendar as ReactRangeCalendar
+  RangeCalendar as ReactNativeRangeCalendar
 } from "@radix-ui/react-range-calendar"
 import {
-  Slider as ReactSlider
+  Slider as ReactNativeSlider
 } from "@radix-ui/react-slider"
 import {
-  Switch as ReactSwitch
+  Switch as ReactNativeSwitch
 } from "@radix-ui/react-switch"
 import {
-  Progress as ReactProgress
+  Progress as ReactNativeProgress
 } from "@radix-ui/react-progress"
 import {
-  ResizableHandle as ReactResizableHandle,
-  ResizablePanel as ReactResizablePanel,
-  ResizablePanelGroup as ReactResizablePanelGroup,
-  ResizableSeparator as ReactResizableSeparator,
+  ResizableHandle as ReactNativeResizableHandle,
+  ResizablePanel as ReactNativeResizablePanel,
+  ResizablePanelGroup as ReactNativeResizablePanelGroup,
+  ResizableSeparator as ReactNativeResizableSeparator,
 } from "@radix-ui/react-resizable"
 import {
   Sheet as NextSheet2,
@@ -975,4 +972,15 @@ import {
   Collapsible as NextCollapsible2,
   CollapsibleContent as NextCollapsibleContent2,
   CollapsibleTrigger as NextCollapsibleTrigger2,
-} from "@radix-
+} from "@radix-ui/react-collapsible"
+
+const AddEditPatent = () => {
+  // Component logic will be here
+  return (
+    <div>
+      {/* Component JSX will be here */}
+    </div>
+  );
+};
+
+export default AddEditPatent;
