@@ -214,21 +214,28 @@ export const applyFilters = (patents: Patent[], filters: FilterState): Patent[] 
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase();
       return (
-        patent.tracking_id.toLowerCase().includes(query) ||
+        patent.tracking_id?.toLowerCase().includes(query) ||
         (patent.internal_tracking_id && patent.internal_tracking_id.toLowerCase().includes(query)) ||
-        patent.patent_title.toLowerCase().includes(query) ||
-        patent.patent_applicant.toLowerCase().includes(query) ||
-        patent.client_id.toLowerCase().includes(query) ||
+        patent.patent_title?.toLowerCase().includes(query) ||
+        patent.patent_applicant?.toLowerCase().includes(query) ||
+        patent.client_id?.toLowerCase().includes(query) ||
         (patent.application_no && patent.application_no.toLowerCase().includes(query)) ||
+        (patent.applicant_addr && patent.applicant_addr.toLowerCase().includes(query)) ||
+        (patent.inventor_ph_no && patent.inventor_ph_no.toLowerCase().includes(query)) ||
+        (patent.inventor_email && patent.inventor_email.toLowerCase().includes(query)) ||
         (patent.ps_drafter_assgn && patent.ps_drafter_assgn.toLowerCase().includes(query)) ||
         (patent.ps_filer_assgn && patent.ps_filer_assgn.toLowerCase().includes(query)) ||
         (patent.cs_drafter_assgn && patent.cs_drafter_assgn.toLowerCase().includes(query)) ||
         (patent.cs_filer_assgn && patent.cs_filer_assgn.toLowerCase().includes(query)) ||
         (patent.fer_drafter_assgn && patent.fer_drafter_assgn.toLowerCase().includes(query)) ||
         (patent.fer_filer_assgn && patent.fer_filer_assgn.toLowerCase().includes(query)) ||
-        (patent.inventor_ph_no && patent.inventor_ph_no.toLowerCase().includes(query)) ||
-        (patent.inventor_email && patent.inventor_email.toLowerCase().includes(query)) ||
-        (patent.applicant_addr && patent.applicant_addr.toLowerCase().includes(query))
+        (patent.date_of_filing && patent.date_of_filing.toLowerCase().includes(query)) ||
+        (patent.ps_drafter_deadline && patent.ps_drafter_deadline.toLowerCase().includes(query)) ||
+        (patent.ps_filer_deadline && patent.ps_filer_deadline.toLowerCase().includes(query)) ||
+        (patent.cs_drafter_deadline && patent.cs_drafter_deadline.toLowerCase().includes(query)) ||
+        (patent.cs_filer_deadline && patent.cs_filer_deadline.toLowerCase().includes(query)) ||
+        (patent.fer_drafter_deadline && patent.fer_drafter_deadline.toLowerCase().includes(query)) ||
+        (patent.fer_filer_deadline && patent.fer_filer_deadline.toLowerCase().includes(query))
       );
     }
 

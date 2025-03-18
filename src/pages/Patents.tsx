@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Search, Filter, X } from 'lucide-react';
@@ -83,7 +84,7 @@ const Patents = () => {
     getData();
   }, []);
   
-  // Apply filters but not search query (it will only apply on button click)
+  // Apply filters and search query
   useEffect(() => {
     let filtered = patents;
     
@@ -187,22 +188,40 @@ const Patents = () => {
     if (searchQuery) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(
-        (patent) =>
-          patent.patent_title.toLowerCase().includes(query) ||
-          patent.tracking_id.toLowerCase().includes(query) ||
-          (patent.internal_tracking_id && patent.internal_tracking_id.toLowerCase().includes(query)) ||
-          patent.patent_applicant.toLowerCase().includes(query) ||
-          patent.client_id.toLowerCase().includes(query) ||
-          (patent.application_no && patent.application_no.toLowerCase().includes(query)) ||
-          (patent.ps_drafter_assgn && patent.ps_drafter_assgn.toLowerCase().includes(query)) ||
-          (patent.ps_filer_assgn && patent.ps_filer_assgn.toLowerCase().includes(query)) ||
-          (patent.cs_drafter_assgn && patent.cs_drafter_assgn.toLowerCase().includes(query)) ||
-          (patent.cs_filer_assgn && patent.cs_filer_assgn.toLowerCase().includes(query)) ||
-          (patent.fer_drafter_assgn && patent.fer_drafter_assgn.toLowerCase().includes(query)) ||
-          (patent.fer_filer_assgn && patent.fer_filer_assgn.toLowerCase().includes(query)) ||
-          (patent.inventor_ph_no && patent.inventor_ph_no.toLowerCase().includes(query)) ||
-          (patent.inventor_email && patent.inventor_email.toLowerCase().includes(query)) ||
-          (patent.applicant_addr && patent.applicant_addr.toLowerCase().includes(query))
+        (patent) => {
+          // Search in all text fields
+          return (
+            // Basic info
+            patent.patent_title?.toLowerCase().includes(query) ||
+            patent.tracking_id?.toLowerCase().includes(query) ||
+            (patent.internal_tracking_id && patent.internal_tracking_id.toLowerCase().includes(query)) ||
+            patent.patent_applicant?.toLowerCase().includes(query) ||
+            patent.client_id?.toLowerCase().includes(query) ||
+            (patent.application_no && patent.application_no.toLowerCase().includes(query)) ||
+            
+            // Applicant and inventor details
+            (patent.applicant_addr && patent.applicant_addr.toLowerCase().includes(query)) ||
+            (patent.inventor_ph_no && patent.inventor_ph_no.toLowerCase().includes(query)) ||
+            (patent.inventor_email && patent.inventor_email.toLowerCase().includes(query)) ||
+            
+            // Employee assignments
+            (patent.ps_drafter_assgn && patent.ps_drafter_assgn.toLowerCase().includes(query)) ||
+            (patent.ps_filer_assgn && patent.ps_filer_assgn.toLowerCase().includes(query)) ||
+            (patent.cs_drafter_assgn && patent.cs_drafter_assgn.toLowerCase().includes(query)) ||
+            (patent.cs_filer_assgn && patent.cs_filer_assgn.toLowerCase().includes(query)) ||
+            (patent.fer_drafter_assgn && patent.fer_drafter_assgn.toLowerCase().includes(query)) ||
+            (patent.fer_filer_assgn && patent.fer_filer_assgn.toLowerCase().includes(query)) ||
+            
+            // Dates
+            (patent.date_of_filing && patent.date_of_filing.toLowerCase().includes(query)) ||
+            (patent.ps_drafter_deadline && patent.ps_drafter_deadline.toLowerCase().includes(query)) ||
+            (patent.ps_filer_deadline && patent.ps_filer_deadline.toLowerCase().includes(query)) ||
+            (patent.cs_drafter_deadline && patent.cs_drafter_deadline.toLowerCase().includes(query)) ||
+            (patent.cs_filer_deadline && patent.cs_filer_deadline.toLowerCase().includes(query)) ||
+            (patent.fer_drafter_deadline && patent.fer_drafter_deadline.toLowerCase().includes(query)) ||
+            (patent.fer_filer_deadline && patent.fer_filer_deadline.toLowerCase().includes(query))
+          );
+        }
       );
     }
     
@@ -212,6 +231,10 @@ const Patents = () => {
   // Function to handle search execution
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
   };
   
   // Handle delete patent
@@ -306,6 +329,8 @@ const Patents = () => {
       <SearchFilters 
         onSearch={handleSearch} 
         placeholder="Search patents by any detail..."
+        searchQuery={searchQuery}
+        onClearSearch={handleClearSearch}
       />
       
       {getActiveFiltersCount() > 0 && (
@@ -394,12 +419,23 @@ const Patents = () => {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => setSearchQuery('')}
+                onClick={handleClearSearch}
                 className="h-4 w-4 p-0 ml-1"
               >
                 <X className="h-3 w-3" />
               </Button>
             </Badge>
+          )}
+          
+          {getActiveFiltersCount() > 1 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={clearFilters}
+              className="ml-auto"
+            >
+              Clear All Filters
+            </Button>
           )}
         </div>
       )}

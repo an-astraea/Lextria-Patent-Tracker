@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, X } from 'lucide-react';
+import { Search, Filter, X, RefreshCw } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,18 +20,36 @@ interface SearchFiltersProps {
     onFilter: (value: string | null) => void;
     activeFilter: string | null;
   }[];
+  searchQuery?: string;
+  onClearSearch?: () => void;
 }
 
 const SearchFilters: React.FC<SearchFiltersProps> = ({ 
   onSearch, 
   placeholder = "Search...",
-  filters = [] 
+  filters = [],
+  searchQuery = '',
+  onClearSearch
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
 
   const handleSearch = () => {
-    onSearch(searchQuery);
+    onSearch(localSearchQuery);
   };
+
+  const handleClearSearch = () => {
+    setLocalSearchQuery('');
+    if (onClearSearch) {
+      onClearSearch();
+    } else {
+      onSearch('');
+    }
+  };
+
+  // Update local state when the prop changes
+  React.useEffect(() => {
+    setLocalSearchQuery(searchQuery);
+  }, [searchQuery]);
 
   return (
     <div className="flex flex-col sm:flex-row gap-2">
@@ -42,19 +60,29 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder={placeholder}
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-10"
+                value={localSearchQuery}
+                onChange={(e) => setLocalSearchQuery(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     handleSearch();
                   }
                 }}
               />
+              {localSearchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-2 h-6 w-6 p-0"
+                  onClick={handleClearSearch}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="max-w-xs">
-            <p>Search by tracking ID, internal tracking ID, patent title, applicant, client ID, application number, or any employee assigned to the patent</p>
+            <p>Search by any patent detail: tracking ID, internal tracking ID, patent title, applicant, client ID, application number, inventor details, or any employee assigned to the patent</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

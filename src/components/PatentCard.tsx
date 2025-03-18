@@ -13,7 +13,8 @@ import {
   User, 
   Building,
   History,
-  Fingerprint
+  Fingerprint,
+  Hash
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -132,13 +133,18 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
         <div className="flex justify-between items-start mb-4">
           <div>
             <h3 className="text-lg font-semibold line-clamp-1">{patent.patent_title}</h3>
-            <div className="text-sm text-muted-foreground mt-1">ID: {patent.tracking_id}</div>
-            {patent.internal_tracking_id && patent.internal_tracking_id !== patent.tracking_id && (
+            <div className="flex flex-col space-y-1 mt-1">
               <div className="text-sm text-muted-foreground flex items-center gap-1">
-                <Fingerprint className="h-3 w-3" />
-                Internal ID: {patent.internal_tracking_id}
+                <Hash className="h-3 w-3" />
+                <span>ID: {patent.tracking_id}</span>
               </div>
-            )}
+              {patent.internal_tracking_id && (
+                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Fingerprint className="h-3 w-3" />
+                  <span>Internal ID: {patent.internal_tracking_id}</span>
+                </div>
+              )}
+            </div>
           </div>
           <StatusBadge status={status} />
         </div>
