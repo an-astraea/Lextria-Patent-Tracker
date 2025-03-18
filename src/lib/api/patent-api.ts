@@ -145,8 +145,11 @@ export const updatePatent = async (id: string, patentData: Partial<PatentFormDat
     console.log("Updating patent with ID:", id);
     console.log("Update data:", JSON.stringify(patentData, null, 2));
     
-    // Make sure internal_tracking_id is included in the update
+    // Create a copy of the data to update to avoid modifying the original
     const dataToUpdate = { ...patentData };
+    
+    // Explicitly handle internal_tracking_id
+    console.log("Internal tracking ID in update:", dataToUpdate.internal_tracking_id);
     
     const { data, error } = await supabase
       .from("patents")

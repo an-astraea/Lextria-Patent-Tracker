@@ -401,7 +401,14 @@ const AddEditPatent = () => {
       console.log("Submitting form data:", JSON.stringify(cleanedFormData, null, 2));
       
       if (isEditMode && id) {
-        const result = await updatePatent(id, cleanedFormData);
+        const updateData = {
+          ...cleanedFormData,
+          internal_tracking_id: cleanedFormData.internal_tracking_id 
+        };
+        
+        console.log("Update data being sent:", JSON.stringify(updateData, null, 2));
+        
+        const result = await updatePatent(id, updateData);
         
         if (result.success) {
           if (Object.keys(formValues).length > 0) {
