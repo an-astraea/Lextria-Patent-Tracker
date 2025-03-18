@@ -142,13 +142,15 @@ export const createPatent = async (patentData: PatentFormData) => {
 // Update an existing patent
 export const updatePatent = async (id: string, patentData: Partial<PatentFormData>) => {
   try {
-    console.log("Updating patent with data:", patentData);
+    console.log("Updating patent with ID:", id);
+    console.log("Update data:", JSON.stringify(patentData, null, 2));
+    
+    // Make sure internal_tracking_id is included in the update
+    const dataToUpdate = { ...patentData };
     
     const { data, error } = await supabase
       .from("patents")
-      .update({
-        ...patentData
-      })
+      .update(dataToUpdate)
       .eq("id", id)
       .select();
 

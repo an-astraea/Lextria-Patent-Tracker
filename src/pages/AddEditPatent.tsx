@@ -398,17 +398,23 @@ const AddEditPatent = () => {
       setLoading(true);
       
       const cleanedFormData = cleanFormData(formData);
+      console.log("Submitting form data:", JSON.stringify(cleanedFormData, null, 2));
       
       if (isEditMode && id) {
-        const success = await updatePatent(id, cleanedFormData);
+        const result = await updatePatent(id, cleanedFormData);
         
-        if (success && Object.keys(formValues).length > 0) {
-          await updatePatentForms(id, formValues);
-        }
-        
-        if (success) {
+        if (result.success) {
+          if (Object.keys(formValues).length > 0) {
+            await updatePatentForms(id, formValues);
+          }
+          
           toast.success('Patent updated successfully');
-          navigate('/patents');
+          
+          setTimeout(() => {
+            navigate('/patents');
+          }, 500);
+        } else {
+          toast.error(`Failed to update patent: ${result.message}`);
         }
       } else {
         const newPatent = await createPatent(cleanedFormData);

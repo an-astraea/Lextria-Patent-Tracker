@@ -31,7 +31,7 @@ const PatentBasicInfo: React.FC<PatentBasicInfoProps> = ({ patent }) => {
               <Fingerprint className="h-4 w-4 text-muted-foreground" />
               <span>Internal Tracking ID:</span>
             </div>
-            <p className="text-sm">{patent.internal_tracking_id || patent.tracking_id}</p>
+            <p className="text-sm" data-testid="internal-tracking-id">{patent.internal_tracking_id || patent.tracking_id}</p>
           </div>
           
           <div className="space-y-1">
