@@ -1,8 +1,6 @@
-
 export interface Patent {
   id: string;
   tracking_id: string;
-  internal_tracking_id?: string | null;
   patent_applicant: string;
   client_id: string;
   application_no?: string | null;
@@ -116,7 +114,6 @@ export interface Patent {
 
 export interface PatentFormData {
   tracking_id: string;
-  internal_tracking_id?: string | null;
   patent_applicant: string;
   client_id: string;
   application_no?: string | null;
@@ -175,7 +172,6 @@ export interface InventorInfo {
   updated_at?: string;
 }
 
-// Add Inventor alias for backward compatibility
 export type Inventor = InventorInfo;
 
 export interface FEREntry {
@@ -194,7 +190,7 @@ export interface FEREntry {
   fer_date?: string | null;
   created_at?: string;
   updated_at?: string;
-  patent?: Patent; // Add this for when the patent is included in a FER response
+  patent?: Patent;
 }
 
 export interface FERHistory {
@@ -206,9 +202,9 @@ export interface FERHistory {
   notes?: string;
   created_at?: string;
   updated_at?: string;
-  tracking_id?: string; // Add this for backward compatibility
-  fer_drafter_assgn?: string; // Add this for backward compatibility
-  fer_drafter_deadline?: string; // Add this for backward compatibility
-  fer_filer_assgn?: string; // Add this for backward compatibility
-  fer_filer_deadline?: string; // Add this for backward compatibility
+  tracking_id?: string;
+  fer_drafter_assgn?: string;
+  fer_drafter_deadline?: string;
+  fer_filer_assgn?: string;
+  fer_filer_deadline?: string;
 }
