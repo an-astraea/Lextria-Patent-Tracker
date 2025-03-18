@@ -709,7 +709,7 @@ export const createPatent = async (patentData: PatentFormData) => {
     return null;
   }
 
-  return data && data.length > 0 ? data[0] : null;
+  return data && data.length > 0 ? { patent: data[0] } : null;
 };
 
 // Function to update an existing patent
@@ -1216,4 +1216,3 @@ export const updatePatentPayment = async (patentId: string, paymentData: {
   
   return true;
 };
-

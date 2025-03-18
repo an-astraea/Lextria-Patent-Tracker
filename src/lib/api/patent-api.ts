@@ -150,13 +150,13 @@ export const updatePatent = async (id: string, patentData: Partial<PatentFormDat
 
     if (error) {
       console.error("Error updating patent:", error);
-      return { success: false, message: error.message };
+      return false;
     }
 
-    return { success: true, message: "Patent updated successfully", patent: data[0] };
+    return true;
   } catch (error: any) {
     console.error("Error in updatePatent:", error);
-    return { success: false, message: error.message || "An unexpected error occurred" };
+    return false;
   }
 };
 
@@ -231,13 +231,13 @@ export const updatePatentForms = async (patentId: string, formData: Record<strin
     
     if (error) {
       console.error('Error updating patent forms:', error);
-      return { success: false, message: error.message };
+      return false;
     }
     
-    return { success: true, message: 'Patent forms updated successfully' };
+    return true;
   } catch (error: any) {
     console.error('Error in updatePatentForms:', error);
-    return { success: false, message: error.message || 'An unexpected error occurred' };
+    return false;
   }
 };
 
@@ -252,13 +252,13 @@ export const updateFEREntry = async (ferEntryId: string, ferData: Partial<FEREnt
     
     if (error) {
       console.error('Error updating FER entry:', error);
-      return { success: false, message: error.message };
+      return false;
     }
     
-    return { success: true, message: 'FER entry updated successfully' };
+    return true;
   } catch (error: any) {
     console.error('Error in updateFEREntry:', error);
-    return { success: false, message: error.message || 'An unexpected error occurred' };
+    return false;
   }
 };
 

@@ -399,22 +399,19 @@ const AddEditPatent = () => {
       if (isEditMode && id) {
         const result = await updatePatent(id, cleanedFormData);
         
-        if (result.success && Object.keys(formValues).length > 0) {
-          const formsResult = await updatePatentForms(id, formValues);
-          if (!formsResult.success) {
-            toast.error(formsResult.message || 'Failed to update patent forms');
-          }
+        if (Object.keys(formValues).length > 0) {
+          await updatePatentForms(id, formValues);
         }
         
-        if (result.success) {
+        if (result) {
           toast.success('Patent updated successfully');
           navigate('/patents');
         } else {
-          toast.error(result.message || 'Failed to update patent');
+          toast.error('Failed to update patent');
         }
       } else {
         const result = await createPatent(cleanedFormData);
-        if (result.success && result.patent) {
+        if (result && result.patent) {
           for (const inventor of formData.inventors) {
             await createInventor({
               tracking_id: result.patent.tracking_id,
@@ -437,7 +434,7 @@ const AddEditPatent = () => {
           toast.success('Patent created successfully');
           navigate('/patents');
         } else {
-          toast.error(result.message || 'Failed to create patent');
+          toast.error('Failed to create patent');
         }
       }
     } catch (error) {
@@ -1008,3 +1005,4 @@ const AddEditPatent = () => {
 };
 
 export default AddEditPatent;
+
