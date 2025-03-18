@@ -4,7 +4,7 @@ import { Patent } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Calendar, Hash, User, Building, Phone, Mail, AlertTriangle, CheckCircle, Fingerprint } from 'lucide-react';
+import { Lock, Calendar, Hash, User, Building, Phone, Mail, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface PatentBasicInfoProps {
   patent: Patent;
@@ -26,13 +26,15 @@ const PatentBasicInfo: React.FC<PatentBasicInfoProps> = ({ patent }) => {
             <p className="text-sm">{patent.tracking_id}</p>
           </div>
           
-          <div className="space-y-1">
-            <div className="text-sm font-medium flex items-center gap-1">
-              <Fingerprint className="h-4 w-4 text-muted-foreground" />
-              <span>Internal Tracking ID:</span>
+          {patent.internal_tracking_id && patent.internal_tracking_id !== patent.tracking_id && (
+            <div className="space-y-1">
+              <div className="text-sm font-medium flex items-center gap-1">
+                <Hash className="h-4 w-4 text-muted-foreground" />
+                <span>Internal Tracking ID:</span>
+              </div>
+              <p className="text-sm">{patent.internal_tracking_id}</p>
             </div>
-            <p className="text-sm" data-testid="internal-tracking-id">{patent.internal_tracking_id || patent.tracking_id}</p>
-          </div>
+          )}
           
           <div className="space-y-1">
             <div className="text-sm font-medium flex items-center gap-1">

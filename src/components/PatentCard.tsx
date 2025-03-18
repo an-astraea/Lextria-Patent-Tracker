@@ -138,7 +138,7 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
                 <Hash className="h-3 w-3" />
                 <span>ID: {patent.tracking_id}</span>
               </div>
-              {patent.internal_tracking_id && patent.internal_tracking_id !== patent.tracking_id && (
+              {patent.internal_tracking_id && (
                 <div className="text-sm text-muted-foreground flex items-center gap-1">
                   <Fingerprint className="h-3 w-3" />
                   <span>Internal ID: {patent.internal_tracking_id}</span>

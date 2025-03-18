@@ -142,18 +142,11 @@ export const createPatent = async (patentData: PatentFormData) => {
 // Update an existing patent
 export const updatePatent = async (id: string, patentData: Partial<PatentFormData>) => {
   try {
-    console.log("Updating patent with ID:", id);
-    console.log("Update data:", JSON.stringify(patentData, null, 2));
-    
-    // Create a copy of the data to update to avoid modifying the original
-    const dataToUpdate = { ...patentData };
-    
-    // Explicitly handle internal_tracking_id
-    console.log("Internal tracking ID in update:", dataToUpdate.internal_tracking_id);
-    
     const { data, error } = await supabase
       .from("patents")
-      .update(dataToUpdate)
+      .update({
+        ...patentData,
+      })
       .eq("id", id)
       .select();
 
@@ -162,7 +155,6 @@ export const updatePatent = async (id: string, patentData: Partial<PatentFormDat
       return { success: false, message: error.message };
     }
 
-    console.log("Patent updated successfully:", data);
     return { success: true, message: "Patent updated successfully", patent: data[0] };
   } catch (error: any) {
     console.error("Error in updatePatent:", error);
@@ -193,83 +185,73 @@ export const updatePatentStatus = async (
   statusData: Record<string, any>
 ) => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("patents")
       .update(statusData)
       .eq("id", patentId);
 
     if (error) {
       console.error("Error updating patent status:", error);
-      return { success: false, message: error.message };
+      return false;
     }
 
-    return { success: true, message: "Patent status updated successfully" };
-  } catch (error: any) {
+    return true;
+  } catch (error) {
     console.error("Error in updatePatentStatus:", error);
-    return { success: false, message: error.message || "An unexpected error occurred" };
+    return false;
   }
 };
 
 // Update patent notes
 export const updatePatentNotes = async (patentId: string, notes: string) => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("patents")
       .update({ notes })
       .eq("id", patentId);
 
     if (error) {
       console.error("Error updating patent notes:", error);
-      return { success: false, message: error.message };
+      return false;
     }
 
-    return { success: true, message: "Patent notes updated successfully" };
-  } catch (error: any) {
+    return true;
+  } catch (error) {
     console.error("Error in updatePatentNotes:", error);
-    return { success: false, message: error.message || "An unexpected error occurred" };
+    return false;
   }
 };
 
 // Update patent forms
 export const updatePatentForms = async (patentId: string, formData: Record<string, boolean>) => {
-  try {
-    const { data, error } = await supabase
-      .from('patents')
-      .update(formData)
-      .eq('id', patentId)
-      .select();
-    
-    if (error) {
-      console.error('Error updating patent forms:', error);
-      return { success: false, message: error.message };
-    }
-    
-    return { success: true, message: "Patent forms updated successfully" };
-  } catch (error: any) {
-    console.error("Error in updatePatentForms:", error);
-    return { success: false, message: error.message || "An unexpected error occurred" };
+  const { data, error } = await supabase
+    .from('patents')
+    .update(formData)
+    .eq('id', patentId)
+    .select();
+  
+  if (error) {
+    console.error('Error updating patent forms:', error);
+    return false;
   }
+  
+  return true;
 };
 
 // Function to update FER entry
 export const updateFEREntry = async (ferEntryId: string, ferData: Partial<FEREntry>) => {
-  try {
-    const { data, error } = await supabase
-      .from('fer_entries')
-      .update(ferData)
-      .eq('id', ferEntryId)
-      .select();
-    
-    if (error) {
-      console.error('Error updating FER entry:', error);
-      return { success: false, message: error.message };
-    }
-    
-    return { success: true, message: "FER entry updated successfully", data };
-  } catch (error: any) {
-    console.error("Error in updateFEREntry:", error);
-    return { success: false, message: error.message || "An unexpected error occurred" };
+  const { data, error } = await supabase
+    .from('fer_entries')
+    .update(ferData)
+    .eq('id', ferEntryId)
+    .select();
+  
+  if (error) {
+    console.error('Error updating FER entry:', error);
+    return false;
   }
+  
+  return true;
 };
 
 // Function to update patent payment information
@@ -283,19 +265,19 @@ export const updatePatentPayment = async (
   }
 ) => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("patents")
       .update(paymentData)
       .eq("id", patentId);
 
     if (error) {
       console.error("Error updating patent payment:", error);
-      return { success: false, message: error.message };
+      return false;
     }
 
-    return { success: true, message: "Patent payment updated successfully" };
-  } catch (error: any) {
+    return true;
+  } catch (error) {
     console.error("Error in updatePatentPayment:", error);
-    return { success: false, message: error.message || "An unexpected error occurred" };
+    return false;
   }
 };
