@@ -1,12 +1,24 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
-// Update patent forms
+/**
+ * Updates form fields for a patent
+ * @param patentId - ID of the patent to update
+ * @param formData - Object containing form field values
+ * @returns Object with success status and message
+ */
 export const updatePatentForms = async (patentId: string, formData: Record<string, boolean>) => {
   try {
+    // Convert boolean values to database format if needed
+    const formDataForDb: Record<string, boolean | number> = {};
+    
+    Object.entries(formData).forEach(([key, value]) => {
+      // Keep the original boolean values
+      formDataForDb[key] = value;
+    });
+    
     const { data, error } = await supabase
       .from('patents')
-      .update(formData)
+      .update(formDataForDb)
       .eq('id', patentId)
       .select();
     
