@@ -5,16 +5,17 @@ import { Patent } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, Calendar, User, FileText, Hash } from 'lucide-react';
+import { Eye, Calendar, User, FileText, Hash, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import StatusBadge from './StatusBadge';
 
 interface PatentCardProps {
   patent: Patent;
   showDeadline?: boolean;
+  onDelete?: (id: string) => void;
 }
 
-const PatentCard: React.FC<PatentCardProps> = ({ patent, showDeadline = false }) => {
+const PatentCard: React.FC<PatentCardProps> = ({ patent, showDeadline = false, onDelete }) => {
   const navigate = useNavigate();
   
   const upcomingDeadline = React.useMemo(() => {
@@ -152,11 +153,27 @@ const PatentCard: React.FC<PatentCardProps> = ({ patent, showDeadline = false })
         </div>
       </CardContent>
       
-      <CardFooter>
-        <Button variant="outline" size="sm" onClick={handleViewDetails} className="w-full">
+      <CardFooter className={onDelete ? "flex justify-between gap-2" : ""}>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleViewDetails} 
+          className={onDelete ? "flex-1" : "w-full"}
+        >
           <Eye className="h-4 w-4 mr-2" />
           View Details
         </Button>
+        
+        {onDelete && (
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => onDelete(patent.id)}
+            className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-200"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
