@@ -148,13 +148,19 @@ export const updatePatent = async (id: string, patentData: Partial<PatentFormDat
   try {
     console.log("Updating patent with data:", patentData);
     
-    // Make sure internal_tracking_id is included in the update
+    // Create a new object with explicitly set internal_tracking_id
+    const updateData = {
+      ...patentData
+    };
+    
+    // Make sure internal_tracking_id doesn't get nullified if not provided
+    if (patentData.internal_tracking_id === undefined) {
+      delete updateData.internal_tracking_id;
+    }
+    
     const { data, error } = await supabase
       .from("patents")
-      .update({
-        ...patentData,
-        internal_tracking_id: patentData.internal_tracking_id, // Explicitly include this field
-      })
+      .update(updateData)
       .eq("id", id)
       .select();
 
