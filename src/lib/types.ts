@@ -110,6 +110,7 @@ export interface Patent {
   inventors?: InventorInfo[];
   fer_entries?: FEREntry[];
   fer_history?: FERHistory[];
+  internal_tracking_id?: string | null;
 }
 
 export interface PatentFormData {

@@ -215,7 +215,6 @@ export const applyFilters = (patents: Patent[], filters: FilterState): Patent[] 
       const query = filters.searchQuery.toLowerCase();
       return (
         patent.tracking_id?.toLowerCase().includes(query) ||
-        (patent.internal_tracking_id && patent.internal_tracking_id.toLowerCase().includes(query)) ||
         patent.patent_title?.toLowerCase().includes(query) ||
         patent.patent_applicant?.toLowerCase().includes(query) ||
         patent.client_id?.toLowerCase().includes(query) ||

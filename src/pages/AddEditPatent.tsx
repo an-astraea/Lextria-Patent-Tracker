@@ -400,7 +400,10 @@ const AddEditPatent = () => {
         const result = await updatePatent(id, cleanedFormData);
         
         if (result.success && Object.keys(formValues).length > 0) {
-          await updatePatentForms(id, formValues);
+          const formsResult = await updatePatentForms(id, formValues);
+          if (!formsResult.success) {
+            toast.error(formsResult.message || 'Failed to update patent forms');
+          }
         }
         
         if (result.success) {

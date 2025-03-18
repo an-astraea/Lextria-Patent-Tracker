@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Search, Filter, X } from 'lucide-react';
@@ -45,7 +44,6 @@ const Patents = () => {
   const [loading, setLoading] = useState(true);
   const [patentToDelete, setPatentToDelete] = useState<string | null>(null);
   
-  // Advanced filters
   const [filters, setFilters] = useState({
     draftingStatus: null as string | null,
     filingStatus: null as string | null,
@@ -58,14 +56,11 @@ const Patents = () => {
     },
   });
   
-  // Get unique client IDs for filtering
   const uniqueClientIds = [...new Set(patents.map(patent => patent.client_id))];
   
-  // Get user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
-  // Fetch patents from Supabase
   useEffect(() => {
     const getData = async () => {
       try {
@@ -84,11 +79,9 @@ const Patents = () => {
     getData();
   }, []);
   
-  // Apply filters and search query
   useEffect(() => {
     let filtered = patents;
     
-    // Apply drafting status filter
     if (filters.draftingStatus) {
       filtered = filtered.filter(patent => {
         if (filters.draftingStatus === 'ps_drafting_complete') {
@@ -108,7 +101,6 @@ const Patents = () => {
       });
     }
     
-    // Apply filing status filter
     if (filters.filingStatus) {
       filtered = filtered.filter(patent => {
         if (filters.filingStatus === 'ps_filing_complete') {
@@ -128,7 +120,6 @@ const Patents = () => {
       });
     }
     
-    // Apply FER status filter
     if (filters.ferStatus) {
       filtered = filtered.filter(patent => {
         if (filters.ferStatus === 'active') {
@@ -140,7 +131,6 @@ const Patents = () => {
       });
     }
     
-    // Apply general patent status filter
     if (filters.patentStatus) {
       filtered = filtered.filter(patent => {
         if (filters.patentStatus === 'withdrawn') {
@@ -160,12 +150,10 @@ const Patents = () => {
       });
     }
     
-    // Apply client ID filter
     if (filters.clientId) {
       filtered = filtered.filter(patent => patent.client_id === filters.clientId);
     }
     
-    // Apply date range filter
     if (filters.dateRange.start || filters.dateRange.end) {
       filtered = filtered.filter(patent => {
         const filingDate = new Date(patent.date_of_filing);
@@ -184,27 +172,21 @@ const Patents = () => {
       });
     }
     
-    // Apply text search filter only if there's an active search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(
         (patent) => {
-          // Search in all text fields
           return (
-            // Basic info
             patent.patent_title?.toLowerCase().includes(query) ||
             patent.tracking_id?.toLowerCase().includes(query) ||
-            (patent.internal_tracking_id && patent.internal_tracking_id.toLowerCase().includes(query)) ||
             patent.patent_applicant?.toLowerCase().includes(query) ||
             patent.client_id?.toLowerCase().includes(query) ||
             (patent.application_no && patent.application_no.toLowerCase().includes(query)) ||
             
-            // Applicant and inventor details
             (patent.applicant_addr && patent.applicant_addr.toLowerCase().includes(query)) ||
             (patent.inventor_ph_no && patent.inventor_ph_no.toLowerCase().includes(query)) ||
             (patent.inventor_email && patent.inventor_email.toLowerCase().includes(query)) ||
             
-            // Employee assignments
             (patent.ps_drafter_assgn && patent.ps_drafter_assgn.toLowerCase().includes(query)) ||
             (patent.ps_filer_assgn && patent.ps_filer_assgn.toLowerCase().includes(query)) ||
             (patent.cs_drafter_assgn && patent.cs_drafter_assgn.toLowerCase().includes(query)) ||
@@ -212,7 +194,6 @@ const Patents = () => {
             (patent.fer_drafter_assgn && patent.fer_drafter_assgn.toLowerCase().includes(query)) ||
             (patent.fer_filer_assgn && patent.fer_filer_assgn.toLowerCase().includes(query)) ||
             
-            // Dates
             (patent.date_of_filing && patent.date_of_filing.toLowerCase().includes(query)) ||
             (patent.ps_drafter_deadline && patent.ps_drafter_deadline.toLowerCase().includes(query)) ||
             (patent.ps_filer_deadline && patent.ps_filer_deadline.toLowerCase().includes(query)) ||
@@ -228,7 +209,6 @@ const Patents = () => {
     setFilteredPatents(filtered);
   }, [searchQuery, patents, filters]);
   
-  // Function to handle search execution
   const handleSearch = (query: string) => {
     setSearchQuery(query);
   };
@@ -237,7 +217,6 @@ const Patents = () => {
     setSearchQuery('');
   };
   
-  // Handle delete patent
   const handleDeletePatent = async (id: string) => {
     try {
       const success = await deletePatent(id);
@@ -532,3 +511,4 @@ const Patents = () => {
 };
 
 export default Patents;
+

@@ -222,34 +222,44 @@ export const updatePatentNotes = async (patentId: string, notes: string) => {
 
 // Update patent forms
 export const updatePatentForms = async (patentId: string, formData: Record<string, boolean>) => {
-  const { data, error } = await supabase
-    .from('patents')
-    .update(formData)
-    .eq('id', patentId)
-    .select();
-  
-  if (error) {
-    console.error('Error updating patent forms:', error);
-    return false;
+  try {
+    const { data, error } = await supabase
+      .from('patents')
+      .update(formData)
+      .eq('id', patentId)
+      .select();
+    
+    if (error) {
+      console.error('Error updating patent forms:', error);
+      return { success: false, message: error.message };
+    }
+    
+    return { success: true, message: 'Patent forms updated successfully' };
+  } catch (error: any) {
+    console.error('Error in updatePatentForms:', error);
+    return { success: false, message: error.message || 'An unexpected error occurred' };
   }
-  
-  return true;
 };
 
 // Function to update FER entry
 export const updateFEREntry = async (ferEntryId: string, ferData: Partial<FEREntry>) => {
-  const { data, error } = await supabase
-    .from('fer_entries')
-    .update(ferData)
-    .eq('id', ferEntryId)
-    .select();
-  
-  if (error) {
-    console.error('Error updating FER entry:', error);
-    return false;
+  try {
+    const { data, error } = await supabase
+      .from('fer_entries')
+      .update(ferData)
+      .eq('id', ferEntryId)
+      .select();
+    
+    if (error) {
+      console.error('Error updating FER entry:', error);
+      return { success: false, message: error.message };
+    }
+    
+    return { success: true, message: 'FER entry updated successfully' };
+  } catch (error: any) {
+    console.error('Error in updateFEREntry:', error);
+    return { success: false, message: error.message || 'An unexpected error occurred' };
   }
-  
-  return true;
 };
 
 // Function to update patent payment information

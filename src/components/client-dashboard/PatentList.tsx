@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Patent } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -30,7 +29,6 @@ const PatentList: React.FC<PatentListProps> = ({ patents, onExportToExcel }) => 
       const filtered = patents.filter(patent => (
         // Basic info
         patent.tracking_id?.toLowerCase().includes(query) ||
-        (patent.internal_tracking_id && patent.internal_tracking_id.toLowerCase().includes(query)) ||
         patent.patent_title?.toLowerCase().includes(query) ||
         patent.patent_applicant?.toLowerCase().includes(query) ||
         patent.client_id?.toLowerCase().includes(query) ||
