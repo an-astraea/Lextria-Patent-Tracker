@@ -61,7 +61,6 @@ export const isPatentNotStarted = (patent: Patent): boolean => {
 
 export const applyFilters = (patents: Patent[], filters: FilterState): Patent[] => {
   return patents.filter(patent => {
-    // Patent Status Filtering - Include new status combinations
     if (
       (filters.patentStatus.completed && !isPatentCompleted(patent)) ||
       (filters.patentStatus.inProgress && !isPatentInProgress(patent)) ||
@@ -89,8 +88,7 @@ export const applyFilters = (patents: Patent[], filters: FilterState): Patent[] 
         return false;
       }
     }
-
-    // Payment Status Filtering - Added admin-markable status
+    
     if (
       (filters.paymentStatus.notSent && patent.payment_status !== 'not_sent') ||
       (filters.paymentStatus.sent && patent.payment_status !== 'sent') ||
@@ -106,8 +104,7 @@ export const applyFilters = (patents: Patent[], filters: FilterState): Patent[] 
         return false;
       }
     }
-
-    // Drafting Status Filtering - Added review status
+    
     if (
       (filters.draftingStatus.psDrafting && patent.ps_drafting_status !== 1) ||
       (filters.draftingStatus.csDrafting && patent.cs_drafting_status !== 1) ||
@@ -127,8 +124,7 @@ export const applyFilters = (patents: Patent[], filters: FilterState): Patent[] 
         return false;
       }
     }
-
-    // Filing Status Filtering - Added review status
+    
     if (
       (filters.filingStatus.psFiling && patent.ps_filing_status !== 1) ||
       (filters.filingStatus.csFiling && patent.cs_filing_status !== 1) ||
@@ -148,8 +144,7 @@ export const applyFilters = (patents: Patent[], filters: FilterState): Patent[] 
         return false;
       }
     }
-    
-    // Form Status Filtering - All forms
+
     const formFields = {
       form1: patent.form_1 || patent.form_01,
       form2: patent.form_2,
@@ -190,11 +185,9 @@ export const applyFilters = (patents: Patent[], filters: FilterState): Patent[] 
       form31: patent.form_31,
     };
 
-    // Check if any form filter is active
     const anyFormFilterActive = Object.values(filters.formStatus).some(value => value);
     
     if (anyFormFilterActive) {
-      // For each form that has filter active, check if patent doesn't have that form
       for (const [key, value] of Object.entries(filters.formStatus)) {
         if (value && !formFields[key]) {
           return false;
@@ -202,7 +195,6 @@ export const applyFilters = (patents: Patent[], filters: FilterState): Patent[] 
       }
     }
 
-    // Date Range Filtering
     if (filters.dateRange.startDate && patent.date_of_filing) {
       const startDate = parseISO(filters.dateRange.startDate);
       const filingDate = parseISO(patent.date_of_filing);
@@ -219,7 +211,6 @@ export const applyFilters = (patents: Patent[], filters: FilterState): Patent[] 
       }
     }
 
-    // Search Query Filtering
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase();
       return (
@@ -227,7 +218,17 @@ export const applyFilters = (patents: Patent[], filters: FilterState): Patent[] 
         (patent.internal_tracking_id && patent.internal_tracking_id.toLowerCase().includes(query)) ||
         patent.patent_title.toLowerCase().includes(query) ||
         patent.patent_applicant.toLowerCase().includes(query) ||
-        (patent.application_no && patent.application_no.toLowerCase().includes(query))
+        patent.client_id.toLowerCase().includes(query) ||
+        (patent.application_no && patent.application_no.toLowerCase().includes(query)) ||
+        (patent.ps_drafter_assgn && patent.ps_drafter_assgn.toLowerCase().includes(query)) ||
+        (patent.ps_filer_assgn && patent.ps_filer_assgn.toLowerCase().includes(query)) ||
+        (patent.cs_drafter_assgn && patent.cs_drafter_assgn.toLowerCase().includes(query)) ||
+        (patent.cs_filer_assgn && patent.cs_filer_assgn.toLowerCase().includes(query)) ||
+        (patent.fer_drafter_assgn && patent.fer_drafter_assgn.toLowerCase().includes(query)) ||
+        (patent.fer_filer_assgn && patent.fer_filer_assgn.toLowerCase().includes(query)) ||
+        (patent.inventor_ph_no && patent.inventor_ph_no.toLowerCase().includes(query)) ||
+        (patent.inventor_email && patent.inventor_email.toLowerCase().includes(query)) ||
+        (patent.applicant_addr && patent.applicant_addr.toLowerCase().includes(query))
       );
     }
 
@@ -238,18 +239,15 @@ export const applyFilters = (patents: Patent[], filters: FilterState): Patent[] 
 export const countActiveFilters = (filters: FilterState): number => {
   let count = 0;
   
-  // Count status filters
   Object.values(filters.patentStatus).forEach(value => { if (value) count++; });
   Object.values(filters.paymentStatus).forEach(value => { if (value) count++; });
   Object.values(filters.draftingStatus).forEach(value => { if (value) count++; });
   Object.values(filters.filingStatus).forEach(value => { if (value) count++; });
   Object.values(filters.formStatus).forEach(value => { if (value) count++; });
   
-  // Count date range filters
   if (filters.dateRange.startDate) count++;
   if (filters.dateRange.endDate) count++;
   
-  // Count search query
   if (filters.searchQuery) count++;
   
   return count;
@@ -348,6 +346,7 @@ export const generateExcelData = (patents: Patent[]): any[] => {
   return patents.map(patent => {
     const baseData = {
       'Tracking ID': patent.tracking_id,
+      'Internal Tracking ID': patent.internal_tracking_id || 'N/A',
       'Patent Applicant': patent.patent_applicant,
       'Client ID': patent.client_id,
       'Application No': patent.application_no || 'N/A',

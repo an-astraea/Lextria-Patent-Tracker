@@ -54,7 +54,7 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="max-w-xs">
-            <p>Search by tracking ID, internal tracking ID, patent title, applicant, client ID, or application number</p>
+            <p>Search by tracking ID, internal tracking ID, patent title, applicant, client ID, application number, or any employee assigned to the patent</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

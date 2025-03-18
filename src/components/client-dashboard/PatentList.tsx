@@ -40,7 +40,7 @@ const PatentList: React.FC<PatentListProps> = ({ patents, onExportToExcel }) => 
         <TabsContent value="all" className="space-y-4">
           {patents.length > 0 ? (
             patents.map(patent => (
-              <PatentCard key={patent.id} patent={patent} />
+              <PatentCard key={patent.id} patent={patent} showDeadline={true} />
             ))
           ) : (
             <EmptyState 
@@ -55,7 +55,7 @@ const PatentList: React.FC<PatentListProps> = ({ patents, onExportToExcel }) => 
             patents
               .filter(p => p.ps_completion_status === 1 && p.cs_completion_status === 0)
               .map(patent => (
-                <PatentCard key={patent.id} patent={patent} />
+                <PatentCard key={patent.id} patent={patent} showDeadline={true} />
               ))
           ) : (
             <EmptyState 
@@ -70,7 +70,7 @@ const PatentList: React.FC<PatentListProps> = ({ patents, onExportToExcel }) => 
             patents
               .filter(p => p.ps_completion_status === 1 && p.cs_completion_status === 1)
               .map(patent => (
-                <PatentCard key={patent.id} patent={patent} />
+                <PatentCard key={patent.id} patent={patent} showDeadline={true} />
               ))
           ) : (
             <EmptyState 
@@ -85,7 +85,7 @@ const PatentList: React.FC<PatentListProps> = ({ patents, onExportToExcel }) => 
             patents
               .filter(p => p.fer_status === 1)
               .map(patent => (
-                <PatentCard key={patent.id} patent={patent} />
+                <PatentCard key={patent.id} patent={patent} showDeadline={true} />
               ))
           ) : (
             <EmptyState 

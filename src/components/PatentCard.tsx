@@ -12,7 +12,8 @@ import {
   CalendarClock, 
   User, 
   Building,
-  History
+  History,
+  Fingerprint
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -132,6 +133,12 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
           <div>
             <h3 className="text-lg font-semibold line-clamp-1">{patent.patent_title}</h3>
             <div className="text-sm text-muted-foreground mt-1">ID: {patent.tracking_id}</div>
+            {patent.internal_tracking_id && patent.internal_tracking_id !== patent.tracking_id && (
+              <div className="text-sm text-muted-foreground flex items-center gap-1">
+                <Fingerprint className="h-3 w-3" />
+                Internal ID: {patent.internal_tracking_id}
+              </div>
+            )}
           </div>
           <StatusBadge status={status} />
         </div>
