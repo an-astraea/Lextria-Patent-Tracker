@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { standardizePatent, normalizePatents } from '@/lib/utils/type-converters';
 import { Patent } from '@/lib/types';
@@ -53,7 +54,7 @@ export const completeDrafterTask = async (patent: Patent, drafterName: string) =
       updateFields = { fer_drafter_status: 1 };
     } else {
       console.error('No matching drafter task found for completion');
-      return false;
+      return { success: false, message: 'No matching drafter task found for completion' };
     }
     
     const { data, error } = await supabase
@@ -63,14 +64,14 @@ export const completeDrafterTask = async (patent: Patent, drafterName: string) =
       
     if (error) {
       console.error('Error completing drafter task:', error);
-      throw error;
+      return { success: false, message: error.message };
     }
     
     console.log('Drafter task completed successfully');
-    return true;
-  } catch (error) {
+    return { success: true, message: 'Task completed successfully' };
+  } catch (error: any) {
     console.error('Exception completing drafter task:', error);
-    throw error;
+    return { success: false, message: error.message || 'An unexpected error occurred' };
   }
 };
 
@@ -97,7 +98,7 @@ export const completeFilerTask = async (
       updateFields = { fer_filing_status: 1 };
     } else {
       console.error('No matching filer task found for completion');
-      return false;
+      return { success: false, message: 'No matching filer task found for completion' };
     }
     
     // If form values are provided, include them in the update
@@ -121,14 +122,14 @@ export const completeFilerTask = async (
       
     if (error) {
       console.error('Error completing filer task:', error);
-      throw error;
+      return { success: false, message: error.message };
     }
     
     console.log('Filer task completed successfully');
-    return true;
-  } catch (error) {
+    return { success: true, message: 'Task completed successfully' };
+  } catch (error: any) {
     console.error('Exception completing filer task:', error);
-    throw error;
+    return { success: false, message: error.message || 'An unexpected error occurred' };
   }
 };
 
