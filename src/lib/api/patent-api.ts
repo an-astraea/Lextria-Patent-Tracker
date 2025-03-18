@@ -156,6 +156,9 @@ export const updatePatent = async (id: string, patentData: Partial<PatentFormDat
     // Make sure internal_tracking_id doesn't get nullified if not provided
     if (patentData.internal_tracking_id === undefined) {
       delete updateData.internal_tracking_id;
+    } else {
+      // Log to confirm internal_tracking_id is being sent to the database
+      console.log("Setting internal_tracking_id to:", patentData.internal_tracking_id);
     }
     
     const { data, error } = await supabase
