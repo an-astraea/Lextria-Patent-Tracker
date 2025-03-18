@@ -65,11 +65,9 @@ const AddEditPatent = () => {
   const navigate = useNavigate();
   const isEditMode = !!id;
   
-  // Get user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
-  // Redirect if not admin or filer
   React.useEffect(() => {
     if (user?.role !== 'admin' && user?.role !== 'filer') {
       toast.error('Access denied. Admin or filer privileges required.');
@@ -81,6 +79,7 @@ const AddEditPatent = () => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<PatentFormData>({
     tracking_id: '',
+    internal_tracking_id: '',
     patent_applicant: '',
     client_id: '',
     application_no: '',
@@ -129,7 +128,7 @@ const AddEditPatent = () => {
     if (!isEditMode) {
       const timestamp = new Date().getTime();
       const randomNum = Math.floor(Math.random() * 1000);
-      setFormData(prev => ({ ...prev, tracking_id: `PAT-${timestamp}-${randomNum}` }));
+      setFormData(prev => ({ ...prev, tracking_id: `PAT-${timestamp}-${randomNum}`, internal_tracking_id: '' }));
     }
   }, [isEditMode]);
   
@@ -156,6 +155,7 @@ const AddEditPatent = () => {
           if (patent) {
             setFormData({
               tracking_id: patent.tracking_id,
+              internal_tracking_id: patent.internal_tracking_id || '',
               patent_applicant: patent.patent_applicant,
               client_id: patent.client_id,
               application_no: patent.application_no || '',
@@ -395,7 +395,7 @@ const AddEditPatent = () => {
       const cleanedFormData = cleanFormData(formData);
       
       if (isEditMode && id) {
-        const success = await updatePatent(id, cleanedFormData);
+        const { success, message } = await updatePatent(id, cleanedFormData);
         
         if (success && Object.keys(formValues).length > 0) {
           await updatePatentForms(id, formValues);
@@ -404,10 +404,13 @@ const AddEditPatent = () => {
         if (success) {
           toast.success('Patent updated successfully');
           navigate('/patents');
+        } else {
+          toast.error(message || 'Failed to update patent');
         }
       } else {
-        const newPatent = await createPatent(cleanedFormData);
-        if (newPatent) {
+        const result = await createPatent(cleanedFormData);
+        if (result.success) {
+          const newPatent = result.patent;
           for (const inventor of formData.inventors) {
             await createInventor({
               tracking_id: newPatent.tracking_id,
@@ -429,6 +432,8 @@ const AddEditPatent = () => {
           
           toast.success('Patent created successfully');
           navigate('/patents');
+        } else {
+          toast.error(result.message || 'Failed to create patent');
         }
       }
     } catch (error) {
@@ -468,6 +473,17 @@ const AddEditPatent = () => {
                   onChange={handleChange} 
                   required
                   readOnly={isEditMode}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="internal_tracking_id">Internal Tracking ID</Label>
+                <Input 
+                  id="internal_tracking_id" 
+                  name="internal_tracking_id" 
+                  value={formData.internal_tracking_id || ''} 
+                  onChange={handleChange} 
+                  placeholder="Optional internal tracking ID"
                 />
               </div>
               

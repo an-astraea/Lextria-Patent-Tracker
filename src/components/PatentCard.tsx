@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Patent } from '@/lib/types';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -132,6 +131,9 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
           <div>
             <h3 className="text-lg font-semibold line-clamp-1">{patent.patent_title}</h3>
             <div className="text-sm text-muted-foreground mt-1">ID: {patent.tracking_id}</div>
+            {patent.internal_tracking_id && (
+              <div className="text-sm text-muted-foreground">Internal ID: {patent.internal_tracking_id}</div>
+            )}
           </div>
           <StatusBadge status={status} />
         </div>
@@ -222,7 +224,6 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
         </div>
       </CardFooter>
 
-      {/* Timeline Dialog with all required props */}
       <TimelineDialog 
         open={showTimelineDialog} 
         onOpenChange={setShowTimelineDialog} 
