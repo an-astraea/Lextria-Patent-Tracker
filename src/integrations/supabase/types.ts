@@ -287,7 +287,6 @@ export type Database = {
           id: string
           idf_received: boolean | null
           idf_sent: boolean | null
-          internal_tracking_id: string | null
           inventor_email: string
           inventor_ph_no: string
           invoice_sent: boolean | null
@@ -385,7 +384,6 @@ export type Database = {
           id?: string
           idf_received?: boolean | null
           idf_sent?: boolean | null
-          internal_tracking_id?: string | null
           inventor_email: string
           inventor_ph_no: string
           invoice_sent?: boolean | null
@@ -483,7 +481,6 @@ export type Database = {
           id?: string
           idf_received?: boolean | null
           idf_sent?: boolean | null
-          internal_tracking_id?: string | null
           inventor_email?: string
           inventor_ph_no?: string
           invoice_sent?: boolean | null
