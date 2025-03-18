@@ -1,4 +1,3 @@
-
 import { Patent } from '@/lib/types';
 import { format, isAfter, isBefore, parseISO } from 'date-fns';
 
@@ -225,6 +224,7 @@ export const applyFilters = (patents: Patent[], filters: FilterState): Patent[] 
       const query = filters.searchQuery.toLowerCase();
       return (
         patent.tracking_id.toLowerCase().includes(query) ||
+        (patent.internal_tracking_id && patent.internal_tracking_id.toLowerCase().includes(query)) ||
         patent.patent_title.toLowerCase().includes(query) ||
         patent.patent_applicant.toLowerCase().includes(query) ||
         (patent.application_no && patent.application_no.toLowerCase().includes(query))
