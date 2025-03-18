@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { standardizePatent, normalizePatents } from '@/lib/utils/type-converters';
 import { Patent } from '@/lib/types';
@@ -24,14 +23,14 @@ export const updatePatentForms = async (patentId: string, formValues: Record<str
       
     if (error) {
       console.error('Error updating patent forms:', error);
-      throw error;
+      return { success: false, message: error.message };
     }
     
     console.log('Patent forms updated successfully');
-    return true;
-  } catch (error) {
+    return { success: true, message: 'Patent forms updated successfully' };
+  } catch (error: any) {
     console.error('Exception updating patent forms:', error);
-    throw error;
+    return { success: false, message: error.message || 'An unexpected error occurred' };
   }
 };
 
