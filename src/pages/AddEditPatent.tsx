@@ -104,7 +104,8 @@ const AddEditPatent = () => {
     idf_sent: false,
     idf_received: false,
     cs_data: false,
-    cs_data_received: false
+    cs_data_received: false,
+    internal_tracking_id: ''
   });
   
   const [ferEntries, setFerEntries] = useState<FEREntry[]>([]);
@@ -185,7 +186,8 @@ const AddEditPatent = () => {
               idf_sent: patent.idf_sent || false,
               idf_received: patent.idf_received || false,
               cs_data: patent.cs_data || false,
-              cs_data_received: patent.cs_data_received || false
+              cs_data_received: patent.cs_data_received || false,
+              internal_tracking_id: patent.internal_tracking_id || ''
             });
             
             const initialFormValues: Record<string, boolean> = {};
@@ -373,6 +375,7 @@ const AddEditPatent = () => {
     if (!cleanedData.cs_filer_deadline) cleanedData.cs_filer_deadline = null;
     if (!cleanedData.fer_drafter_deadline) cleanedData.fer_drafter_deadline = null;
     if (!cleanedData.fer_filer_deadline) cleanedData.fer_filer_deadline = null;
+    if (!cleanedData.internal_tracking_id) cleanedData.internal_tracking_id = null;
     
     return cleanedData;
   };
@@ -476,6 +479,19 @@ const AddEditPatent = () => {
                 />
                 <p className="text-sm text-gray-500">
                   Unique identifier for tracking this patent
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="internal_tracking_id">Internal Tracking ID</Label>
+                <Input 
+                  id="internal_tracking_id" 
+                  name="internal_tracking_id" 
+                  value={formData.internal_tracking_id || ''} 
+                  onChange={handleChange} 
+                />
+                <p className="text-sm text-gray-500">
+                  Optional internal reference number
                 </p>
               </div>
               
@@ -1005,4 +1021,3 @@ const AddEditPatent = () => {
 };
 
 export default AddEditPatent;
-

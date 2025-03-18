@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Patent, EmployeeFormData, PatentFormData, FEREntry } from "@/lib/types";
 
@@ -100,6 +101,7 @@ export const createPatent = async (patentData: PatentFormData) => {
           fer_drafter_deadline: patentData.fer_drafter_deadline,
           fer_filer_assgn: patentData.fer_filer_assgn,
           fer_filer_deadline: patentData.fer_filer_deadline,
+          internal_tracking_id: patentData.internal_tracking_id,
         },
       ])
       .select();

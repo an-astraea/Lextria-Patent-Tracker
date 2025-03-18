@@ -141,6 +141,7 @@ export interface PatentFormData {
   cs_data?: boolean;
   cs_data_received?: boolean;
   inventors: { inventor_name: string; inventor_addr: string }[];
+  internal_tracking_id?: string | null;
 }
 
 export interface Employee {
