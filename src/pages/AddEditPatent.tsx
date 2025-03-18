@@ -400,25 +400,15 @@ const AddEditPatent = () => {
       const cleanedFormData = cleanFormData(formData);
       
       if (isEditMode && id) {
-        console.log("Submitting patent update with data:", cleanedFormData);
-        const result = await updatePatent(id, cleanedFormData);
+        const success = await updatePatent(id, cleanedFormData);
         
-        if (result.success) {
-          if (Object.keys(formValues).length > 0) {
-            await updatePatentForms(id, formValues);
-          }
-          
+        if (success && Object.keys(formValues).length > 0) {
+          await updatePatentForms(id, formValues);
+        }
+        
+        if (success) {
           toast.success('Patent updated successfully');
-          
-          // Force a refresh of the patent data to ensure UI displays the latest version
-          if (result.patent) {
-            console.log("Updated patent data:", result.patent);
-          }
-          
-          // Navigate back to patents page to show updated data
           navigate('/patents');
-        } else {
-          toast.error(`Failed to update patent: ${result.message}`);
         }
       } else {
         const newPatent = await createPatent(cleanedFormData);

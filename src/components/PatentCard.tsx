@@ -1,13 +1,24 @@
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { Patent } from '@/lib/types';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Eye, Calendar, User, FileText, Hash, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
 import StatusBadge from './StatusBadge';
+import { Button } from '@/components/ui/button';
+import { 
+  FileText, 
+  Edit, 
+  Trash2, 
+  CalendarClock, 
+  User, 
+  Building,
+  History,
+  Fingerprint,
+  Hash
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
+import TimelineDialog from './TimelineDialog';
 
 interface PatentCardProps {
   patent: Patent;
@@ -15,166 +26,227 @@ interface PatentCardProps {
   onDelete?: (id: string) => void;
 }
 
-const PatentCard: React.FC<PatentCardProps> = ({ patent, showDeadline = false, onDelete }) => {
-  const navigate = useNavigate();
+const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
+  // Get user from localStorage
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
   
-  const upcomingDeadline = React.useMemo(() => {
-    const deadlines = [
-      { type: 'PS Drafter', date: patent.ps_drafter_deadline, status: patent.ps_drafting_status },
-      { type: 'PS Filer', date: patent.ps_filer_deadline, status: patent.ps_filing_status },
-      { type: 'CS Drafter', date: patent.cs_drafter_deadline, status: patent.cs_drafting_status },
-      { type: 'CS Filer', date: patent.cs_filer_deadline, status: patent.cs_filing_status },
-      { type: 'FER Drafter', date: patent.fer_drafter_deadline, status: patent.fer_drafter_status },
-      { type: 'FER Filer', date: patent.fer_filer_deadline, status: patent.fer_filing_status },
-    ]
-      .filter(({ date, status }) => date && status === 0)
-      .sort((a, b) => {
-        if (!a.date) return 1;
-        if (!b.date) return -1;
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
-      });
-    
-    return deadlines.length > 0 ? deadlines[0] : null;
-  }, [patent]);
-  
-  const getStatusText = () => {
+  // Add state for timeline dialog
+  const [showTimelineDialog, setShowTimelineDialog] = useState(false);
+  const [timelineMilestones, setTimelineMilestones] = useState([]);
+
+  const determineStatus = (patent: Patent) => {
     if (patent.ps_completion_status === 1 && patent.cs_completion_status === 1) {
-      return "Completed";
+      return 'completed';
+    } else if ((patent.ps_drafting_status === 1 || patent.cs_drafting_status === 1 || patent.fer_drafter_status === 1) && 
+               (patent.ps_filing_status === 0 || patent.cs_filing_status === 0 || patent.fer_filing_status === 0)) {
+      return 'inProgress';
+    } else if (patent.ps_drafting_status === 0 && patent.cs_drafting_status === 0) {
+      return 'notStarted';
+    } else {
+      return 'pending';
     }
-    if (patent.ps_completion_status === 1 && patent.cs_completion_status === 0) {
-      return "Provisional";
+  };
+
+  const status = determineStatus(patent);
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(patent.id);
+    } else {
+      toast.error("Delete functionality not implemented");
     }
-    if (patent.ps_completion_status === 0) {
-      return "Draft";
-    }
-    return "In Progress";
+  };
+
+  // Find the closest deadline if showDeadline is true
+  const findClosestDeadline = () => {
+    if (!showDeadline) return null;
+    
+    const deadlines = [
+      { label: 'PS Draft', date: patent.ps_drafter_deadline },
+      { label: 'PS File', date: patent.ps_filer_deadline },
+      { label: 'CS Draft', date: patent.cs_drafter_deadline },
+      { label: 'CS File', date: patent.cs_filer_deadline },
+      { label: 'FER Draft', date: patent.fer_drafter_deadline },
+      { label: 'FER File', date: patent.fer_filer_deadline }
+    ].filter(d => d.date);
+    
+    if (deadlines.length === 0) return null;
+    
+    deadlines.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return deadlines[0];
   };
   
-  const handleViewDetails = () => {
-    navigate(`/patents/${patent.id}`);
+  const closestDeadline = findClosestDeadline();
+
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString();
   };
-  
+
+  // Function to generate timeline milestones (simplified for demo)
+  const openTimelineDialog = () => {
+    // In a real app, you might fetch this data from the API
+    // This is simplified mock data based on patent statuses
+    const milestones = [
+      patent.ps_drafting_status === 1 && {
+        id: 'ps-draft',
+        event_type: 'PS Drafting Completed',
+        event_description: 'Provisional specification drafting was completed',
+        created_at: new Date().toISOString(),
+        status: 1,
+        employee_name: patent.ps_drafter_assgn,
+      },
+      patent.ps_filing_status === 1 && {
+        id: 'ps-file',
+        event_type: 'PS Filing Completed',
+        event_description: 'Provisional specification filing was completed',
+        created_at: new Date().toISOString(),
+        status: 1,
+        employee_name: patent.ps_filer_assgn,
+      },
+      patent.cs_drafting_status === 1 && {
+        id: 'cs-draft',
+        event_type: 'CS Drafting Completed',
+        event_description: 'Complete specification drafting was completed',
+        created_at: new Date().toISOString(),
+        status: 1,
+        employee_name: patent.cs_drafter_assgn,
+      },
+      patent.cs_filing_status === 1 && {
+        id: 'cs-file',
+        event_type: 'CS Filing Completed',
+        event_description: 'Complete specification filing was completed',
+        created_at: new Date().toISOString(),
+        status: 1,
+        employee_name: patent.cs_filer_assgn,
+      },
+    ].filter(Boolean);
+    
+    setTimelineMilestones(milestones);
+    setShowTimelineDialog(true);
+  };
+
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div className="space-y-1">
-            <CardTitle className="text-lg line-clamp-1">{patent.patent_title}</CardTitle>
-            <div className="flex flex-wrap gap-1 items-center">
-              <Badge variant="outline" className="flex items-center gap-1">
+    <Card className="overflow-hidden transition-all hover:shadow-md border border-border">
+      <div className="relative p-6">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h3 className="text-lg font-semibold line-clamp-1">{patent.patent_title}</h3>
+            <div className="flex flex-col space-y-1 mt-1">
+              <div className="text-sm text-muted-foreground flex items-center gap-1">
                 <Hash className="h-3 w-3" />
-                {patent.tracking_id}
-              </Badge>
-              
-              {patent.internal_tracking_id && patent.internal_tracking_id !== patent.tracking_id && (
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Hash className="h-3 w-3" />
-                  Int: {patent.internal_tracking_id}
-                </Badge>
+                <span>ID: {patent.tracking_id}</span>
+              </div>
+              {patent.internal_tracking_id && (
+                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Fingerprint className="h-3 w-3" />
+                  <span>Internal ID: {patent.internal_tracking_id}</span>
+                </div>
               )}
             </div>
           </div>
-          
-          <StatusBadge status={getStatusText()} />
+          <StatusBadge status={status} />
         </div>
-      </CardHeader>
-      
-      <CardContent className="pb-2">
-        <div className="space-y-2">
-          <div className="flex flex-wrap gap-y-1 gap-x-4 text-sm text-gray-500">
-            <div className="flex items-center gap-1">
-              <User className="h-4 w-4" />
-              <span>{patent.patent_applicant}</span>
-            </div>
-            
-            <div className="flex items-center gap-1">
-              <FileText className="h-4 w-4" />
-              <span>Client: {patent.client_id}</span>
-            </div>
-            
-            {patent.date_of_filing && (
-              <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                <span>Filed: {format(new Date(patent.date_of_filing), 'dd MMM yyyy')}</span>
-              </div>
-            )}
-          </div>
-          
-          {showDeadline && upcomingDeadline && (
-            <div className="mt-2">
-              <Badge variant="outline" className="flex items-center gap-1 bg-yellow-50">
-                <Calendar className="h-3 w-3 text-yellow-600" />
-                <span className="text-yellow-800">
-                  {upcomingDeadline.type} Deadline: {format(new Date(upcomingDeadline.date!), 'dd MMM yyyy')}
-                </span>
-              </Badge>
-            </div>
-          )}
-          
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <div className="space-y-1">
-              <h4 className="text-xs font-medium text-gray-500">PS Status</h4>
-              <div className="flex flex-wrap gap-1">
-                <Badge variant={patent.ps_drafting_status ? "success" : "outline"} className="text-[10px]">
-                  Drafting
-                </Badge>
-                <Badge variant={patent.ps_filing_status ? "success" : "outline"} className="text-[10px]">
-                  Filing
-                </Badge>
-              </div>
-            </div>
-            
-            <div className="space-y-1">
-              <h4 className="text-xs font-medium text-gray-500">CS Status</h4>
-              <div className="flex flex-wrap gap-1">
-                <Badge variant={patent.cs_drafting_status ? "success" : "outline"} className="text-[10px]">
-                  Drafting
-                </Badge>
-                <Badge variant={patent.cs_filing_status ? "success" : "outline"} className="text-[10px]">
-                  Filing
-                </Badge>
-              </div>
-            </div>
-          </div>
-          
-          {patent.fer_status === 1 && (
-            <div className="space-y-1 mt-2">
-              <h4 className="text-xs font-medium text-gray-500">FER Status</h4>
-              <div className="flex flex-wrap gap-1">
-                <Badge variant={patent.fer_drafter_status ? "success" : "outline"} className="text-[10px]">
-                  Drafting
-                </Badge>
-                <Badge variant={patent.fer_filing_status ? "success" : "outline"} className="text-[10px]">
-                  Filing
-                </Badge>
-              </div>
-            </div>
-          )}
-        </div>
-      </CardContent>
-      
-      <CardFooter className={onDelete ? "flex justify-between gap-2" : ""}>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleViewDetails} 
-          className={onDelete ? "flex-1" : "w-full"}
-        >
-          <Eye className="h-4 w-4 mr-2" />
-          View Details
-        </Button>
         
-        {onDelete && (
+        <div className="grid grid-cols-1 gap-3 mb-4">
+          <div className="flex items-center gap-2">
+            <Building className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">{patent.patent_applicant}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">Client: {patent.client_id}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CalendarClock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">Filed: {formatDate(patent.date_of_filing)}</span>
+          </div>
+          
+          {closestDeadline && (
+            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md text-sm">
+              <span className="font-medium">{closestDeadline.label} Deadline:</span> {formatDate(closestDeadline.date)}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-2 mt-3">
+          {patent.ps_drafting_status === 1 && (
+            <Badge variant="secondary" className="text-xs">PS Draft Complete</Badge>
+          )}
+          {patent.ps_filing_status === 1 && (
+            <Badge variant="secondary" className="text-xs">PS File Complete</Badge>
+          )}
+          {patent.cs_drafting_status === 1 && (
+            <Badge variant="secondary" className="text-xs">CS Draft Complete</Badge>
+          )}
+          {patent.cs_filing_status === 1 && (
+            <Badge variant="secondary" className="text-xs">CS File Complete</Badge>
+          )}
+          {patent.fer_drafter_status === 1 && (
+            <Badge variant="secondary" className="text-xs">FER Draft Complete</Badge>
+          )}
+          {patent.fer_filing_status === 1 && (
+            <Badge variant="secondary" className="text-xs">FER File Complete</Badge>
+          )}
+        </div>
+      </div>
+      
+      <CardFooter className="flex justify-between bg-muted/30 p-4 border-t">
+        <div className="flex items-center gap-1">
+          <Link to={`/patents/${patent.id}`}>
+            <Button variant="ghost" size="sm" className="flex items-center gap-1">
+              <FileText className="h-4 w-4" />
+              <span>View</span>
+            </Button>
+          </Link>
+          
           <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => onDelete(patent.id)}
-            className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-200"
+            variant="ghost" 
+            size="sm" 
+            className="flex items-center gap-1"
+            onClick={openTimelineDialog}
           >
-            <Trash2 className="h-4 w-4" />
+            <History className="h-4 w-4" />
+            <span>Timeline</span>
           </Button>
-        )}
+        </div>
+        
+        <div className="flex items-center gap-1">
+          {user?.role === 'admin' && (
+            <>
+              <Link to={`/patents/edit/${patent.id}`}>
+                <Button variant="ghost" size="sm">
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </Link>
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleDelete}
+                className="hover:text-destructive"
+                disabled={!onDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
       </CardFooter>
+
+      {/* Timeline Dialog with all required props */}
+      <TimelineDialog 
+        open={showTimelineDialog} 
+        onOpenChange={setShowTimelineDialog} 
+        milestones={timelineMilestones}
+        patent={patent}
+      >
+        <Button variant="ghost" size="sm" className="flex items-center gap-1">
+          <History className="h-4 w-4" />
+          <span>Timeline</span>
+        </Button>
+      </TimelineDialog>
     </Card>
   );
 };

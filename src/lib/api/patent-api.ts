@@ -102,10 +102,6 @@ export const createPatent = async (patentData: PatentFormData) => {
           fer_drafter_deadline: patentData.fer_drafter_deadline,
           fer_filer_assgn: patentData.fer_filer_assgn,
           fer_filer_deadline: patentData.fer_filer_deadline,
-          idf_sent: patentData.idf_sent,
-          idf_received: patentData.idf_received,
-          cs_data: patentData.cs_data,
-          cs_data_received: patentData.cs_data_received
         },
       ])
       .select();
@@ -146,24 +142,11 @@ export const createPatent = async (patentData: PatentFormData) => {
 // Update an existing patent
 export const updatePatent = async (id: string, patentData: Partial<PatentFormData>) => {
   try {
-    console.log("Updating patent with data:", patentData);
-    
-    // Create a new object with explicitly set internal_tracking_id
-    const updateData = {
-      ...patentData
-    };
-    
-    // Make sure internal_tracking_id doesn't get nullified if not provided
-    if (patentData.internal_tracking_id === undefined) {
-      delete updateData.internal_tracking_id;
-    } else {
-      // Log to confirm internal_tracking_id is being sent to the database
-      console.log("Setting internal_tracking_id to:", patentData.internal_tracking_id);
-    }
-    
     const { data, error } = await supabase
       .from("patents")
-      .update(updateData)
+      .update({
+        ...patentData,
+      })
       .eq("id", id)
       .select();
 
@@ -172,7 +155,6 @@ export const updatePatent = async (id: string, patentData: Partial<PatentFormDat
       return { success: false, message: error.message };
     }
 
-    console.log("Patent updated successfully:", data);
     return { success: true, message: "Patent updated successfully", patent: data[0] };
   } catch (error: any) {
     console.error("Error in updatePatent:", error);
