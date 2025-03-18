@@ -26,15 +26,13 @@ const PatentBasicInfo: React.FC<PatentBasicInfoProps> = ({ patent }) => {
             <p className="text-sm">{patent.tracking_id}</p>
           </div>
           
-          {patent.internal_tracking_id && patent.internal_tracking_id !== patent.tracking_id && (
-            <div className="space-y-1">
-              <div className="text-sm font-medium flex items-center gap-1">
-                <Hash className="h-4 w-4 text-muted-foreground" />
-                <span>Internal Tracking ID:</span>
-              </div>
-              <p className="text-sm">{patent.internal_tracking_id}</p>
+          <div className="space-y-1">
+            <div className="text-sm font-medium flex items-center gap-1">
+              <Hash className="h-4 w-4 text-muted-foreground" />
+              <span>Internal Tracking ID:</span>
             </div>
-          )}
+            <p className="text-sm">{patent.internal_tracking_id || patent.tracking_id}</p>
+          </div>
           
           <div className="space-y-1">
             <div className="text-sm font-medium flex items-center gap-1">
