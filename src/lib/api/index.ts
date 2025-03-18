@@ -168,7 +168,7 @@ export const fetchEmployees = async () => {
 
 // Re-export other functions from individual files
 export * from './auth-api';
-export * from './patent-api';
+export * from './patent/index';
 export * from './employee-api';
 export * from './drafter-api';
 export * from './filer-api';
