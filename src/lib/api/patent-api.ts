@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Patent, EmployeeFormData, PatentFormData, FEREntry } from "@/lib/types";
 
@@ -101,7 +100,6 @@ export const createPatent = async (patentData: PatentFormData) => {
           fer_drafter_deadline: patentData.fer_drafter_deadline,
           fer_filer_assgn: patentData.fer_filer_assgn,
           fer_filer_deadline: patentData.fer_filer_deadline,
-          internal_tracking_id: patentData.internal_tracking_id,
         },
       ])
       .select();
@@ -152,13 +150,13 @@ export const updatePatent = async (id: string, patentData: Partial<PatentFormDat
 
     if (error) {
       console.error("Error updating patent:", error);
-      return false;
+      return { success: false, message: error.message };
     }
 
-    return true;
+    return { success: true, message: "Patent updated successfully", patent: data[0] };
   } catch (error: any) {
     console.error("Error in updatePatent:", error);
-    return false;
+    return { success: false, message: error.message || "An unexpected error occurred" };
   }
 };
 
@@ -224,44 +222,34 @@ export const updatePatentNotes = async (patentId: string, notes: string) => {
 
 // Update patent forms
 export const updatePatentForms = async (patentId: string, formData: Record<string, boolean>) => {
-  try {
-    const { data, error } = await supabase
-      .from('patents')
-      .update(formData)
-      .eq('id', patentId)
-      .select();
-    
-    if (error) {
-      console.error('Error updating patent forms:', error);
-      return false;
-    }
-    
-    return true;
-  } catch (error: any) {
-    console.error('Error in updatePatentForms:', error);
+  const { data, error } = await supabase
+    .from('patents')
+    .update(formData)
+    .eq('id', patentId)
+    .select();
+  
+  if (error) {
+    console.error('Error updating patent forms:', error);
     return false;
   }
+  
+  return true;
 };
 
 // Function to update FER entry
 export const updateFEREntry = async (ferEntryId: string, ferData: Partial<FEREntry>) => {
-  try {
-    const { data, error } = await supabase
-      .from('fer_entries')
-      .update(ferData)
-      .eq('id', ferEntryId)
-      .select();
-    
-    if (error) {
-      console.error('Error updating FER entry:', error);
-      return false;
-    }
-    
-    return true;
-  } catch (error: any) {
-    console.error('Error in updateFEREntry:', error);
+  const { data, error } = await supabase
+    .from('fer_entries')
+    .update(ferData)
+    .eq('id', ferEntryId)
+    .select();
+  
+  if (error) {
+    console.error('Error updating FER entry:', error);
     return false;
   }
+  
+  return true;
 };
 
 // Function to update patent payment information

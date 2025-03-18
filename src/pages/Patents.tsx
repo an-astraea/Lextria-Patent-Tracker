@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Search, Filter, X } from 'lucide-react';
@@ -34,7 +35,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import SearchFilters from '@/components/common/SearchFilters';
 
 const Patents = () => {
   const navigate = useNavigate();
@@ -44,6 +44,7 @@ const Patents = () => {
   const [loading, setLoading] = useState(true);
   const [patentToDelete, setPatentToDelete] = useState<string | null>(null);
   
+  // Advanced filters
   const [filters, setFilters] = useState({
     draftingStatus: null as string | null,
     filingStatus: null as string | null,
@@ -56,11 +57,17 @@ const Patents = () => {
     },
   });
   
+  // For non-realtime search
+  const [pendingSearchQuery, setPendingSearchQuery] = useState('');
+  
+  // Get unique client IDs for filtering
   const uniqueClientIds = [...new Set(patents.map(patent => patent.client_id))];
   
+  // Get user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
+  // Fetch patents from Supabase
   useEffect(() => {
     const getData = async () => {
       try {
@@ -79,9 +86,11 @@ const Patents = () => {
     getData();
   }, []);
   
+  // Apply filters but not search query (it will only apply on button click)
   useEffect(() => {
     let filtered = patents;
     
+    // Apply drafting status filter
     if (filters.draftingStatus) {
       filtered = filtered.filter(patent => {
         if (filters.draftingStatus === 'ps_drafting_complete') {
@@ -101,6 +110,7 @@ const Patents = () => {
       });
     }
     
+    // Apply filing status filter
     if (filters.filingStatus) {
       filtered = filtered.filter(patent => {
         if (filters.filingStatus === 'ps_filing_complete') {
@@ -120,6 +130,7 @@ const Patents = () => {
       });
     }
     
+    // Apply FER status filter
     if (filters.ferStatus) {
       filtered = filtered.filter(patent => {
         if (filters.ferStatus === 'active') {
@@ -131,6 +142,7 @@ const Patents = () => {
       });
     }
     
+    // Apply general patent status filter
     if (filters.patentStatus) {
       filtered = filtered.filter(patent => {
         if (filters.patentStatus === 'withdrawn') {
@@ -150,10 +162,12 @@ const Patents = () => {
       });
     }
     
+    // Apply client ID filter
     if (filters.clientId) {
       filtered = filtered.filter(patent => patent.client_id === filters.clientId);
     }
     
+    // Apply date range filter
     if (filters.dateRange.start || filters.dateRange.end) {
       filtered = filtered.filter(patent => {
         const filingDate = new Date(patent.date_of_filing);
@@ -172,51 +186,34 @@ const Patents = () => {
       });
     }
     
+    // Apply text search filter only if there's an active search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(
-        (patent) => {
-          return (
-            patent.patent_title?.toLowerCase().includes(query) ||
-            patent.tracking_id?.toLowerCase().includes(query) ||
-            patent.patent_applicant?.toLowerCase().includes(query) ||
-            patent.client_id?.toLowerCase().includes(query) ||
-            (patent.application_no && patent.application_no.toLowerCase().includes(query)) ||
-            
-            (patent.applicant_addr && patent.applicant_addr.toLowerCase().includes(query)) ||
-            (patent.inventor_ph_no && patent.inventor_ph_no.toLowerCase().includes(query)) ||
-            (patent.inventor_email && patent.inventor_email.toLowerCase().includes(query)) ||
-            
-            (patent.ps_drafter_assgn && patent.ps_drafter_assgn.toLowerCase().includes(query)) ||
-            (patent.ps_filer_assgn && patent.ps_filer_assgn.toLowerCase().includes(query)) ||
-            (patent.cs_drafter_assgn && patent.cs_drafter_assgn.toLowerCase().includes(query)) ||
-            (patent.cs_filer_assgn && patent.cs_filer_assgn.toLowerCase().includes(query)) ||
-            (patent.fer_drafter_assgn && patent.fer_drafter_assgn.toLowerCase().includes(query)) ||
-            (patent.fer_filer_assgn && patent.fer_filer_assgn.toLowerCase().includes(query)) ||
-            
-            (patent.date_of_filing && patent.date_of_filing.toLowerCase().includes(query)) ||
-            (patent.ps_drafter_deadline && patent.ps_drafter_deadline.toLowerCase().includes(query)) ||
-            (patent.ps_filer_deadline && patent.ps_filer_deadline.toLowerCase().includes(query)) ||
-            (patent.cs_drafter_deadline && patent.cs_drafter_deadline.toLowerCase().includes(query)) ||
-            (patent.cs_filer_deadline && patent.cs_filer_deadline.toLowerCase().includes(query)) ||
-            (patent.fer_drafter_deadline && patent.fer_drafter_deadline.toLowerCase().includes(query)) ||
-            (patent.fer_filer_deadline && patent.fer_filer_deadline.toLowerCase().includes(query))
-          );
-        }
+        (patent) =>
+          patent.patent_title.toLowerCase().includes(query) ||
+          patent.tracking_id.toLowerCase().includes(query) ||
+          patent.patent_applicant.toLowerCase().includes(query) ||
+          patent.client_id.toLowerCase().includes(query) ||
+          (patent.application_no && patent.application_no.toLowerCase().includes(query)) ||
+          (patent.ps_drafter_assgn && patent.ps_drafter_assgn.toLowerCase().includes(query)) ||
+          (patent.ps_filer_assgn && patent.ps_filer_assgn.toLowerCase().includes(query)) ||
+          (patent.cs_drafter_assgn && patent.cs_drafter_assgn.toLowerCase().includes(query)) ||
+          (patent.cs_filer_assgn && patent.cs_filer_assgn.toLowerCase().includes(query)) ||
+          (patent.fer_drafter_assgn && patent.fer_drafter_assgn.toLowerCase().includes(query)) ||
+          (patent.fer_filer_assgn && patent.fer_filer_assgn.toLowerCase().includes(query))
       );
     }
     
     setFilteredPatents(filtered);
   }, [searchQuery, patents, filters]);
   
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-  };
-
-  const handleClearSearch = () => {
-    setSearchQuery('');
+  // Function to handle search execution (only on button click)
+  const handleSearch = () => {
+    setSearchQuery(pendingSearchQuery);
   };
   
+  // Handle delete patent
   const handleDeletePatent = async (id: string) => {
     try {
       const success = await deletePatent(id);
@@ -253,6 +250,7 @@ const Patents = () => {
       },
     });
     setSearchQuery('');
+    setPendingSearchQuery('');
   };
   
   const getInProgressPatents = () => {
@@ -305,12 +303,175 @@ const Patents = () => {
         )}
       </div>
       
-      <SearchFilters 
-        onSearch={handleSearch} 
-        placeholder="Search patents by any detail..."
-        searchQuery={searchQuery}
-        onClearSearch={handleClearSearch}
-      />
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-grow">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search patents..."
+            className="pl-10"
+            value={pendingSearchQuery}
+            onChange={(e) => setPendingSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSearch();
+              }
+            }}
+          />
+        </div>
+        
+        <Button variant="secondary" onClick={handleSearch}>
+          <Search className="mr-2 h-4 w-4" />
+          Search
+        </Button>
+        
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="sm:w-auto relative">
+              <Filter className="mr-2 h-4 w-4" />
+              Filters
+              {getActiveFiltersCount() > 0 && (
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center">
+                  {getActiveFiltersCount()}
+                </Badge>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h4 className="font-medium">Filter Patents</h4>
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2">
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              </div>
+              
+              <div className="space-y-2">
+                <h5 className="text-sm font-medium">Patent Status</h5>
+                <Select 
+                  value={filters.patentStatus || undefined} 
+                  onValueChange={(value) => setFilters({...filters, patentStatus: value || null})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="withdrawn">Withdrawn</SelectItem>
+                    <SelectItem value="idf_sent">IDF Sent</SelectItem>
+                    <SelectItem value="idf_received">IDF Received</SelectItem>
+                    <SelectItem value="cs_data_sent">CS Data Sent</SelectItem>
+                    <SelectItem value="cs_data_received">CS Data Received</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <h5 className="text-sm font-medium">Drafting Status</h5>
+                <Select 
+                  value={filters.draftingStatus || undefined} 
+                  onValueChange={(value) => setFilters({...filters, draftingStatus: value || null})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ps_drafting_complete">PS Drafting Complete</SelectItem>
+                    <SelectItem value="ps_drafting_pending">PS Drafting Pending</SelectItem>
+                    <SelectItem value="cs_drafting_complete">CS Drafting Complete</SelectItem>
+                    <SelectItem value="cs_drafting_pending">CS Drafting Pending</SelectItem>
+                    <SelectItem value="fer_drafting_complete">FER Drafting Complete</SelectItem>
+                    <SelectItem value="fer_drafting_pending">FER Drafting Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <h5 className="text-sm font-medium">Filing Status</h5>
+                <Select 
+                  value={filters.filingStatus || undefined} 
+                  onValueChange={(value) => setFilters({...filters, filingStatus: value || null})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ps_filing_complete">PS Filing Complete</SelectItem>
+                    <SelectItem value="ps_filing_pending">PS Filing Pending</SelectItem>
+                    <SelectItem value="cs_filing_complete">CS Filing Complete</SelectItem>
+                    <SelectItem value="cs_filing_pending">CS Filing Pending</SelectItem>
+                    <SelectItem value="fer_filing_complete">FER Filing Complete</SelectItem>
+                    <SelectItem value="fer_filing_pending">FER Filing Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <h5 className="text-sm font-medium">FER Status</h5>
+                <Select 
+                  value={filters.ferStatus || undefined} 
+                  onValueChange={(value) => setFilters({...filters, ferStatus: value || null})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <h5 className="text-sm font-medium">Client ID</h5>
+                <Select 
+                  value={filters.clientId || undefined} 
+                  onValueChange={(value) => setFilters({...filters, clientId: value || null})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {uniqueClientIds.map(clientId => (
+                      <SelectItem key={clientId} value={clientId}>{clientId}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <h5 className="text-sm font-medium">Filing Date Range</h5>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="start-date">From</Label>
+                    <Input
+                      id="start-date"
+                      type="date"
+                      value={filters.dateRange.start || ''}
+                      onChange={(e) => setFilters({
+                        ...filters, 
+                        dateRange: {...filters.dateRange, start: e.target.value || null}
+                      })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="end-date">To</Label>
+                    <Input
+                      id="end-date"
+                      type="date"
+                      value={filters.dateRange.end || ''}
+                      onChange={(e) => setFilters({
+                        ...filters, 
+                        dateRange: {...filters.dateRange, end: e.target.value || null}
+                      })}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
       
       {getActiveFiltersCount() > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -391,30 +552,6 @@ const Patents = () => {
                 <X className="h-3 w-3" />
               </Button>
             </Badge>
-          )}
-          {searchQuery && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Search: {searchQuery}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleClearSearch}
-                className="h-4 w-4 p-0 ml-1"
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
-          )}
-          
-          {getActiveFiltersCount() > 1 && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={clearFilters}
-              className="ml-auto"
-            >
-              Clear All Filters
-            </Button>
           )}
         </div>
       )}
@@ -511,4 +648,3 @@ const Patents = () => {
 };
 
 export default Patents;
-

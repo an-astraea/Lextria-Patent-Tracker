@@ -18,9 +18,8 @@ const AssignmentDetails: React.FC<AssignmentDetailsProps> = ({ patent }) => {
   const isFERDrafterAssigned = () => patent.fer_drafter_assgn && patent.fer_drafter_assgn.trim() !== '';
   const isFERFilerAssigned = () => patent.fer_filer_assgn && patent.fer_filer_assgn.trim() !== '';
   
-  // Show as workable regardless of IDF/CS data status to fix the assignment display
-  const canWorkOnPSDrafting = true;
-  const canWorkOnCSDrafting = true;
+  const canWorkOnPSDrafting = patent.idf_received === true;
+  const canWorkOnCSDrafting = patent.cs_data === true && patent.cs_data_received === true;
 
   return (
     <Card>
@@ -37,7 +36,7 @@ const AssignmentDetails: React.FC<AssignmentDetailsProps> = ({ patent }) => {
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">
                     Drafter: {patent.ps_drafter_assgn}
-                    {!patent.idf_received && <span className="text-amber-500 text-xs ml-1">(Waiting for IDF)</span>}
+                    {!canWorkOnPSDrafting && <span className="text-amber-500 text-xs ml-1">(Waiting for IDF)</span>}
                   </span>
                 </div>
               )}
@@ -53,7 +52,7 @@ const AssignmentDetails: React.FC<AssignmentDetailsProps> = ({ patent }) => {
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">
                     Filer: {patent.ps_filer_assgn}
-                    {!patent.idf_received && <span className="text-amber-500 text-xs ml-1">(Waiting for IDF)</span>}
+                    {!canWorkOnPSDrafting && <span className="text-amber-500 text-xs ml-1">(Waiting for IDF)</span>}
                   </span>
                 </div>
               )}
@@ -74,7 +73,7 @@ const AssignmentDetails: React.FC<AssignmentDetailsProps> = ({ patent }) => {
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">
                     Drafter: {patent.cs_drafter_assgn}
-                    {!patent.cs_data_received && <span className="text-amber-500 text-xs ml-1">(Waiting for CS Data)</span>}
+                    {!canWorkOnCSDrafting && <span className="text-amber-500 text-xs ml-1">(Waiting for CS Data)</span>}
                   </span>
                 </div>
               )}
@@ -90,7 +89,7 @@ const AssignmentDetails: React.FC<AssignmentDetailsProps> = ({ patent }) => {
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">
                     Filer: {patent.cs_filer_assgn}
-                    {!patent.cs_data_received && <span className="text-amber-500 text-xs ml-1">(Waiting for CS Data)</span>}
+                    {!canWorkOnCSDrafting && <span className="text-amber-500 text-xs ml-1">(Waiting for CS Data)</span>}
                   </span>
                 </div>
               )}

@@ -1,136 +1,136 @@
 
 import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Patent } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { format } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
-import { Lock, Calendar, Hash, User, Building, Phone, Mail, AlertTriangle, CheckCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface PatentBasicInfoProps {
   patent: Patent;
 }
 
 const PatentBasicInfo: React.FC<PatentBasicInfoProps> = ({ patent }) => {
+  // Format date function
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
+  };
+
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Basic Information</CardTitle>
+      <CardHeader>
+        <CardTitle>Patent Information</CardTitle>
+        <CardDescription>Details about the patent application</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <div className="text-sm font-medium flex items-center gap-1">
-              <Hash className="h-4 w-4 text-muted-foreground" />
-              <span>Tracking ID:</span>
+          <div>
+            <div className="text-sm font-medium text-gray-500">Tracking ID</div>
+            <div className="font-semibold">{patent.tracking_id || 'N/A'}</div>
+          </div>
+          <div>
+            <div className="text-sm font-medium text-gray-500">Patent Applicant</div>
+            <div className="font-semibold">{patent.patent_applicant || 'N/A'}</div>
+          </div>
+          <div>
+            <div className="text-sm font-medium text-gray-500">Client ID</div>
+            <div className="font-semibold">{patent.client_id || 'N/A'}</div>
+          </div>
+          <div>
+            <div className="text-sm font-medium text-gray-500">Application No</div>
+            <div className="font-semibold">{patent.application_no || 'N/A'}</div>
+          </div>
+          <div>
+            <div className="text-sm font-medium text-gray-500">Date of Filing</div>
+            <div className="font-semibold">{formatDate(patent.date_of_filing)}</div>
+          </div>
+          <div>
+            <div className="text-sm font-medium text-gray-500">Patent Title</div>
+            <div className="font-semibold">{patent.patent_title || 'N/A'}</div>
+          </div>
+          <div>
+            <div className="text-sm font-medium text-gray-500">Applicant Address</div>
+            <div className="font-semibold">{patent.applicant_addr || 'N/A'}</div>
+          </div>
+          <div>
+            <div className="text-sm font-medium text-gray-500">Inventor Phone No</div>
+            <div className="font-semibold">{patent.inventor_ph_no || 'N/A'}</div>
+          </div>
+          <div>
+            <div className="text-sm font-medium text-gray-500">Inventor Email</div>
+            <div className="font-semibold">{patent.inventor_email || 'N/A'}</div>
+          </div>
+          <div>
+            <div className="text-sm font-medium text-gray-500">PS Drafter</div>
+            <div className="font-semibold flex items-center gap-1">
+              {patent.ps_drafter_assgn || 'N/A'}
+              {patent.ps_drafter_assgn && patent.idf_received !== true && (
+                <div className="flex items-center gap-1 text-amber-500 text-xs">
+                  <AlertCircle className="h-3 w-3" /> Waiting for IDF
+                </div>
+              )}
+              {patent.ps_drafter_assgn && patent.idf_received === true && (
+                <div className="flex items-center gap-1 text-green-500 text-xs">
+                  <CheckCircle2 className="h-3 w-3" /> IDF Received
+                </div>
+              )}
             </div>
-            <p className="text-sm">{patent.tracking_id}</p>
           </div>
-          
-          <div className="space-y-1">
-            <div className="text-sm font-medium flex items-center gap-1">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span>Patent Applicant:</span>
-            </div>
-            <p className="text-sm">{patent.patent_applicant}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <div className="text-sm font-medium flex items-center gap-1">
-              <Building className="h-4 w-4 text-muted-foreground" />
-              <span>Client ID:</span>
-            </div>
-            <p className="text-sm">{patent.client_id}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <div className="text-sm font-medium flex items-center gap-1">
-              <Lock className="h-4 w-4 text-muted-foreground" />
-              <span>Application No:</span>
-            </div>
-            <p className="text-sm">
-              {patent.application_no || 'Not assigned yet'}
-            </p>
-          </div>
-          
-          <div className="space-y-1">
-            <div className="text-sm font-medium flex items-center gap-1">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>Date of Filing:</span>
-            </div>
-            <p className="text-sm">
-              {patent.date_of_filing 
-                ? format(new Date(patent.date_of_filing), 'dd MMM yyyy')
-                : 'Not filed yet'}
-            </p>
-          </div>
-          
-          <div className="md:col-span-2 space-y-1">
-            <div className="text-sm font-medium">Patent Title:</div>
-            <p className="text-sm">{patent.patent_title}</p>
-          </div>
-          
-          <div className="md:col-span-2 space-y-1">
-            <div className="text-sm font-medium">Applicant Address:</div>
-            <p className="text-sm whitespace-pre-line">{patent.applicant_addr}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <div className="text-sm font-medium flex items-center gap-1">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span>Inventor Phone:</span>
-            </div>
-            <p className="text-sm">{patent.inventor_ph_no}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <div className="text-sm font-medium flex items-center gap-1">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <span>Inventor Email:</span>
-            </div>
-            <p className="text-sm">{patent.inventor_email}</p>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="text-sm font-medium">IDF Status:</div>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant={patent.idf_sent ? "success" : "outline"} className="flex items-center gap-1">
-                {patent.idf_sent ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-                <span>{patent.idf_sent ? "Sent" : "Not Sent"}</span>
-              </Badge>
-              <Badge variant={patent.idf_received ? "success" : "outline"} className="flex items-center gap-1">
-                {patent.idf_received ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-                <span>{patent.idf_received ? "Received" : "Not Received"}</span>
-              </Badge>
+          <div>
+            <div className="text-sm font-medium text-gray-500">CS Drafter</div>
+            <div className="font-semibold flex items-center gap-1">
+              {patent.cs_drafter_assgn || 'N/A'}
+              {patent.cs_drafter_assgn && (patent.cs_data !== true || patent.cs_data_received !== true) && (
+                <div className="flex items-center gap-1 text-amber-500 text-xs">
+                  <AlertCircle className="h-3 w-3" /> Waiting for CS Data
+                </div>
+              )}
+              {patent.cs_drafter_assgn && patent.cs_data === true && patent.cs_data_received === true && (
+                <div className="flex items-center gap-1 text-green-500 text-xs">
+                  <CheckCircle2 className="h-3 w-3" /> CS Data Received
+                </div>
+              )}
             </div>
           </div>
           
-          <div className="space-y-2">
-            <div className="text-sm font-medium">CS Data Status:</div>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant={patent.cs_data ? "success" : "outline"} className="flex items-center gap-1">
-                {patent.cs_data ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-                <span>{patent.cs_data ? "CS Data Sent" : "CS Data Not Sent"}</span>
-              </Badge>
-              <Badge variant={patent.cs_data_received ? "success" : "outline"} className="flex items-center gap-1">
-                {patent.cs_data_received ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-                <span>{patent.cs_data_received ? "CS Data Received" : "CS Data Not Received"}</span>
-              </Badge>
+          {/* Status indicators */}
+          <div>
+            <div className="text-sm font-medium text-gray-500">IDF Status</div>
+            <div className="font-semibold">
+              {patent.idf_sent ? (
+                <span className="text-green-500">Sent</span>
+              ) : (
+                <span className="text-gray-400">Not Sent</span>
+              )}
+              {' | '}
+              {patent.idf_received ? (
+                <span className="text-green-500">Received</span>
+              ) : (
+                <span className="text-gray-400">Not Received</span>
+              )}
             </div>
           </div>
           
-          {patent.created_at && (
-            <div className="space-y-1">
-              <div className="text-sm font-medium">Created:</div>
-              <p className="text-sm">{format(new Date(patent.created_at), 'dd MMM yyyy HH:mm')}</p>
+          <div>
+            <div className="text-sm font-medium text-gray-500">CS Data Status</div>
+            <div className="font-semibold">
+              {patent.cs_data ? (
+                <span className="text-green-500">Sent</span>
+              ) : (
+                <span className="text-gray-400">Not Sent</span>
+              )}
+              {' | '}
+              {patent.cs_data_received ? (
+                <span className="text-green-500">Received</span>
+              ) : (
+                <span className="text-gray-400">Not Received</span>
+              )}
             </div>
-          )}
-          
-          {patent.updated_at && (
-            <div className="space-y-1">
-              <div className="text-sm font-medium">Last Updated:</div>
-              <p className="text-sm">{format(new Date(patent.updated_at), 'dd MMM yyyy HH:mm')}</p>
-            </div>
-          )}
+          </div>
         </div>
       </CardContent>
     </Card>
