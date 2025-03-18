@@ -4,34 +4,23 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   fetchPatentById,
+  createPatent,
   updatePatent,
-  createInventor,
-  updatePatentNotes,
-  fetchPatentTimeline,
-  updatePatentForms,
 } from '@/lib/api';
-import { Patent, PatentFormData, InventorInfo } from '@/lib/types';
+import { Patent, PatentFormData } from '@/lib/types';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/hooks/useAuth";
+import PatentForm from '@/components/patent/PatientForm';
+import LoadingState from '@/components/common/LoadingState';
 
 const AddEditPatent = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const [patent, setPatent] = useState<Patent | null>(null);
 
   useEffect(() => {
@@ -44,8 +33,8 @@ const AddEditPatent = () => {
     setIsLoading(true);
     try {
       const response = await fetchPatentById(patentId);
-      if (response.success && response.patent) {
-        setPatent(response.patent);
+      if (response) {
+        setPatent(response);
       } else {
         toast.error('Failed to load patent details');
       }
@@ -57,13 +46,40 @@ const AddEditPatent = () => {
     }
   };
 
+  const handleSavePatent = async (formData: PatentFormData) => {
+    setIsSaving(true);
+    try {
+      if (id) {
+        // Update existing patent
+        const response = await updatePatent(id, formData);
+        if (response.success) {
+          toast.success('Patent updated successfully');
+          navigate('/patents');
+        } else {
+          toast.error(response.message || 'Failed to update patent');
+        }
+      } else {
+        // Create new patent
+        const response = await createPatent(formData);
+        if (response.success) {
+          toast.success('Patent created successfully');
+          navigate('/patents');
+        } else {
+          toast.error(response.message || 'Failed to create patent');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving patent:', error);
+      toast.error('An error occurred while saving the patent');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Loading Patent Data...</h2>
-          <p>Please wait while we fetch the patent information.</p>
-        </div>
+      <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <LoadingState text="Loading Patent Data..." className="min-h-[50vh]" />
       </div>
     );
   }
@@ -77,14 +93,27 @@ const AddEditPatent = () => {
         </Button>
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>{id ? 'Patent Details' : 'New Patent Information'}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Patent form will be implemented here</p>
-        </CardContent>
-      </Card>
+      <ScrollArea className="h-[calc(100vh-200px)]">
+        <div className="pr-4 pb-8">
+          {id && !patent ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Patent Not Found</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>The patent you're looking for could not be found.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <PatentForm
+              initialData={patent as PatentFormData}
+              onSubmit={handleSavePatent}
+              isEditMode={!!id}
+              isLoading={isSaving}
+            />
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 };
