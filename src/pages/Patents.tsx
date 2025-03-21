@@ -1,43 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, Search, Filter, X } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Patent } from '@/lib/types';
-import { useNavigate } from 'react-router-dom';
-import PatentCard from '@/components/PatentCard';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { fetchPatentsAndEmployees, deletePatent } from '@/lib/api';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import SearchFilters from '@/components/common/SearchFilters';
+import PatentListHeader from '@/components/patents/PatentListHeader';
+import PatentFilters from '@/components/patents/PatentFilters';
+import PatentListTabs from '@/components/patents/PatentListTabs';
+import DeletePatentDialog from '@/components/patents/DeletePatentDialog';
 
 const Patents = () => {
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchField, setSearchField] = useState<string | undefined>(undefined);
   const [patents, setPatents] = useState<Patent[]>([]);
@@ -353,192 +324,30 @@ const Patents = () => {
   
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold tracking-tight">Patents</h1>
-        {user?.role === 'admin' && (
-          <Button onClick={() => navigate('/patents/add')} className="sm:w-auto">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Patent
-          </Button>
-        )}
-      </div>
+      <PatentListHeader userRole={user?.role} />
       
-      <SearchFilters 
-        onSearch={handleSearch} 
-        placeholder="Search patents..."
+      <PatentFilters 
+        filters={filters}
+        setFilters={setFilters}
         searchFields={searchFields}
+        onSearch={handleSearch}
+        getActiveFiltersCount={getActiveFiltersCount}
       />
       
-      {getActiveFiltersCount() > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {filters.patentStatus && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Status: {filters.patentStatus.replace('_', ' ')}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setFilters({...filters, patentStatus: null})}
-                className="h-4 w-4 p-0 ml-1"
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
-          )}
-          {filters.draftingStatus && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Drafting: {filters.draftingStatus.replace('_', ' ')}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setFilters({...filters, draftingStatus: null})}
-                className="h-4 w-4 p-0 ml-1"
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
-          )}
-          {filters.filingStatus && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Filing: {filters.filingStatus.replace('_', ' ')}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setFilters({...filters, filingStatus: null})}
-                className="h-4 w-4 p-0 ml-1"
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
-          )}
-          {filters.ferStatus && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              FER: {filters.ferStatus}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setFilters({...filters, ferStatus: null})}
-                className="h-4 w-4 p-0 ml-1"
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
-          )}
-          {filters.clientId && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Client: {filters.clientId}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setFilters({...filters, clientId: null})}
-                className="h-4 w-4 p-0 ml-1"
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
-          )}
-          {(filters.dateRange.start || filters.dateRange.end) && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Date: {filters.dateRange.start || 'Any'} to {filters.dateRange.end || 'Any'}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setFilters({...filters, dateRange: {start: null, end: null}})}
-                className="h-4 w-4 p-0 ml-1"
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
-          )}
-        </div>
-      )}
+      <PatentListTabs 
+        filteredPatents={filteredPatents}
+        getInProgressPatents={getInProgressPatents}
+        getCompletedPatents={getCompletedPatents}
+        getWithdrawnPatents={getWithdrawnPatents}
+        onDeletePatent={confirmDelete}
+        userRole={user?.role}
+      />
       
-      <Tabs defaultValue="in-progress">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="in-progress">In Progress</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-          <TabsTrigger value="withdrawn">Withdrawn</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="in-progress" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {getInProgressPatents().length > 0 ? (
-              getInProgressPatents().map((patent) => (
-                <PatentCard 
-                  key={patent.id} 
-                  patent={patent} 
-                  onDelete={user?.role === 'admin' ? () => confirmDelete(patent.id) : undefined} 
-                />
-              ))
-            ) : (
-              <div className="col-span-full">
-                <Card className="p-6 text-center">
-                  <p className="text-muted-foreground">No patents in progress</p>
-                </Card>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="completed" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {getCompletedPatents().length > 0 ? (
-              getCompletedPatents().map((patent) => (
-                <PatentCard 
-                  key={patent.id} 
-                  patent={patent} 
-                  onDelete={user?.role === 'admin' ? () => confirmDelete(patent.id) : undefined} 
-                />
-              ))
-            ) : (
-              <div className="col-span-full">
-                <Card className="p-6 text-center">
-                  <p className="text-muted-foreground">No completed patents</p>
-                </Card>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="withdrawn" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {getWithdrawnPatents().length > 0 ? (
-              getWithdrawnPatents().map((patent) => (
-                <PatentCard 
-                  key={patent.id} 
-                  patent={patent} 
-                  onDelete={user?.role === 'admin' ? () => confirmDelete(patent.id) : undefined} 
-                />
-              ))
-            ) : (
-              <div className="col-span-full">
-                <Card className="p-6 text-center">
-                  <p className="text-muted-foreground">No withdrawn patents</p>
-                </Card>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
-      
-      <AlertDialog open={!!patentToDelete} onOpenChange={() => !patentToDelete && cancelDelete()}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to delete this patent?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the patent and remove all associated data from the system.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => patentToDelete && handleDeletePatent(patentToDelete)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeletePatentDialog
+        patentToDelete={patentToDelete}
+        onCancel={cancelDelete}
+        onConfirm={handleDeletePatent}
+      />
     </div>
   );
 };
