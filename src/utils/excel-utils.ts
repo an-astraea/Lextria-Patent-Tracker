@@ -297,3 +297,65 @@ export const validatePatentData = async (jsonData: Record<string, any>[]): Promi
 
   return { patentData: validPatentData, errors };
 };
+
+export const downloadBulkUploadTemplate = () => {
+  return downloadExcelTemplate();
+};
+
+export const downloadPatentsDatabase = (patents: any[]) => {
+  const processedData = patents.map(patent => {
+    // Filter and process only the fields we want for the database export
+    return {
+      'Tracking ID': patent.tracking_id || '',
+      'Patent Applicant': patent.patent_applicant || '',
+      'Client ID': patent.client_id || '',
+      'Patent Title': patent.patent_title || '',
+      'Application No': patent.application_no || '',
+      'Date of Filing': patent.date_of_filing || '',
+      'Applicant Address': patent.applicant_addr || '',
+      'Inventor Phone': patent.inventor_ph_no || '',
+      'Inventor Email': patent.inventor_email || '',
+      'PS Drafter': patent.ps_drafter_assgn || '',
+      'PS Drafter Deadline': patent.ps_drafter_deadline || '',
+      'PS Drafting Status': patent.ps_drafting_status ? 'Completed' : 'Pending',
+      'PS Filer': patent.ps_filer_assgn || '',
+      'PS Filer Deadline': patent.ps_filer_deadline || '',
+      'PS Filing Status': patent.ps_filing_status ? 'Completed' : 'Pending',
+      'PS Completion': patent.ps_completion_status ? 'Completed' : 'Pending',
+      'CS Drafter': patent.cs_drafter_assgn || '',
+      'CS Drafter Deadline': patent.cs_drafter_deadline || '',
+      'CS Drafting Status': patent.cs_drafting_status ? 'Completed' : 'Pending',
+      'CS Filer': patent.cs_filer_assgn || '',
+      'CS Filer Deadline': patent.cs_filer_deadline || '',
+      'CS Filing Status': patent.cs_filing_status ? 'Completed' : 'Pending',
+      'CS Completion': patent.cs_completion_status ? 'Completed' : 'Pending',
+      'FER Status': patent.fer_status ? 'Active' : 'Not Required',
+      'FER Drafter': patent.fer_drafter_assgn || '',
+      'FER Drafter Deadline': patent.fer_drafter_deadline || '',
+      'FER Filing Status': patent.fer_filing_status ? 'Completed' : 'Pending',
+      'Form 9': patent.form_9 ? 'Yes' : 'No',
+      'Form 9a': patent.form_9a ? 'Yes' : 'No',
+      'Form 13': patent.form_13 ? 'Yes' : 'No',
+      'Form 18': patent.form_18 ? 'Yes' : 'No',
+      'Form 18a': patent.form_18a ? 'Yes' : 'No',
+      'Form 26': patent.form_26 ? 'Yes' : 'No',
+      'Created At': patent.created_at || '',
+      'Updated At': patent.updated_at || ''
+    };
+  });
+
+  const ws = XLSX.utils.json_to_sheet(processedData);
+  
+  // Adjust column widths for better readability
+  const wscols = Object.keys(processedData[0] || {}).map(() => ({ wch: 20 }));
+  ws['!cols'] = wscols;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Patents Database');
+
+  // Generate a timestamp for the filename
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+  XLSX.writeFile(wb, `patents_database_${timestamp}.xlsx`);
+  
+  return true;
+};

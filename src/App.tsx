@@ -15,6 +15,7 @@ import ClientDashboard from './pages/ClientDashboard';
 import Drafts from './pages/Drafts';
 import Filings from './pages/Filings';
 import BulkUpload from './pages/BulkUpload';
+import Sheets from './pages/Sheets';
 import { Toaster } from './components/ui/toaster';
 import MainLayoutWrapper from './components/layout/MainLayoutWrapper';
 
@@ -47,6 +48,7 @@ function App() {
             <Route path="/drafts" element={<Drafts />} />
             <Route path="/filings" element={<Filings />} />
             <Route path="/bulk-upload" element={<BulkUpload />} />
+            <Route path="/sheets" element={<Sheets />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </MainLayoutWrapper>
