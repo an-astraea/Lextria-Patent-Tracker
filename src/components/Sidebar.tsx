@@ -1,15 +1,9 @@
 
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { 
-  LogOut,
-  Menu,
-  X,
-  User,
-  LucideIcon
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { LucideIcon } from 'lucide-react';
+import MobileSidebar from './sidebar/MobileSidebar';
+import DesktopSidebar from './sidebar/DesktopSidebar';
 
 interface NavItem {
   label: string;
@@ -29,7 +23,6 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const location = useLocation();
   const isMobile = useIsMobile();
 
   const toggleSidebar = () => {
@@ -46,149 +39,40 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
     }
   };
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
-
   return (
     <div className="h-full flex">
       {/* Desktop Sidebar */}
-      <aside className={cn(
-        "h-screen flex flex-col bg-sidebar border-r border-border transition-all duration-300",
-        isCollapsed ? "w-20" : "w-64",
-        isMobile && "hidden"
-      )}>
-        {/* Logo */}
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          {!isCollapsed && (
-            <h2 className="text-xl font-semibold">PatentTrack</h2>
+      {!isMobile && (
+        <DesktopSidebar
+          isCollapsed={isCollapsed}
+          toggleSidebar={toggleSidebar}
+          navItems={navItems}
+          user={user}
+          onLogout={onLogout}
+        />
+      )}
+
+      {/* Mobile Sidebar */}
+      {isMobile && (
+        <>
+          <MobileSidebar
+            isOpen={isMobileOpen}
+            onClose={closeMobileSidebar}
+            navItems={navItems}
+            user={user}
+            onLogout={onLogout}
+          />
+          
+          {/* Overlay for mobile */}
+          {isMobileOpen && (
+            <div 
+              className="fixed inset-0 bg-black/20 z-30"
+              onClick={closeMobileSidebar}
+              aria-hidden="true"
+            />
           )}
-          <button
-            className={cn(
-              "p-2 rounded-md hover:bg-accent hover:text-accent-foreground",
-              isCollapsed && "mx-auto"
-            )}
-            onClick={toggleSidebar}
-          >
-            {isCollapsed ? <Menu className="h-5 w-5" /> : <X className="h-5 w-5" />}
-          </button>
-        </div>
-
-        {/* User Info */}
-        {user && !isCollapsed && (
-          <div className="p-4 border-b border-border">
-            <div className="flex items-center gap-2">
-              <User className="h-6 w-6 text-muted-foreground" />
-              <div>
-                <p className="font-medium">{user.full_name}</p>
-                <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Navigation Links */}
-        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                "flex items-center px-3 py-2.5 rounded-md transition-all",
-                isActive(item.href)
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-secondary text-foreground",
-                isCollapsed ? "justify-center" : ""
-              )}
-              onClick={closeMobileSidebar}
-            >
-              <item.icon className={cn("h-5 w-5", isActive(item.href) ? "" : "text-muted-foreground")} />
-              {!isCollapsed && <span className="ml-3">{item.label}</span>}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Footer */}
-        {onLogout && (
-          <div className="p-4 mt-auto border-t border-border">
-            <button
-              className={cn(
-                "w-full flex items-center px-3 py-2.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-secondary",
-                isCollapsed && "justify-center"
-              )}
-              onClick={onLogout}
-            >
-              <LogOut className="h-5 w-5" />
-              {!isCollapsed && <span className="ml-3">Logout</span>}
-            </button>
-          </div>
-        )}
-      </aside>
-
-      {/* Mobile Sidebar (Content) */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-40 w-72 h-full flex flex-col transition-transform duration-300 ease-in-out bg-sidebar border-r border-border",
-          isMobile ? (isMobileOpen ? "translate-x-0" : "-translate-x-full") : "hidden"
-        )}
-      >
-        {/* Mobile Sidebar Header */}
-        <div className="p-4 flex items-center justify-between border-b border-border">
-          <h2 className="text-xl font-semibold">PatentTrack</h2>
-          <button
-            className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground"
-            onClick={toggleSidebar}
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* User Info */}
-        {user && (
-          <div className="p-4 border-b border-border">
-            <div className="flex items-center gap-2">
-              <User className="h-6 w-6 text-muted-foreground" />
-              <div>
-                <p className="font-medium">{user.full_name}</p>
-                <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Navigation Links */}
-        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                "flex items-center px-3 py-2.5 rounded-md transition-all",
-                isActive(item.href)
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-secondary text-foreground"
-              )}
-              onClick={closeMobileSidebar}
-            >
-              <item.icon className={cn("h-5 w-5", isActive(item.href) ? "" : "text-muted-foreground")} />
-              <span className="ml-3">{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-
-        {/* Footer */}
-        {onLogout && (
-          <div className="p-4 mt-auto border-t border-border">
-            <button
-              className="w-full flex items-center px-3 py-2.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-secondary"
-              onClick={onLogout}
-            >
-              <LogOut className="h-5 w-5" />
-              <span className="ml-3">Logout</span>
-            </button>
-          </div>
-        )}
-      </aside>
+        </>
+      )}
     </div>
   );
 };

@@ -15,7 +15,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
   const hasSidebar = !!sidebarComponent;
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   
-  // Force sidebar to be visible on desktop initially
+  // Force sidebar to be visible on desktop
   useEffect(() => {
     if (!isMobile) {
       setIsSidebarOpen(true);
@@ -41,45 +41,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
       
       {/* Sidebar */}
       {sidebarComponent && (
-        <aside className={cn(
-          "transition-all duration-300 h-full",
+        <div className={cn(
+          "transition-all duration-300 ease-in-out",
           isMobile ? "fixed z-40 left-0" : "relative",
-          isSidebarOpen ? "translate-x-0 opacity-100" : isMobile ? "-translate-x-full opacity-0" : "w-0 opacity-0",
-          isMobile ? "shadow-xl" : ""
+          !isMobile && !isSidebarOpen && "w-0",
         )}>
           {sidebarComponent}
-          
-          {/* Sidebar toggle button for desktop */}
-          {!isMobile && (
-            <button 
-              onClick={toggleSidebar}
-              className={cn(
-                "absolute top-4 -right-4 bg-primary text-primary-foreground rounded-full p-1 shadow-md",
-                isSidebarOpen ? "rotate-0" : "rotate-180"
-              )}
-              aria-label={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
-            >
-              {isSidebarOpen ? '◀' : '▶'}
-            </button>
-          )}
-        </aside>
-      )}
-      
-      {/* Overlay for mobile sidebar */}
-      {isMobile && isSidebarOpen && hasSidebar && (
-        <div 
-          className="fixed inset-0 bg-black/20 z-30"
-          onClick={toggleSidebar}
-        />
+        </div>
       )}
       
       {/* Main content */}
-      <main className={cn(
-        "flex-1 overflow-hidden transition-all duration-300",
-        {
-          "ml-0": isMobile || !isSidebarOpen,
-        }
-      )}>
+      <main className="flex-1 overflow-hidden transition-all duration-300">
         <ScrollArea className="h-full w-full">
           <div className="p-6">
             {children}
