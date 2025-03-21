@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const PatentDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -401,211 +402,19 @@ const PatentDetails = () => {
   }
 
   return (
-    <div className="space-y-8 pb-10">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigate('/patents')}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back
-          </Button>
-          <h1 className="text-2xl font-bold tracking-tight">Patent Details</h1>
-        </div>
-        
-        <div className="flex gap-2">
-          {user?.role === 'admin' && (
-            <Button 
-              onClick={() => navigate(`/patents/edit/${patent.id}`)}
-              variant="outline"
-            >
-              Edit Patent
+    <TooltipProvider>
+      <div className="space-y-8 pb-10">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate('/patents')}>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
-          )}
-          
-          {isAssignedDrafter() && (
-            <Button onClick={handleCompleteDrafting}>
-              <Check className="mr-2 h-4 w-4" /> Complete Drafting
-            </Button>
-          )}
-          
-          {isAssignedFiler() && (
-            <Button onClick={handleCompleteFiling}>
-              <FileText className="mr-2 h-4 w-4" /> Complete Filing
-            </Button>
-          )}
-        </div>
-      </div>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full border-b rounded-none justify-start">
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-          <TabsTrigger value="status">Status</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-          <TabsTrigger value="forms">Forms</TabsTrigger>
-          <TabsTrigger value="fer">FER</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="details" className="space-y-6 mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 space-y-6">
-              <PatentBasicInfo patent={patent} />
-              <InventorsList patent={patent} />
-            </div>
-            <div>
-              <AssignmentDetails patent={patent} />
-            </div>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="timeline" className="space-y-6 mt-6">
-          <PatentTimeline 
-            patentId={patent.id} 
-            setTimelineMilestones={setTimelineMilestones}
-            setShowTimelineDialog={setShowTimelineDialog}
-          />
-        </TabsContent>
-        
-        <TabsContent value="status" className="space-y-6 mt-6">
-          <PatentStatusSection 
-            patent={patent} 
-            userRole={user?.role || 'viewer'} 
-            refreshPatentData={fetchPatentData}
-          />
-        </TabsContent>
-        
-        <TabsContent value="notes" className="space-y-6 mt-6">
-          <PatentNotes 
-            patent={patent}
-            userRole={user?.role || 'viewer'}
-            refreshPatentData={fetchPatentData}
-          />
-        </TabsContent>
-
-        <TabsContent value="forms" className="space-y-6 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Required Forms</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FormRequirementsList 
-                patent={patent} 
-                userRole={user?.role || 'viewer'} 
-                onUpdate={handleFormUpdate}
-                formValues={formValues}
-              />
-              
-              {(user?.role === 'admin' || user?.role === 'filer') && (
-                <div className="mt-4 flex justify-end">
-                  <Button onClick={saveFormValues}>
-                    Save Form Requirements
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="fer" className="space-y-6 mt-6">
-          {patent.fer_status ? (
-            <FEREntriesSection 
-              patent={patent}
-              userRole={user?.role || 'viewer'}
-              userName={user?.full_name || ''}
-              employees={employees}
-              refreshPatentData={fetchPatentData}
-              onApproveDraft={handleFERDraftApproval}
-              onApproveFiling={handleFERFilingApproval}
-              onCompleteDraft={handleFERDraftCompletion}
-              onCompleteFiling={handleFERFilingCompletion}
-            />
-          ) : (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>FER Not Activated</AlertTitle>
-              <AlertDescription>
-                FER functionality is not currently activated for this patent. Contact an admin to activate it.
-              </AlertDescription>
-            </Alert>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Task Completion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to mark {dialogType === 'complete-draft' ? getDrafterCompletionField() : getFilerCompletionField()} as completed? 
-              This will submit your work for review by an admin.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isCompletingDraft}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={confirmCompleteDrafting} 
-              disabled={isCompletingDraft}
-            >
-              {isCompletingDraft ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Completing...
-                </>
-              ) : (
-                'Complete Task'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showFilingDialog} onOpenChange={setShowFilingDialog}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Complete Filing</DialogTitle>
-            <DialogDescription>
-              Before completing the {getFilerCompletionField()} task, please review and update the form requirements below.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="max-h-[60vh] overflow-y-auto">
-            <FormRequirementsList 
-              patent={patent} 
-              userRole={user?.role || 'viewer'} 
-              onUpdate={handleFormUpdate}
-              formValues={formValues}
-            />
+            <h1 className="text-2xl font-bold tracking-tight">Patent Details</h1>
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowFilingDialog(false)} disabled={isCompletingFiling}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={confirmCompleteFiling} 
-              disabled={isCompletingFiling}
-            >
-              {isCompletingFiling ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Completing Filing...
-                </>
-              ) : (
-                'Complete Filing'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="flex gap-2">
+            {user?.role === 'admin' && (
+              <Button 
+                onClick={() => navigate(`/patents/edit/${patent.id}`)}
+               
 
-      <TimelineDialog 
-        open={showTimelineDialog} 
-        onOpenChange={setShowTimelineDialog}
-        milestones={timelineMilestones}
-        patent={patent}
-      />
-    </div>
-  );
-};
-
-export default PatentDetails;

@@ -18,6 +18,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider
 } from "@/components/ui/tooltip";
 
 interface PatentStatusSectionProps {
@@ -276,30 +277,32 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
             <div className="border rounded-lg p-4 space-y-3 bg-white">
               <div className="font-medium">PS Drafting Status</div>
               <div className="flex gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button 
-                        variant={patent.ps_drafting_status === 1 ? "default" : "outline"} 
-                        size="sm"
-                        onClick={() => handleStatusToggle('ps_drafting_status')}
-                        disabled={isUpdating || !canEditStatus || !canStartPSDrafting}
-                        className="text-xs px-3 py-1 h-7"
-                      >
-                        {patent.ps_drafting_status === 1 ? (
-                          <><Check className="h-3.5 w-3.5 mr-1" /> Completed</>
-                        ) : (
-                          'Mark Complete'
-                        )}
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  {getPSDraftingTooltip() && (
-                    <TooltipContent>
-                      <p>{getPSDraftingTooltip()}</p>
-                    </TooltipContent>
-                  )}
-                </Tooltip>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button 
+                          variant={patent.ps_drafting_status === 1 ? "default" : "outline"} 
+                          size="sm"
+                          onClick={() => handleStatusToggle('ps_drafting_status')}
+                          disabled={isUpdating || !canEditStatus || !canStartPSDrafting}
+                          className="text-xs px-3 py-1 h-7"
+                        >
+                          {patent.ps_drafting_status === 1 ? (
+                            <><Check className="h-3.5 w-3.5 mr-1" /> Completed</>
+                          ) : (
+                            'Mark Complete'
+                          )}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {getPSDraftingTooltip() && (
+                      <TooltipContent>
+                        <p>{getPSDraftingTooltip()}</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
                 {canEditStatus && patent.ps_drafting_status === 1 && (
                   <Button 
                     variant="outline" 
@@ -407,30 +410,32 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
             <div className="border rounded-lg p-4 space-y-3 bg-white">
               <div className="font-medium">CS Drafting Status</div>
               <div className="flex gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button 
-                        variant={patent.cs_drafting_status === 1 ? "default" : "outline"} 
-                        size="sm"
-                        onClick={() => handleStatusToggle('cs_drafting_status')}
-                        disabled={isUpdating || !canEditStatus || !canStartCSDrafting}
-                        className="text-xs px-3 py-1 h-7"
-                      >
-                        {patent.cs_drafting_status === 1 ? (
-                          <><Check className="h-3.5 w-3.5 mr-1" /> Completed</>
-                        ) : (
-                          'Mark Complete'
-                        )}
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  {getCSDraftingTooltip() && (
-                    <TooltipContent>
-                      <p>{getCSDraftingTooltip()}</p>
-                    </TooltipContent>
-                  )}
-                </Tooltip>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button 
+                          variant={patent.cs_drafting_status === 1 ? "default" : "outline"} 
+                          size="sm"
+                          onClick={() => handleStatusToggle('cs_drafting_status')}
+                          disabled={isUpdating || !canEditStatus || !canStartCSDrafting}
+                          className="text-xs px-3 py-1 h-7"
+                        >
+                          {patent.cs_drafting_status === 1 ? (
+                            <><Check className="h-3.5 w-3.5 mr-1" /> Completed</>
+                          ) : (
+                            'Mark Complete'
+                          )}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {getCSDraftingTooltip() && (
+                      <TooltipContent>
+                        <p>{getCSDraftingTooltip()}</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
                 {canEditStatus && patent.cs_drafting_status === 1 && (
                   <Button 
                     variant="outline" 
@@ -720,3 +725,4 @@ const PatentStatusSection: React.FC<PatentStatusSectionProps> = ({
 };
 
 export default PatentStatusSection;
+
