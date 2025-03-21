@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, Upload } from 'lucide-react';
+import { Download, Upload, FileUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { bulkUploadPatents } from '@/lib/api/bulk-upload-api';
@@ -93,6 +92,90 @@ const BulkUpload: React.FC = () => {
       title: "Template Downloaded",
       description: "The Excel template has been downloaded. Fill it with patent data and upload.",
     });
+  };
+
+  // Sample patent data for quick testing
+  const getSamplePatentData = (): PatentFormData[] => {
+    const today = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(today.getDate() + 30);
+    
+    const formattedToday = today.toISOString().split('T')[0];
+    const formattedFuture = futureDate.toISOString().split('T')[0];
+    
+    return [
+      {
+        tracking_id: `SAMPLE-${Date.now()}`,
+        patent_applicant: "Sample Company Ltd.",
+        client_id: "CLIENT-SAMPLE",
+        patent_title: "Sample Innovative Technology Patent",
+        applicant_addr: "123 Sample Street, Sample City, 12345",
+        inventor_ph_no: "1234567890",
+        inventor_email: "inventor@example.com",
+        application_no: "APP-SAMPLE-123",
+        date_of_filing: formattedToday,
+        ps_drafter_assgn: "John Doe",
+        ps_drafter_deadline: formattedFuture,
+        ps_filer_assgn: "Jane Smith",
+        ps_filer_deadline: formattedFuture,
+        cs_drafter_assgn: "John Doe",
+        cs_drafter_deadline: formattedFuture,
+        cs_filer_assgn: "Jane Smith",
+        cs_filer_deadline: formattedFuture,
+        fer_status: 0,
+        inventors: [
+          {
+            inventor_name: "Sample Inventor",
+            inventor_addr: "456 Inventor Avenue, Invention City, 67890"
+          },
+          {
+            inventor_name: "Second Inventor",
+            inventor_addr: "789 Innovation Road, Tech Town, 54321"
+          }
+        ]
+      }
+    ];
+  };
+
+  // Handle uploading a sample patent
+  const handleSampleUpload = async () => {
+    setIsUploading(true);
+    setUploadProgress(20);
+    setShowResults(false);
+    
+    try {
+      const sampleData = getSamplePatentData();
+      setUploadProgress(50);
+      
+      // Upload the sample data
+      const results = await bulkUploadPatents(sampleData);
+      
+      setUploadProgress(100);
+      setUploadResults(results);
+      setShowResults(true);
+      
+      if (results.success > 0) {
+        toast({
+          title: "Sample Patent Uploaded",
+          description: `${results.success} sample patent(s) uploaded successfully.`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Upload Failed",
+          description: "Failed to upload sample patent. Please check the errors.",
+        });
+      }
+    } catch (error) {
+      console.error("Error uploading sample patent:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to upload sample patent."
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   // Handle file upload and processing
@@ -267,7 +350,7 @@ const BulkUpload: React.FC = () => {
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-6">Patent Bulk Upload</h1>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <Card>
             <CardHeader>
               <CardTitle>Download Template</CardTitle>
@@ -323,6 +406,26 @@ const BulkUpload: React.FC = () => {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Sample Patent</CardTitle>
+              <CardDescription>
+                Upload a sample patent with pre-filled data for testing.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={handleSampleUpload} 
+                className="w-full" 
+                variant="secondary"
+                disabled={isUploading}
+              >
+                <FileUp className="mr-2 h-4 w-4" />
+                Upload Sample Patent
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -384,6 +487,7 @@ const BulkUpload: React.FC = () => {
               <li>You can add multiple inventors by adding columns: inventor_name2, inventor_addr2, etc.</li>
               <li>Save the file and click "Upload" to submit your data.</li>
               <li>Review the upload results for any errors.</li>
+              <li>For quick testing, use the "Upload Sample Patent" option to add a pre-filled sample patent.</li>
             </ol>
             
             <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
