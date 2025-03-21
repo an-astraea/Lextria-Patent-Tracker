@@ -1,6 +1,6 @@
-
 import * as XLSX from 'xlsx';
 import { PatentFormData } from '@/lib/types';
+import { supabase } from '@/integrations/supabase/client';
 
 export const downloadExcelTemplate = () => {
   const headers = [
@@ -145,9 +145,28 @@ export const getSamplePatentData = (): PatentFormData[] => {
   ];
 };
 
-export const validatePatentData = (jsonData: Record<string, any>[]): { patentData: PatentFormData[], errors: string[] } => {
+const validateEmployeeExistence = async (employeeName: string | null | undefined): Promise<boolean> => {
+  if (!employeeName) return true; // Null assignments are valid (not assigned)
+  
+  // Check if the employee exists in the database
+  const { data, error } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('full_name', employeeName)
+    .single();
+  
+  if (error) {
+    console.error("Error validating employee:", error);
+    return false;
+  }
+  
+  return !!data;
+};
+
+export const validatePatentData = async (jsonData: Record<string, any>[]): Promise<{ patentData: PatentFormData[], errors: string[] }> => {
   const patentData: PatentFormData[] = [];
   const errors: string[] = [];
+  const employeeValidationPromises: Promise<{rowIndex: number, field: string, employeeName: string, isValid: boolean}>[] = [];
 
   for (let i = 0; i < jsonData.length; i++) {
     const row = jsonData[i];
@@ -199,13 +218,22 @@ export const validatePatentData = (jsonData: Record<string, any>[]): { patentDat
         ]
       };
 
-      const dateFields = ['date_of_filing', 'ps_drafter_deadline', 'ps_filer_deadline', 'cs_drafter_deadline', 'cs_filer_deadline'];
+      // Add FER assignments if FER status is 1
+      if (patent.fer_status === 1) {
+        patent.fer_drafter_assgn = row['fer_drafter_assgn'] || null;
+        patent.fer_drafter_deadline = row['fer_drafter_deadline'] || null;
+        patent.fer_filer_assgn = row['fer_filer_assgn'] || null;
+        patent.fer_filer_deadline = row['fer_filer_deadline'] || null;
+      }
+
+      const dateFields = ['date_of_filing', 'ps_drafter_deadline', 'ps_filer_deadline', 'cs_drafter_deadline', 'cs_filer_deadline', 'fer_drafter_deadline', 'fer_filer_deadline'];
       for (const field of dateFields) {
         if (patent[field as keyof PatentFormData] && !/^\d{4}-\d{2}-\d{2}$/.test(patent[field as keyof PatentFormData] as string)) {
           throw new Error(`Invalid date format for ${field}. Use YYYY-MM-DD format.`);
         }
       }
 
+      // Add additional inventors if present
       for (let j = 2; j <= 10; j++) {
         const nameField = `inventor_name${j}`;
         const addrField = `inventor_addr${j}`;
@@ -218,6 +246,30 @@ export const validatePatentData = (jsonData: Record<string, any>[]): { patentDat
         }
       }
 
+      // Queue employee validation for each assignment field
+      const employeeFields = [
+        { field: 'ps_drafter_assgn', value: patent.ps_drafter_assgn },
+        { field: 'ps_filer_assgn', value: patent.ps_filer_assgn },
+        { field: 'cs_drafter_assgn', value: patent.cs_drafter_assgn },
+        { field: 'cs_filer_assgn', value: patent.cs_filer_assgn },
+        { field: 'fer_drafter_assgn', value: patent.fer_drafter_assgn },
+        { field: 'fer_filer_assgn', value: patent.fer_filer_assgn }
+      ];
+
+      // Queue employee validations to run in parallel
+      for (const { field, value } of employeeFields) {
+        if (value) {
+          employeeValidationPromises.push(
+            validateEmployeeExistence(value).then(isValid => ({
+              rowIndex,
+              field,
+              employeeName: value as string,
+              isValid
+            }))
+          );
+        }
+      }
+
       patentData.push(patent);
     } catch (error) {
       console.error(`Error in row ${rowIndex}:`, error);
@@ -225,5 +277,23 @@ export const validatePatentData = (jsonData: Record<string, any>[]): { patentDat
     }
   }
 
-  return { patentData, errors };
+  // Wait for all employee validations to complete
+  const employeeValidationResults = await Promise.all(employeeValidationPromises);
+  
+  // Process the results and add errors for invalid employees
+  for (const result of employeeValidationResults) {
+    if (!result.isValid) {
+      errors.push(`Row ${result.rowIndex}: Employee "${result.employeeName}" assigned to ${result.field} does not exist in the system.`);
+    }
+  }
+
+  // Filter out patents with invalid employee assignments
+  const validPatentData = patentData.filter((patent, index) => {
+    const rowIndex = index + 2;
+    return !employeeValidationResults.some(result => 
+      result.rowIndex === rowIndex && !result.isValid
+    );
+  });
+
+  return { patentData: validPatentData, errors };
 };

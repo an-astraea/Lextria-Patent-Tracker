@@ -141,7 +141,8 @@ const BulkUpload: React.FC = () => {
             throw new Error('No data found in the uploaded file');
           }
 
-          const { patentData, errors } = validatePatentData(jsonData);
+          // Updated to use async validation
+          const { patentData, errors } = await validatePatentData(jsonData);
           
           setUploadProgress(90);
           setParsedData(patentData);

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Check } from 'lucide-react';
+import { Check, Users } from 'lucide-react';
 import { PatentFormData } from '@/lib/types';
 import LoadingState from '@/components/common/LoadingState';
 
@@ -23,6 +23,22 @@ const ConfirmUploadDialog: React.FC<ConfirmUploadDialogProps> = ({
   confirmUpload,
   isUploading,
 }) => {
+  // Count assigned employees
+  const countAssignments = () => {
+    let count = 0;
+    parsedData.forEach(patent => {
+      if (patent.ps_drafter_assgn) count++;
+      if (patent.ps_filer_assgn) count++;
+      if (patent.cs_drafter_assgn) count++;
+      if (patent.cs_filer_assgn) count++;
+      if (patent.fer_drafter_assgn) count++;
+      if (patent.fer_filer_assgn) count++;
+    });
+    return count;
+  };
+
+  const assignmentCount = countAssignments();
+
   return (
     <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
       <DialogContent>
@@ -46,6 +62,10 @@ const ConfirmUploadDialog: React.FC<ConfirmUploadDialogProps> = ({
             <ul className="text-sm space-y-1">
               <li>• Total patents: {parsedData.length}</li>
               <li>• Total inventors: {parsedData.reduce((acc, patent) => acc + patent.inventors.length, 0)}</li>
+              <li className="flex items-center">
+                <Users className="mr-2 h-4 w-4" />
+                Employee assignments: {assignmentCount}
+              </li>
               <li>• File: {selectedFile?.name}</li>
             </ul>
           </div>
