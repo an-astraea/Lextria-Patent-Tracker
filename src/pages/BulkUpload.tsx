@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import { bulkUploadPatents } from '@/lib/api/bulk-upload-api';
 import { PatentFormData } from '@/lib/types';
 import PageHeader from '@/components/common/PageHeader';
+import { Badge } from '@/components/ui/badge';
 
 // Import our components
 import TemplateDownloadCard from '@/components/bulk-upload/TemplateDownloadCard';
@@ -245,7 +246,12 @@ const BulkUpload: React.FC = () => {
   return (
     <MainLayout>
       <div className="p-6">
-        <PageHeader title="Patent Bulk Upload" />
+        <div className="flex flex-col sm:flex-row items-center gap-2 mb-4">
+          <PageHeader title="Patent Bulk Upload" />
+          <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200 ml-2">
+            In Development
+          </Badge>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <TemplateDownloadCard downloadTemplate={downloadTemplate} />
