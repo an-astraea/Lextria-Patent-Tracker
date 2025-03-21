@@ -85,10 +85,10 @@ const PatentNotes: React.FC<PatentNotesProps> = ({
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     
     // Find all URLs in content
-    const urls = content.match(urlRegex) || [];
+    const urls = content.match(urlRegex);
     
     // If no URLs, just return the content
-    if (urls.length === 0) {
+    if (!urls || urls.length === 0) {
       return <span className="whitespace-pre-wrap">{content}</span>;
     }
     

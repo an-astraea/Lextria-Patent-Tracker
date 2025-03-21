@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Download, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
-import { bulkUploadPatents } from '@/lib/api';
+import { bulkUploadPatents } from '@/lib/api/bulk-upload-api';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Patent, PatentFormData } from '@/lib/types';
@@ -285,16 +285,19 @@ const BulkUpload: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Button
-                  as="label"
+                <label 
                   htmlFor="file-upload"
                   className="w-full cursor-pointer"
-                  variant="default"
-                  disabled={isUploading}
                 >
-                  <Upload className="mr-2 h-4 w-4" />
-                  {isUploading ? "Uploading..." : "Select & Upload File"}
-                </Button>
+                  <Button
+                    className="w-full cursor-pointer"
+                    variant="default"
+                    disabled={isUploading}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    {isUploading ? "Uploading..." : "Select & Upload File"}
+                  </Button>
+                </label>
                 <input
                   id="file-upload"
                   type="file"

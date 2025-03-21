@@ -177,3 +177,4 @@ export * from './drafter-api';
 export * from './filer-api';
 export * from './review-api';
 export * from './fer-actions';
+export * from './timeline-api';
