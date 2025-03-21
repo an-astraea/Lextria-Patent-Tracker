@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, FileUp } from 'lucide-react';
+import LoadingState from '@/components/common/LoadingState';
 
 interface SampleDataCardProps {
   downloadSampleExcel: () => void;
@@ -41,8 +42,14 @@ const SampleDataCard: React.FC<SampleDataCardProps> = ({
           variant="secondary"
           disabled={isUploading || isValidating}
         >
-          <FileUp className="mr-2 h-4 w-4" />
-          Upload Sample Patent
+          {isUploading ? (
+            <LoadingState size="sm" text="Uploading..." />
+          ) : (
+            <>
+              <FileUp className="mr-2 h-4 w-4" />
+              Upload Sample Patent
+            </>
+          )}
         </Button>
       </CardContent>
     </Card>

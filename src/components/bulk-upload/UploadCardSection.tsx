@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload, X, Check } from 'lucide-react';
@@ -30,6 +30,14 @@ const UploadCardSection: React.FC<UploadCardSectionProps> = ({
   resetUploadStates,
   setShowConfirmDialog,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -40,20 +48,18 @@ const UploadCardSection: React.FC<UploadCardSectionProps> = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <label 
-            htmlFor="file-upload"
+          <Button
             className="w-full cursor-pointer"
+            variant="default"
+            disabled={isValidating || isUploading}
+            onClick={triggerFileInput}
           >
-            <Button
-              className="w-full cursor-pointer"
-              variant="default"
-              disabled={isValidating || isUploading}
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              {isValidating ? "Validating..." : isUploading ? "Uploading..." : "Select & Upload File"}
-            </Button>
-          </label>
+            <Upload className="mr-2 h-4 w-4" />
+            {isValidating ? "Validating..." : isUploading ? "Uploading..." : "Select & Upload File"}
+          </Button>
+          
           <input
+            ref={fileInputRef}
             id="file-upload"
             type="file"
             className="hidden"
