@@ -1,14 +1,8 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface NavItem {
-  label: string;
-  icon: LucideIcon;
-  href: string;
-}
+import { NavItem } from '@/types/NavItem';
 
 interface SidebarNavProps {
   navItems: NavItem[];

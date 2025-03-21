@@ -5,12 +5,7 @@ import { cn } from '@/lib/utils';
 import SidebarUser from './SidebarUser';
 import SidebarNav from './SidebarNav';
 import SidebarFooter from './SidebarFooter';
-
-interface NavItem {
-  label: string;
-  icon: React.ElementType;
-  href: string;
-}
+import { NavItem } from '@/types/NavItem';
 
 interface MobileSidebarProps {
   isOpen: boolean;

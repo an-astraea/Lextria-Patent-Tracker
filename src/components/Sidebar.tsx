@@ -1,15 +1,9 @@
 
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { LucideIcon } from 'lucide-react';
 import MobileSidebar from './sidebar/MobileSidebar';
 import DesktopSidebar from './sidebar/DesktopSidebar';
-
-interface NavItem {
-  label: string;
-  icon: LucideIcon;
-  href: string;
-}
+import { NavItem } from '@/types/NavItem';
 
 interface SidebarProps {
   navItems: NavItem[];
