@@ -18,12 +18,12 @@ const SidebarFooter: React.FC<SidebarFooterProps> = ({
     <div className="p-4 mt-auto border-t border-border">
       <button
         className={cn(
-          "w-full flex items-center px-3 py-2.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-secondary",
+          "w-full flex items-center px-4 py-2.5 text-gray-700 hover:text-gray-900 rounded-md hover:bg-gray-100",
           isCollapsed && "justify-center"
         )}
         onClick={onLogout}
       >
-        <LogOut className="h-5 w-5" />
+        <LogOut className="h-5 w-5 text-gray-600" />
         {!isCollapsed && <span className="ml-3">Logout</span>}
       </button>
     </div>

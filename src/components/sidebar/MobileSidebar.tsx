@@ -28,15 +28,15 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 w-64 h-full flex flex-col transition-transform duration-300 ease-in-out bg-sidebar border-r border-border",
+        "fixed inset-y-0 left-0 z-40 w-64 h-full flex flex-col transition-transform duration-300 ease-in-out bg-white border-r border-border",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}
     >
       {/* Mobile Sidebar Header */}
       <div className="p-4 flex items-center justify-between border-b border-border">
-        <h2 className="text-xl font-semibold">PatentTrack</h2>
+        <h2 className="text-xl font-bold text-black">PatentTrack</h2>
         <button
-          className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground"
+          className="p-2 rounded-md hover:bg-gray-100 text-gray-600"
           onClick={onClose}
           aria-label="Close sidebar"
         >

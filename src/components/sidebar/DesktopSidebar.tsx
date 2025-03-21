@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Menu, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SidebarUser from './SidebarUser';
 import SidebarNav from './SidebarNav';
@@ -27,23 +27,23 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
 }) => {
   return (
     <aside className={cn(
-      "h-screen flex flex-col bg-sidebar border-r border-border transition-all duration-300",
+      "h-screen flex flex-col bg-white border-r border-border transition-all duration-300",
       isCollapsed ? "w-20" : "w-64"
     )}>
-      {/* Logo */}
+      {/* Logo and Close Button */}
       <div className="p-4 border-b border-border flex items-center justify-between">
         {!isCollapsed && (
-          <h2 className="text-xl font-semibold">PatentTrack</h2>
+          <h2 className="text-xl font-bold text-black">PatentTrack</h2>
         )}
         <button
           className={cn(
-            "p-2 rounded-md hover:bg-accent hover:text-accent-foreground",
+            "p-2 rounded-md hover:bg-gray-100 text-gray-600",
             isCollapsed && "mx-auto"
           )}
           onClick={toggleSidebar}
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {isCollapsed ? <Menu className="h-5 w-5" /> : <X className="h-5 w-5" />}
+          {isCollapsed ? <X className="h-5 w-5" /> : <X className="h-5 w-5" />}
         </button>
       </div>
 

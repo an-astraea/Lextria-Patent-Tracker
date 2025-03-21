@@ -16,7 +16,7 @@ const SidebarUser: React.FC<SidebarUserProps> = ({ user, isCollapsed }) => {
   if (isCollapsed) {
     return (
       <div className="p-4 border-b border-border flex justify-center">
-        <User className="h-6 w-6 text-muted-foreground" />
+        <User className="h-6 w-6 text-gray-600" />
       </div>
     );
   }
@@ -24,10 +24,10 @@ const SidebarUser: React.FC<SidebarUserProps> = ({ user, isCollapsed }) => {
   return (
     <div className="p-4 border-b border-border">
       <div className="flex items-center gap-2">
-        <User className="h-6 w-6 text-muted-foreground" />
+        <User className="h-6 w-6 text-gray-600" />
         <div>
-          <p className="font-medium">{user.full_name}</p>
-          <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+          <p className="font-medium text-gray-800">{user.full_name}</p>
+          <p className="text-xs text-gray-500 capitalize">{user.role}</p>
         </div>
       </div>
     </div>

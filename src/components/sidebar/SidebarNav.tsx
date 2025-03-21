@@ -28,17 +28,17 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
           key={item.href}
           to={item.href}
           className={cn(
-            "flex items-center px-3 py-2.5 rounded-md transition-all",
+            "flex items-center px-4 py-2.5 rounded-md transition-all text-gray-800",
             isActive(item.href)
-              ? "bg-primary text-primary-foreground"
-              : "hover:bg-secondary text-foreground",
+              ? "bg-blue-500 text-white font-medium"
+              : "hover:bg-gray-100",
             isCollapsed ? "justify-center" : ""
           )}
           onClick={onItemClick}
         >
           <item.icon className={cn(
             "h-5 w-5", 
-            isActive(item.href) ? "" : "text-muted-foreground"
+            isActive(item.href) ? "text-white" : "text-gray-600"
           )} />
           {!isCollapsed && <span className="ml-3">{item.label}</span>}
         </Link>

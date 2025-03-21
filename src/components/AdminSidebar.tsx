@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, FileText, Users, CheckSquare, FileSpreadsheet, Upload } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, CheckSquare, FileSpreadsheet } from 'lucide-react';
 import Sidebar from './Sidebar';
 
 interface AdminSidebarProps {
@@ -30,17 +30,13 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
       href: '/approvals',
     },
     {
-      label: 'Bulk Upload',
-      icon: Upload,
-      href: '/bulk-upload',
-    },
-    {
       label: 'Client Dashboard',
       icon: FileSpreadsheet,
       href: '/clients',
     },
   ];
 
+  // Get user data from localStorage to display in the sidebar
   const userData = localStorage.getItem('user') 
     ? JSON.parse(localStorage.getItem('user')!) 
     : { full_name: 'Admin', role: 'admin' };
