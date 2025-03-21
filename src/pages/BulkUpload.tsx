@@ -163,7 +163,10 @@ const BulkUpload: React.FC = () => {
           });
         } finally {
           setIsUploading(false);
-          e.target!.value = '';
+          // Clear the input value properly
+          if (e.target) {
+            (e.target as any).value = '';
+          }
         }
       };
       
