@@ -64,6 +64,74 @@ export const downloadExcelTemplate = () => {
   return true;
 };
 
+export const convertPatentsToBulkFormat = (patents) => {
+  if (!patents || patents.length === 0) return [];
+  
+  return patents.map(patent => {
+    const formattedPatent = {
+      'tracking_id*': patent.tracking_id || '',
+      'patent_applicant*': patent.patent_applicant || '',
+      'client_id*': patent.client_id || '',
+      'patent_title*': patent.patent_title || '',
+      'applicant_addr*': patent.applicant_addr || '',
+      'inventor_ph_no*': patent.inventor_ph_no || '',
+      'inventor_email*': patent.inventor_email || '',
+      'application_no': patent.application_no || '',
+      'date_of_filing': patent.date_of_filing || '',
+      'ps_drafter_assgn': patent.ps_drafter_assgn || '',
+      'ps_drafter_deadline': patent.ps_drafter_deadline || '',
+      'ps_filer_assgn': patent.ps_filer_assgn || '',
+      'ps_filer_deadline': patent.ps_filer_deadline || '',
+      'cs_drafter_assgn': patent.cs_drafter_assgn || '',
+      'cs_drafter_deadline': patent.cs_drafter_deadline || '',
+      'cs_filer_assgn': patent.cs_filer_assgn || '',
+      'cs_filer_deadline': patent.cs_filer_deadline || '',
+      'fer_status': patent.fer_status ? '1' : '0',
+    };
+    
+    if (patent.fer_status) {
+      formattedPatent['fer_drafter_assgn'] = patent.fer_drafter_assgn || '';
+      formattedPatent['fer_drafter_deadline'] = patent.fer_drafter_deadline || '';
+      formattedPatent['fer_filer_assgn'] = patent.fer_filer_assgn || '';
+      formattedPatent['fer_filer_deadline'] = patent.fer_filer_deadline || '';
+    }
+    
+    if (patent.inventors && patent.inventors.length > 0) {
+      patent.inventors.forEach((inventor, index) => {
+        const inventorNumPrefix = index === 0 ? '' : (index + 1).toString();
+        formattedPatent[`inventor_name${inventorNumPrefix}*`] = inventor.inventor_name || '';
+        formattedPatent[`inventor_addr${inventorNumPrefix}*`] = inventor.inventor_addr || '';
+      });
+    } else {
+      formattedPatent['inventor_name*'] = 'Unknown Inventor';
+      formattedPatent['inventor_addr*'] = 'Unknown Address';
+    }
+    
+    return formattedPatent;
+  });
+};
+
+export const downloadBulkUploadTemplate = (patents = null) => {
+  if (patents && patents.length > 0) {
+    const patentsInBulkFormat = convertPatentsToBulkFormat(patents);
+    
+    const ws = XLSX.utils.json_to_sheet(patentsInBulkFormat);
+    
+    const wscols = Object.keys(patentsInBulkFormat[0]).map(() => ({ wch: 25 }));
+    ws['!cols'] = wscols;
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Patents Bulk Data');
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+    XLSX.writeFile(wb, `patents_bulk_data_${timestamp}.xlsx`);
+    
+    return true;
+  } else {
+    return downloadExcelTemplate();
+  }
+};
+
 export const downloadSampleExcelData = () => {
   const sampleData = [{
     'tracking_id*': 'PAT-123456',
@@ -148,7 +216,6 @@ export const getSamplePatentData = (): PatentFormData[] => {
 const validateEmployeeExistence = async (employeeName: string | null | undefined): Promise<boolean> => {
   if (!employeeName) return true; // Null assignments are valid (not assigned)
   
-  // Check if the employee exists in the database
   const { data, error } = await supabase
     .from('employees')
     .select('id')
@@ -218,7 +285,6 @@ export const validatePatentData = async (jsonData: Record<string, any>[]): Promi
         ]
       };
 
-      // Add FER assignments if FER status is 1
       if (patent.fer_status === 1) {
         patent.fer_drafter_assgn = row['fer_drafter_assgn'] || null;
         patent.fer_drafter_deadline = row['fer_drafter_deadline'] || null;
@@ -233,7 +299,6 @@ export const validatePatentData = async (jsonData: Record<string, any>[]): Promi
         }
       }
 
-      // Add additional inventors if present
       for (let j = 2; j <= 10; j++) {
         const nameField = `inventor_name${j}`;
         const addrField = `inventor_addr${j}`;
@@ -246,7 +311,6 @@ export const validatePatentData = async (jsonData: Record<string, any>[]): Promi
         }
       }
 
-      // Queue employee validation for each assignment field
       const employeeFields = [
         { field: 'ps_drafter_assgn', value: patent.ps_drafter_assgn },
         { field: 'ps_filer_assgn', value: patent.ps_filer_assgn },
@@ -256,7 +320,6 @@ export const validatePatentData = async (jsonData: Record<string, any>[]): Promi
         { field: 'fer_filer_assgn', value: patent.fer_filer_assgn }
       ];
 
-      // Queue employee validations to run in parallel
       for (const { field, value } of employeeFields) {
         if (value) {
           employeeValidationPromises.push(
@@ -277,17 +340,14 @@ export const validatePatentData = async (jsonData: Record<string, any>[]): Promi
     }
   }
 
-  // Wait for all employee validations to complete
   const employeeValidationResults = await Promise.all(employeeValidationPromises);
   
-  // Process the results and add errors for invalid employees
   for (const result of employeeValidationResults) {
     if (!result.isValid) {
       errors.push(`Row ${result.rowIndex}: Employee "${result.employeeName}" assigned to ${result.field} does not exist in the system.`);
     }
   }
 
-  // Filter out patents with invalid employee assignments
   const validPatentData = patentData.filter((patent, index) => {
     const rowIndex = index + 2;
     return !employeeValidationResults.some(result => 
@@ -298,13 +358,8 @@ export const validatePatentData = async (jsonData: Record<string, any>[]): Promi
   return { patentData: validPatentData, errors };
 };
 
-export const downloadBulkUploadTemplate = () => {
-  return downloadExcelTemplate();
-};
-
 export const downloadPatentsDatabase = (patents: any[]) => {
   const processedData = patents.map(patent => {
-    // Filter and process only the fields we want for the database export
     return {
       'Tracking ID': patent.tracking_id || '',
       'Patent Applicant': patent.patent_applicant || '',
@@ -346,14 +401,12 @@ export const downloadPatentsDatabase = (patents: any[]) => {
 
   const ws = XLSX.utils.json_to_sheet(processedData);
   
-  // Adjust column widths for better readability
   const wscols = Object.keys(processedData[0] || {}).map(() => ({ wch: 20 }));
   ws['!cols'] = wscols;
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Patents Database');
 
-  // Generate a timestamp for the filename
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
   XLSX.writeFile(wb, `patents_database_${timestamp}.xlsx`);
   

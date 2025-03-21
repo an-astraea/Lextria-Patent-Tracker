@@ -61,7 +61,13 @@ const Sheets: React.FC = () => {
   };
 
   const handleDownloadTemplate = () => {
-    downloadBulkUploadTemplate();
+    // If patents exist, download them in bulk upload format template
+    if (patents && patents.length > 0) {
+      downloadBulkUploadTemplate(patents);
+    } else {
+      // If no patents, download an empty template
+      downloadBulkUploadTemplate();
+    }
   };
 
   return (
@@ -100,11 +106,11 @@ const Sheets: React.FC = () => {
         </div>
         
         {isLoading ? (
-          <LoadingState message="Loading patents..." />
+          <LoadingState />
         ) : error ? (
           <EmptyState 
+            icon="alert-triangle"
             title="Error loading patents" 
-            description="An error occurred while loading the patents. Please try again." 
           />
         ) : patents && patents.length > 0 ? (
           <div className="border rounded-md overflow-hidden">
@@ -143,8 +149,8 @@ const Sheets: React.FC = () => {
           </div>
         ) : (
           <EmptyState 
+            icon="database" 
             title="No patents found" 
-            description="There are no patents in the database or matching your search criteria." 
           />
         )}
       </div>
