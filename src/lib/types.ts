@@ -1,3 +1,4 @@
+
 export interface Patent {
   id: string;
   tracking_id: string;
@@ -208,4 +209,23 @@ export interface FERHistory {
   fer_drafter_deadline?: string; // Add this for backward compatibility
   fer_filer_assgn?: string; // Add this for backward compatibility
   fer_filer_deadline?: string; // Add this for backward compatibility
+}
+
+export interface TimelineItem {
+  id: string;
+  patent_id: string;
+  event_type: string;
+  event_description: string;
+  deadline_date?: string | null;
+  employee_name?: string | null;
+  status?: number;
+  created_at: string;
+}
+
+export interface TimelineEventData {
+  patent_id: string;
+  event_type: string;
+  event_description: string;
+  deadline_date?: string | null;
+  employee_name?: string;
 }
