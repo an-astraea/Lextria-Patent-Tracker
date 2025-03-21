@@ -26,7 +26,7 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
         const currentPath = location.pathname;
         
         // Admin-only pages
-        const adminOnlyPages = ['/employees', '/approvals', '/clients'];
+        const adminOnlyPages = ['/employees', '/approvals', '/clients', '/bulk-upload'];
         
         // Prevent non-admins from accessing admin-only pages
         if (!parsedUser.role.includes('admin') && adminOnlyPages.some(page => currentPath.startsWith(page))) {
