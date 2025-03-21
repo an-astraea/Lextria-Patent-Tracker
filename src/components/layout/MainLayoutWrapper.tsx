@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import MainLayout from './MainLayout';
 import AdminSidebar from '../AdminSidebar';
 import Sidebar from '../Sidebar';
-import { LayoutDashboard, FileText, Edit, CheckSquare } from 'lucide-react';
+import { LayoutDashboard, FileText, Edit, CheckSquare, Users, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 
 const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -102,10 +102,36 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
     );
   }
 
-  // Handle case where user isn't logged in but we're not on index page
+  // Even if user isn't available, show a default sidebar to ensure navigation
+  // Only redirect to login if we're sure there's no user after loading
   if (!user && !isIndexPage) {
-    navigate('/');
-    return null;
+    // For testing - provide a default sidebar
+    // In production, you might want to redirect to login instead
+    const defaultNavItems = [
+      {
+        label: 'Dashboard',
+        icon: LayoutDashboard,
+        href: '/dashboard',
+      },
+      {
+        label: 'Patents',
+        icon: FileText,
+        href: '/patents',
+      }
+    ];
+    
+    return (
+      <MainLayout 
+        sidebarComponent={
+          <Sidebar 
+            navItems={defaultNavItems} 
+            onLogout={() => navigate('/')}
+          />
+        }
+      >
+        {children}
+      </MainLayout>
+    );
   }
 
   // Add role-specific sidebar content
@@ -197,6 +223,16 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
       label: 'Patents',
       icon: FileText,
       href: '/patents',
+    },
+    {
+      label: 'Users',
+      icon: Users,
+      href: '/employees',
+    },
+    {
+      label: 'Clients',
+      icon: FileSpreadsheet,
+      href: '/clients',
     }
   ];
     

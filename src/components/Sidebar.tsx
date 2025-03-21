@@ -17,7 +17,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
   // Default to expanded sidebar (isCollapsed = false)
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(true); // Default to open on mobile
   const isMobile = useIsMobile();
 
   const toggleSidebar = () => {
@@ -49,24 +49,13 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
 
       {/* Mobile Sidebar */}
       {isMobile && (
-        <>
-          <MobileSidebar
-            isOpen={isMobileOpen}
-            onClose={closeMobileSidebar}
-            navItems={navItems}
-            user={user}
-            onLogout={onLogout}
-          />
-          
-          {/* Overlay for mobile */}
-          {isMobileOpen && (
-            <div 
-              className="fixed inset-0 bg-black/20 z-30"
-              onClick={closeMobileSidebar}
-              aria-hidden="true"
-            />
-          )}
-        </>
+        <MobileSidebar
+          isOpen={isMobileOpen}
+          onClose={closeMobileSidebar}
+          navItems={navItems}
+          user={user}
+          onLogout={onLogout}
+        />
       )}
     </div>
   );

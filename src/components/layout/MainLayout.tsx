@@ -40,12 +40,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
       )}
       
       {/* Sidebar - always visible on desktop, conditionally visible on mobile */}
-      {sidebarComponent && (
+      {hasSidebar && (
         <div className={cn(
           "h-full transition-all duration-300 ease-in-out",
-          isMobile ? 
-            (isSidebarOpen ? "fixed z-40 left-0" : "fixed z-40 -left-full") : 
-            "relative w-auto"
+          isMobile 
+            ? (isSidebarOpen ? "fixed z-40 left-0 w-64" : "fixed z-40 -left-full") 
+            : "w-64 min-w-64"
         )}>
           {sidebarComponent}
         </div>
@@ -54,7 +54,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
       {/* Main content */}
       <main className={cn(
         "flex-1 overflow-hidden transition-all duration-300",
-        isMobile && hasSidebar ? "pt-14" : "" // Add padding top on mobile when sidebar exists
+        isMobile && hasSidebar ? "pt-14" : "", // Add padding top on mobile when sidebar exists
+        !isMobile && hasSidebar ? "ml-0" : "" // Add margin on desktop when sidebar exists
       )}>
         <ScrollArea className="h-full w-full">
           <div className="p-6">
@@ -62,6 +63,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
           </div>
         </ScrollArea>
       </main>
+      
+      {/* Overlay for mobile sidebar when open */}
+      {isMobile && hasSidebar && isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/20 z-30"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
     </div>
   );
 };
