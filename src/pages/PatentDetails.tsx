@@ -26,7 +26,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { TooltipProvider } from '@/components/ui/tooltip';
 
 const PatentDetails = () => {
   const { id } = useParams<{ id: string }>();

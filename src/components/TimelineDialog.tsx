@@ -8,18 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { Patent, TimelineEventData } from '@/lib/types';
-
-// Create a timeline API function if it doesn't exist yet
-const addTimelineEvent = async (eventData: TimelineEventData): Promise<boolean> => {
-  // This is a temporary implementation - should be replaced with actual API call
-  console.log('Adding timeline event:', eventData);
-  
-  // Simulate API call success
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(true), 1000);
-  });
-};
+import { Patent } from '@/lib/types';
+import { addPatentTimelineEntry } from '@/lib/api/timeline-api';
 
 interface TimelineDialogProps {
   patent: Patent;
@@ -59,12 +49,26 @@ const TimelineDialog: React.FC<TimelineDialogProps> = ({ patent, open, onClose, 
 
     setIsLoading(true);
     try {
-      await addTimelineEvent({
-        patent_id: patent.id,
-        event_type: eventType,
-        event_description: description,
-        deadline_date: deadlineDate || null,
-      });
+      // Get the user from localStorage
+      let employeeName = '';
+      try {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          employeeName = user.full_name || '';
+        }
+      } catch (error) {
+        console.error('Error getting user from localStorage:', error);
+      }
+
+      await addPatentTimelineEntry(
+        patent.id,
+        eventType,
+        description,
+        1, // Status
+        employeeName,
+        deadlineDate || undefined
+      );
 
       toast.success('Timeline event added successfully');
       resetForm();

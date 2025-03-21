@@ -1,10 +1,11 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { TimelineItem, TimelineEventData } from '@/lib/types';
 
 /**
  * Fetches the patent timeline entries for a specific patent
  */
-export const fetchPatentTimeline = async (patentId: string) => {
+export const fetchPatentTimeline = async (patentId: string): Promise<TimelineItem[]> => {
   try {
     const { data, error } = await supabase
       .from('patent_timeline')
@@ -34,7 +35,7 @@ export const addPatentTimelineEntry = async (
   status: number = 1,
   employeeName?: string,
   deadlineDate?: string
-) => {
+): Promise<TimelineItem | null> => {
   try {
     const { data, error } = await supabase
       .from('patent_timeline')
