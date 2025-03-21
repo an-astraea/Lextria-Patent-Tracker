@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, FileText, Users, CheckSquare, FileSpreadsheet, Upload, Database } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, CheckSquare, FileSpreadsheet, Database } from 'lucide-react';
 import Sidebar from './Sidebar';
 
 interface AdminSidebarProps {
@@ -33,11 +33,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
       label: 'Client Dashboard',
       icon: FileSpreadsheet,
       href: '/clients',
-    },
-    {
-      label: 'Bulk Upload',
-      icon: Upload,
-      href: '/bulk-upload',
     },
     {
       label: 'Sheets',
