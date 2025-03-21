@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, Upload, FileUp } from 'lucide-react';
+import { Download, Upload, FileUp, X, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { bulkUploadPatents } from '@/lib/api/bulk-upload-api';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Patent, PatentFormData } from '@/lib/types';
+import { PatentFormData } from '@/lib/types';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import LoadingState from '@/components/common/LoadingState';
 
 const BulkUpload: React.FC = () => {
   const { toast } = useToast();
@@ -20,10 +22,15 @@ const BulkUpload: React.FC = () => {
     errors: string[];
   }>({ success: 0, failed: 0, errors: [] });
   const [showResults, setShowResults] = useState(false);
+  
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [parsedData, setParsedData] = useState<PatentFormData[]>([]);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [validationComplete, setValidationComplete] = useState(false);
 
-  // Generate the template Excel file
   const downloadTemplate = () => {
-    // Define the column headers for the template
     const headers = [
       'tracking_id*',
       'patent_applicant*',
@@ -47,45 +54,39 @@ const BulkUpload: React.FC = () => {
       'inventor_addr*'
     ];
 
-    // Create a worksheet with headers
     const ws = XLSX.utils.aoa_to_sheet([headers]);
 
-    // Create a sample row with explanations
     const sampleRow = [
-      'PAT-123456', // tracking_id
-      'Example Applicant', // patent_applicant
-      'CLIENT-001', // client_id
-      'Example Patent Title', // patent_title
-      '123 Applicant Street, City, Country', // applicant_addr
-      '1234567890', // inventor_ph_no
-      'inventor@example.com', // inventor_email
-      'APP-12345 (optional)', // application_no
-      '2023-01-01 (YYYY-MM-DD, optional)', // date_of_filing
-      'John Doe (employee full name)', // ps_drafter_assgn
-      '2023-02-01 (YYYY-MM-DD)', // ps_drafter_deadline
-      'Jane Smith (employee full name)', // ps_filer_assgn
-      '2023-03-01 (YYYY-MM-DD)', // ps_filer_deadline
-      'John Doe (employee full name)', // cs_drafter_assgn
-      '2023-04-01 (YYYY-MM-DD)', // cs_drafter_deadline
-      'Jane Smith (employee full name)', // cs_filer_assgn
-      '2023-05-01 (YYYY-MM-DD)', // cs_filer_deadline
-      '0 (use 0 for no, 1 for yes)', // fer_status
-      'John Inventor', // inventor_name
-      '456 Inventor Avenue, City, Country' // inventor_addr
+      'PAT-123456',
+      'Example Applicant',
+      'CLIENT-001',
+      'Example Patent Title',
+      '123 Applicant Street, City, Country',
+      '1234567890',
+      'inventor@example.com',
+      'APP-12345 (optional)',
+      '2023-01-01 (YYYY-MM-DD, optional)',
+      'John Doe (employee full name)',
+      '2023-02-01 (YYYY-MM-DD)',
+      'Jane Smith (employee full name)',
+      '2023-03-01 (YYYY-MM-DD)',
+      'John Doe (employee full name)',
+      '2023-04-01 (YYYY-MM-DD)',
+      'Jane Smith (employee full name)',
+      '2023-05-01 (YYYY-MM-DD)',
+      '0 (use 0 for no, 1 for yes)',
+      'John Inventor',
+      '456 Inventor Avenue, City, Country'
     ];
 
-    // Add the sample row (optional)
     XLSX.utils.sheet_add_aoa(ws, [sampleRow], { origin: 1 });
 
-    // Add column width specifications
     const wscols = headers.map(() => ({ wch: 25 }));
     ws['!cols'] = wscols;
 
-    // Create a workbook and add the worksheet
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Patent Template');
 
-    // Generate the Excel file and trigger download
     XLSX.writeFile(wb, 'patent_upload_template.xlsx');
     
     toast({
@@ -94,9 +95,7 @@ const BulkUpload: React.FC = () => {
     });
   };
 
-  // Generate a sample Excel file with populated data
   const downloadSampleExcel = () => {
-    // Create a sample patent data for Excel export
     const sampleData = [{
       'tracking_id*': 'PAT-123456',
       'patent_applicant*': 'Sample Applicant Ltd.',
@@ -122,18 +121,14 @@ const BulkUpload: React.FC = () => {
       'inventor_addr2': '789 Technology Road, Science District, 30003'
     }];
 
-    // Create a worksheet with the sample data
     const ws = XLSX.utils.json_to_sheet(sampleData);
 
-    // Add column width specifications
     const wscols = Object.keys(sampleData[0]).map(() => ({ wch: 25 }));
     ws['!cols'] = wscols;
 
-    // Create a workbook and add the worksheet
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Sample Patent Data');
 
-    // Generate the Excel file and trigger download
     XLSX.writeFile(wb, 'sample_patent_data.xlsx');
     
     toast({
@@ -142,7 +137,6 @@ const BulkUpload: React.FC = () => {
     });
   };
 
-  // Sample patent data for quick testing
   const getSamplePatentData = (): PatentFormData[] => {
     const today = new Date();
     const futureDate = new Date();
@@ -185,7 +179,6 @@ const BulkUpload: React.FC = () => {
     ];
   };
 
-  // Handle uploading a sample patent
   const handleSampleUpload = async () => {
     setIsUploading(true);
     setUploadProgress(20);
@@ -195,7 +188,6 @@ const BulkUpload: React.FC = () => {
       const sampleData = getSamplePatentData();
       setUploadProgress(50);
       
-      // Upload the sample data
       const results = await bulkUploadPatents(sampleData);
       
       setUploadProgress(100);
@@ -226,21 +218,32 @@ const BulkUpload: React.FC = () => {
     }
   };
 
-  // Handle file upload and processing
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const resetUploadStates = () => {
+    setSelectedFile(null);
+    setParsedData([]);
+    setValidationErrors([]);
+    setValidationComplete(false);
+    setShowConfirmDialog(false);
+    setIsValidating(false);
+    setUploadProgress(0);
+    setShowResults(false);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      setIsUploading(true);
+      setSelectedFile(file);
+      setIsValidating(true);
+      setValidationErrors([]);
       setUploadProgress(10);
-      setShowResults(false);
-
-      // Read the Excel file
+      setValidationComplete(false);
+      
       const reader = new FileReader();
+      
       reader.onload = async (e) => {
         try {
-          // Fix for the TypeScript error - properly type the FileReader result
           const result = e.target?.result;
           if (!result) throw new Error('Failed to read file');
           
@@ -249,10 +252,8 @@ const BulkUpload: React.FC = () => {
           
           setUploadProgress(30);
           
-          // Get the first worksheet
           const worksheet = workbook.Sheets[workbook.SheetNames[0]];
           
-          // Convert the worksheet to JSON
           const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<string, any>[];
           
           setUploadProgress(50);
@@ -261,40 +262,39 @@ const BulkUpload: React.FC = () => {
             throw new Error('No data found in the uploaded file');
           }
 
-          // Validate and transform the data
-          const patentData = preparePatentData(jsonData);
+          const { patentData, errors } = validatePatentData(jsonData);
           
-          setUploadProgress(70);
-
-          // Upload the data to the server
-          const results = await bulkUploadPatents(patentData);
+          setUploadProgress(90);
+          setParsedData(patentData);
           
-          setUploadProgress(100);
-          setUploadResults(results);
-          setShowResults(true);
-
-          if (results.success > 0) {
-            toast({
-              title: "Upload Successful",
-              description: `${results.success} patents uploaded successfully. ${results.failed} failed.`,
-            });
-          } else {
+          if (errors.length > 0) {
+            setValidationErrors(errors);
             toast({
               variant: "destructive",
-              title: "Upload Failed",
-              description: "No patents were successfully uploaded. Please check the errors.",
+              title: "Validation Failed",
+              description: `Found ${errors.length} errors in your data. Please review and fix them.`,
+            });
+          } else if (patentData.length > 0) {
+            setShowConfirmDialog(true);
+            toast({
+              title: "Validation Successful",
+              description: `${patentData.length} patents ready to upload. Please confirm to proceed.`,
             });
           }
+          
+          setUploadProgress(100);
+          
         } catch (error) {
           console.error("Error processing file:", error);
+          setValidationErrors([error instanceof Error ? error.message : "Unknown error during file processing"]);
           toast({
             variant: "destructive",
             title: "Error Processing File",
             description: error instanceof Error ? error.message : "Failed to process the Excel file",
           });
         } finally {
-          setIsUploading(false);
-          // Clear the input value properly
+          setIsValidating(false);
+          setValidationComplete(true);
           if (e.target) {
             (e.target as any).value = '';
           }
@@ -303,7 +303,7 @@ const BulkUpload: React.FC = () => {
       
       reader.readAsArrayBuffer(file);
     } catch (error) {
-      setIsUploading(false);
+      setIsValidating(false);
       console.error("File upload error:", error);
       toast({
         variant: "destructive",
@@ -313,8 +313,56 @@ const BulkUpload: React.FC = () => {
     }
   };
 
-  // Transform and validate Excel data to match our PatentFormData structure
-  const preparePatentData = (jsonData: Record<string, any>[]): PatentFormData[] => {
+  const confirmUpload = async () => {
+    if (parsedData.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Data",
+        description: "No valid patent data to upload.",
+      });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      setShowConfirmDialog(false);
+      setUploadProgress(20);
+      
+      const results = await bulkUploadPatents(parsedData);
+      
+      setUploadProgress(100);
+      setUploadResults(results);
+      setShowResults(true);
+      
+      if (results.success > 0) {
+        toast({
+          title: "Upload Successful",
+          description: `${results.success} patents uploaded successfully. ${results.failed} failed.`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Upload Failed",
+          description: "No patents were successfully uploaded. Please check the errors.",
+        });
+      }
+      
+      setSelectedFile(null);
+      setParsedData([]);
+      
+    } catch (error) {
+      console.error("Error uploading patents:", error);
+      toast({
+        variant: "destructive",
+        title: "Upload Error",
+        description: error instanceof Error ? error.message : "An error occurred during upload.",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const validatePatentData = (jsonData: Record<string, any>[]): { patentData: PatentFormData[], errors: string[] } => {
     const patentData: PatentFormData[] = [];
     const errors: string[] = [];
 
@@ -323,7 +371,6 @@ const BulkUpload: React.FC = () => {
       const rowIndex = i + 2; // +2 because Excel is 1-indexed and we have a header row
 
       try {
-        // Validate required fields
         const requiredFields = [
           'tracking_id',
           'patent_applicant',
@@ -342,7 +389,6 @@ const BulkUpload: React.FC = () => {
           }
         }
 
-        // Create a patent object from the row
         const patent: PatentFormData = {
           tracking_id: row['tracking_id*'] || row['tracking_id'],
           patent_applicant: row['patent_applicant*'] || row['patent_applicant'],
@@ -370,7 +416,13 @@ const BulkUpload: React.FC = () => {
           ]
         };
 
-        // Add more inventors if they exist (inventor_name2, inventor_addr2, etc.)
+        const dateFields = ['date_of_filing', 'ps_drafter_deadline', 'ps_filer_deadline', 'cs_drafter_deadline', 'cs_filer_deadline'];
+        for (const field of dateFields) {
+          if (patent[field as keyof PatentFormData] && !/^\d{4}-\d{2}-\d{2}$/.test(patent[field as keyof PatentFormData] as string)) {
+            throw new Error(`Invalid date format for ${field}. Use YYYY-MM-DD format.`);
+          }
+        }
+
         for (let j = 2; j <= 10; j++) {
           const nameField = `inventor_name${j}`;
           const addrField = `inventor_addr${j}`;
@@ -390,7 +442,7 @@ const BulkUpload: React.FC = () => {
       }
     }
 
-    return patentData;
+    return { patentData, errors };
   };
 
   return (
@@ -430,10 +482,10 @@ const BulkUpload: React.FC = () => {
                   <Button
                     className="w-full cursor-pointer"
                     variant="default"
-                    disabled={isUploading}
+                    disabled={isValidating || isUploading}
                   >
                     <Upload className="mr-2 h-4 w-4" />
-                    {isUploading ? "Uploading..." : "Select & Upload File"}
+                    {isValidating ? "Validating..." : isUploading ? "Uploading..." : "Select & Upload File"}
                   </Button>
                 </label>
                 <input
@@ -441,16 +493,45 @@ const BulkUpload: React.FC = () => {
                   type="file"
                   className="hidden"
                   accept=".xlsx, .xls"
-                  onChange={handleFileUpload}
-                  disabled={isUploading}
+                  onChange={handleFileSelect}
+                  disabled={isValidating || isUploading}
                 />
                 
-                {isUploading && (
+                {(isValidating || isUploading) && (
                   <div className="space-y-2">
                     <div className="text-sm text-muted-foreground">
-                      Processing... {uploadProgress}%
+                      {isValidating ? "Validating..." : "Processing..."} {uploadProgress}%
                     </div>
                     <Progress value={uploadProgress} className="w-full" />
+                  </div>
+                )}
+                
+                {selectedFile && !isValidating && !isUploading && (
+                  <div className="p-3 border rounded-md bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium truncate">
+                        {selectedFile.name}
+                      </span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={resetUploadStates}
+                        className="h-6 w-6 p-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {validationComplete && validationErrors.length === 0 && (
+                      <div className="mt-2 flex justify-end">
+                        <Button 
+                          size="sm"
+                          onClick={() => setShowConfirmDialog(true)}
+                        >
+                          <Check className="mr-1 h-3 w-3" />
+                          Confirm Upload
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -478,7 +559,7 @@ const BulkUpload: React.FC = () => {
                 onClick={handleSampleUpload} 
                 className="w-full" 
                 variant="secondary"
-                disabled={isUploading}
+                disabled={isUploading || isValidating}
               >
                 <FileUp className="mr-2 h-4 w-4" />
                 Upload Sample Patent
@@ -486,6 +567,27 @@ const BulkUpload: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+        
+        {validationComplete && validationErrors.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-destructive">Validation Errors</CardTitle>
+              <CardDescription>
+                Please fix the following issues in your Excel file and try again.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="max-h-60 overflow-y-auto">
+                {validationErrors.map((error, index) => (
+                  <Alert key={index} variant="destructive" className="mb-2">
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
         
         {showResults && (
           <Card className="mb-6">
@@ -518,7 +620,7 @@ const BulkUpload: React.FC = () => {
                     <div className="max-h-60 overflow-y-auto">
                       {uploadResults.errors.map((error, index) => (
                         <Alert key={index} variant="destructive" className="mb-2">
-                          <AlertTitle>Error in Row {index + 2}</AlertTitle>
+                          <AlertTitle>Error</AlertTitle>
                           <AlertDescription>{error}</AlertDescription>
                         </Alert>
                       ))}
@@ -544,6 +646,8 @@ const BulkUpload: React.FC = () => {
               <li>Fill the template with your patent data. Fields marked with * are required.</li>
               <li>You can add multiple inventors by adding columns: inventor_name2, inventor_addr2, etc.</li>
               <li>Save the file and click "Upload" to submit your data.</li>
+              <li>The system will validate your data before uploading. Fix any reported errors.</li>
+              <li>After validation, click "Confirm Upload" to complete the process.</li>
               <li>Review the upload results for any errors.</li>
               <li>For quick testing, use the "Upload Sample Patent" option to add a pre-filled sample patent.</li>
             </ol>
@@ -559,10 +663,47 @@ const BulkUpload: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+        
+        <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Patent Upload</DialogTitle>
+              <DialogDescription>
+                You're about to upload {parsedData.length} patents to the system. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4">
+              <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
+                <p className="text-sm text-green-700 dark:text-green-300 flex items-center">
+                  <Check className="mr-2 h-4 w-4" />
+                  Data validation successful
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Upload Summary:</p>
+                <ul className="text-sm space-y-1">
+                  <li>• Total patents: {parsedData.length}</li>
+                  <li>• Total inventors: {parsedData.reduce((acc, patent) => acc + patent.inventors.length, 0)}</li>
+                  <li>• File: {selectedFile?.name}</li>
+                </ul>
+              </div>
+            </div>
+            
+            <DialogFooter className="sm:justify-between">
+              <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={confirmUpload} disabled={isUploading}>
+                {isUploading ? <LoadingState size="sm" text="Uploading..." /> : "Confirm Upload"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );
 };
 
 export default BulkUpload;
-
