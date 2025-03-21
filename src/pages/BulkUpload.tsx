@@ -109,7 +109,11 @@ const BulkUpload: React.FC = () => {
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          // Fix for the TypeScript error - properly type the FileReader result
+          const result = e.target?.result;
+          if (!result) throw new Error('Failed to read file');
+          
+          const data = new Uint8Array(result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
           
           setUploadProgress(30);

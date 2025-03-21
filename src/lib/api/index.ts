@@ -177,4 +177,6 @@ export * from './drafter-api';
 export * from './filer-api';
 export * from './review-api';
 export * from './fer-actions';
-export * from './timeline-api';
+
+// Export timeline API but exclude fetchPatentTimeline to avoid naming conflict
+export { addPatentTimelineEntry } from './timeline-api';
