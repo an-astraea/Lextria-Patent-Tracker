@@ -58,6 +58,15 @@ const Patents = () => {
     },
   });
   
+  // Define searchFields for the SearchFilters component
+  const searchFields = [
+    { value: 'tracking_id', label: 'Tracking ID' },
+    { value: 'client_id', label: 'Client ID' },
+    { value: 'patent_title', label: 'Patent Title' },
+    { value: 'patent_applicant', label: 'Applicant' },
+    { value: 'application_no', label: 'Application No.' },
+  ];
+  
   // For non-realtime search
   const [pendingSearchQuery, setPendingSearchQuery] = useState('');
   
@@ -535,4 +544,3 @@ const Patents = () => {
 };
 
 export default Patents;
-
