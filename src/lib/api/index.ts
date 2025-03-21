@@ -166,6 +166,9 @@ export const fetchEmployees = async () => {
   }
 };
 
+// Export the bulk upload API
+export * from './bulk-upload-api';
+
 // Re-export other functions from individual files
 export * from './auth-api';
 export * from './patent-api';
