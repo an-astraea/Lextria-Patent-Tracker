@@ -55,7 +55,7 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
               >
                 {selectedField 
                   ? searchFields.find(f => f.value === selectedField)?.label || 'All' 
-                  : 'All'}
+                  : 'All Fields'}
                 <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

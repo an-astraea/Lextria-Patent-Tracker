@@ -4,6 +4,7 @@ import { fetchPatents } from '@/lib/api';
 import { Patent } from '@/lib/types';
 import PageHeader from '@/components/common/PageHeader';
 import LoadingState from '@/components/common/LoadingState';
+import SearchFilters from '@/components/common/SearchFilters';
 import * as XLSX from 'xlsx';
 
 import ClientSelector from '@/components/client-dashboard/ClientSelector';
@@ -82,10 +83,12 @@ const ClientDashboard = () => {
     }));
   };
 
-  const handleSearchChange = (value) => {
+  const handleSearchChange = (query: string, field?: string) => {
+    console.log(`Searching for "${query}" in field: ${field || 'all'}`);
     setFilters(prevFilters => ({
       ...prevFilters,
-      searchQuery: value
+      searchQuery: query,
+      searchField: field || ''
     }));
   };
 
@@ -107,6 +110,15 @@ const ClientDashboard = () => {
 
   const activeFiltersCount = countActiveFilters(filters);
 
+  const searchFields = [
+    { value: 'tracking_id', label: 'Tracking ID' },
+    { value: 'patent_title', label: 'Patent Title' },
+    { value: 'patent_applicant', label: 'Applicant' },
+    { value: 'application_no', label: 'Application No.' },
+    { value: 'inventor_name', label: 'Inventor' },
+    { value: 'inventor_email', label: 'Inventor Email' }
+  ];
+
   if (isLoading) {
     return <LoadingState />;
   }
@@ -124,20 +136,95 @@ const ClientDashboard = () => {
           selectedClient={selectedClient} 
           onClientChange={setSelectedClient} 
         />
-        
-        {selectedClient && (
-          <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-            <FilterSection 
-              filters={filters}
-              handleFilterChange={handleFilterChange}
-              handleDateRangeChange={handleDateRangeChange}
-              handleSearchChange={handleSearchChange}
-              resetFilters={resetFilters}
-              activeFiltersCount={activeFiltersCount}
-            />
-          </div>
-        )}
       </div>
+      
+      {selectedClient && (
+        <div className="mb-6">
+          <div className="flex flex-col gap-4">
+            <SearchFilters 
+              onSearch={handleSearchChange}
+              placeholder="Search patents for this client..."
+              searchFields={searchFields}
+              filters={[
+                {
+                  name: "Status Filters",
+                  options: [
+                    { value: null, label: "All Statuses" },
+                    { value: "completed", label: "Completed" },
+                    { value: "in_progress", label: "In Progress" },
+                    { value: "not_started", label: "Not Started" }
+                  ],
+                  onFilter: (value) => handleFilterChange('patentStatus', 'status', value),
+                  activeFilter: filters.patentStatus.status
+                },
+                {
+                  name: "Drafting Status",
+                  options: [
+                    { value: null, label: "All" },
+                    { value: "ps_drafting", label: "PS Drafting" },
+                    { value: "cs_drafting", label: "CS Drafting" },
+                    { value: "fer_drafting", label: "FER Drafting" }
+                  ],
+                  onFilter: (value) => {
+                    if (value === 'ps_drafting') {
+                      handleFilterChange('draftingStatus', 'psDrafting', true);
+                    } else if (value === 'cs_drafting') {
+                      handleFilterChange('draftingStatus', 'csDrafting', true);
+                    } else if (value === 'fer_drafting') {
+                      handleFilterChange('draftingStatus', 'ferDrafting', true);
+                    } else {
+                      // Reset all drafting filters
+                      handleFilterChange('draftingStatus', 'psDrafting', false);
+                      handleFilterChange('draftingStatus', 'csDrafting', false);
+                      handleFilterChange('draftingStatus', 'ferDrafting', false);
+                    }
+                  },
+                  activeFilter: filters.draftingStatus.psDrafting ? 'ps_drafting' : 
+                               filters.draftingStatus.csDrafting ? 'cs_drafting' : 
+                               filters.draftingStatus.ferDrafting ? 'fer_drafting' : null
+                },
+                {
+                  name: "Filing Status",
+                  options: [
+                    { value: null, label: "All" },
+                    { value: "ps_filing", label: "PS Filing" },
+                    { value: "cs_filing", label: "CS Filing" },
+                    { value: "fer_filing", label: "FER Filing" }
+                  ],
+                  onFilter: (value) => {
+                    if (value === 'ps_filing') {
+                      handleFilterChange('filingStatus', 'psFiling', true);
+                    } else if (value === 'cs_filing') {
+                      handleFilterChange('filingStatus', 'csFiling', true);
+                    } else if (value === 'fer_filing') {
+                      handleFilterChange('filingStatus', 'ferFiling', true);
+                    } else {
+                      // Reset all filing filters
+                      handleFilterChange('filingStatus', 'psFiling', false);
+                      handleFilterChange('filingStatus', 'csFiling', false);
+                      handleFilterChange('filingStatus', 'ferFiling', false);
+                    }
+                  },
+                  activeFilter: filters.filingStatus.psFiling ? 'ps_filing' : 
+                              filters.filingStatus.csFiling ? 'cs_filing' : 
+                              filters.filingStatus.ferFiling ? 'fer_filing' : null
+                }
+              ]}
+            />
+            
+            <div className="flex flex-wrap gap-2">
+              <FilterSection 
+                filters={filters}
+                handleFilterChange={handleFilterChange}
+                handleDateRangeChange={handleDateRangeChange}
+                handleSearchChange={handleSearchChange}
+                resetFilters={resetFilters}
+                activeFiltersCount={activeFiltersCount}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedClient && filteredPatents.length > 0 && (
         <StatsCards patents={filteredPatents} />
