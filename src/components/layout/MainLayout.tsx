@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -15,6 +15,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
   const hasSidebar = !!sidebarComponent;
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   
+  // Force sidebar to be visible on desktop initially
+  useEffect(() => {
+    if (!isMobile) {
+      setIsSidebarOpen(true);
+    }
+  }, [isMobile]);
+
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
@@ -34,10 +41,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
       
       {/* Sidebar */}
       {sidebarComponent && (
-        <div className={cn(
+        <aside className={cn(
           "transition-all duration-300 h-full",
           isMobile ? "fixed z-40 left-0" : "relative",
-          isSidebarOpen ? "translate-x-0" : isMobile ? "-translate-x-full" : "",
+          isSidebarOpen ? "translate-x-0 opacity-100" : isMobile ? "-translate-x-full opacity-0" : "w-0 opacity-0",
           isMobile ? "shadow-xl" : ""
         )}>
           {sidebarComponent}
@@ -55,7 +62,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
               {isSidebarOpen ? '◀' : '▶'}
             </button>
           )}
-        </div>
+        </aside>
       )}
       
       {/* Overlay for mobile sidebar */}
@@ -67,10 +74,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
       )}
       
       {/* Main content */}
-      <main className={cn("flex-1 w-full overflow-hidden", {
-        "pl-0": !hasSidebar || !isSidebarOpen,
-        "ml-0": isMobile
-      })}>
+      <main className={cn(
+        "flex-1 overflow-hidden transition-all duration-300",
+        {
+          "ml-0": isMobile || !isSidebarOpen,
+        }
+      )}>
         <ScrollArea className="h-full w-full">
           <div className="p-6">
             {children}

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LogOut,
@@ -27,8 +27,8 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
-  const [isMobileOpen, setIsMobileOpen] = React.useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const location = useLocation();
   const isMobile = useIsMobile();
 
@@ -51,28 +51,13 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
   };
 
   return (
-    <>
-      {/* Mobile Header Menu Button */}
-      <div className={cn(
-        "fixed top-0 left-4 z-50 h-16 flex items-center",
-        !isMobile && "hidden"
-      )}>
-        <button
-          className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground"
-          onClick={toggleSidebar}
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-      </div>
-
+    <div className="h-full flex">
       {/* Desktop Sidebar */}
-      <aside
-        className={cn(
-          "h-screen flex flex-col bg-sidebar border-r border-border",
-          isCollapsed ? "w-20" : "w-64",
-          isMobile && "hidden"
-        )}
-      >
+      <aside className={cn(
+        "h-screen flex flex-col bg-sidebar border-r border-border transition-all duration-300",
+        isCollapsed ? "w-20" : "w-64",
+        isMobile && "hidden"
+      )}>
         {/* Logo */}
         <div className="p-4 border-b border-border flex items-center justify-between">
           {!isCollapsed && (
@@ -140,84 +125,71 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
         )}
       </aside>
 
-      {/* Mobile Sidebar (Overlay) */}
-      {isMobile && (
-        <div
-          className={cn(
-            "fixed inset-0 bg-black/50 z-30 transition-opacity",
-            isMobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          )}
-          onClick={closeMobileSidebar}
-        />
-      )}
-
       {/* Mobile Sidebar (Content) */}
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-40 w-72 h-full flex flex-col transition-transform duration-300 ease-in-out bg-sidebar border-r border-border",
-          isMobileOpen ? "translate-x-0" : "-translate-x-full"
+          isMobile ? (isMobileOpen ? "translate-x-0" : "-translate-x-full") : "hidden"
         )}
       >
-        <div className="flex flex-col h-full">
-          {/* Mobile Sidebar Header */}
-          <div className="p-4 flex items-center justify-between border-b border-border">
-            <h2 className="text-xl font-semibold">PatentTrack</h2>
-            <button
-              className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground"
-              onClick={toggleSidebar}
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+        {/* Mobile Sidebar Header */}
+        <div className="p-4 flex items-center justify-between border-b border-border">
+          <h2 className="text-xl font-semibold">PatentTrack</h2>
+          <button
+            className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground"
+            onClick={toggleSidebar}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-          {/* User Info */}
-          {user && (
-            <div className="p-4 border-b border-border">
-              <div className="flex items-center gap-2">
-                <User className="h-6 w-6 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">{user.full_name}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
-                </div>
+        {/* User Info */}
+        {user && (
+          <div className="p-4 border-b border-border">
+            <div className="flex items-center gap-2">
+              <User className="h-6 w-6 text-muted-foreground" />
+              <div>
+                <p className="font-medium">{user.full_name}</p>
+                <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Navigation Links */}
-          <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "flex items-center px-3 py-2.5 rounded-md transition-all",
-                  isActive(item.href)
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-secondary text-foreground"
-                )}
-                onClick={closeMobileSidebar}
-              >
-                <item.icon className={cn("h-5 w-5", isActive(item.href) ? "" : "text-muted-foreground")} />
-                <span className="ml-3">{item.label}</span>
-              </Link>
-            ))}
-          </nav>
+        {/* Navigation Links */}
+        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              to={item.href}
+              className={cn(
+                "flex items-center px-3 py-2.5 rounded-md transition-all",
+                isActive(item.href)
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-secondary text-foreground"
+              )}
+              onClick={closeMobileSidebar}
+            >
+              <item.icon className={cn("h-5 w-5", isActive(item.href) ? "" : "text-muted-foreground")} />
+              <span className="ml-3">{item.label}</span>
+            </Link>
+          ))}
+        </nav>
 
-          {/* Footer */}
-          {onLogout && (
-            <div className="p-4 mt-auto border-t border-border">
-              <button
-                className="w-full flex items-center px-3 py-2.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-secondary"
-                onClick={onLogout}
-              >
-                <LogOut className="h-5 w-5" />
-                <span className="ml-3">Logout</span>
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Footer */}
+        {onLogout && (
+          <div className="p-4 mt-auto border-t border-border">
+            <button
+              className="w-full flex items-center px-3 py-2.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-secondary"
+              onClick={onLogout}
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="ml-3">Logout</span>
+            </button>
+          </div>
+        )}
       </aside>
-    </>
+    </div>
   );
 };
 
