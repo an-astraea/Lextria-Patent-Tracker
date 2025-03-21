@@ -110,7 +110,8 @@ const Sheets: React.FC = () => {
         ) : error ? (
           <EmptyState 
             icon="alert-triangle"
-            title="Error loading patents" 
+            title="Error loading patents"
+            message="There was an error loading the patent data. Please try again or contact support."
           />
         ) : patents && patents.length > 0 ? (
           <div className="border rounded-md overflow-hidden">
@@ -150,7 +151,8 @@ const Sheets: React.FC = () => {
         ) : (
           <EmptyState 
             icon="database" 
-            title="No patents found" 
+            title="No patents found"
+            message="There are no patents in the database matching your search criteria."
           />
         )}
       </div>
