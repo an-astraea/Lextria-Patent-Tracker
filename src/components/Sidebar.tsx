@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileSidebar from './sidebar/MobileSidebar';
 import DesktopSidebar from './sidebar/DesktopSidebar';
@@ -20,7 +20,20 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  console.log('Sidebar rendering with isMobile:', isMobile);
+  console.log('Sidebar rendering with:', { 
+    isMobile, 
+    navItems: navItems?.length,
+    user: user?.role,
+    isCollapsed,
+    isMobileOpen
+  });
+
+  // Force mobile sidebar open on initial load for mobile
+  useEffect(() => {
+    if (isMobile) {
+      setIsMobileOpen(true);
+    }
+  }, []);
 
   const toggleSidebar = () => {
     if (isMobile) {
@@ -63,7 +76,7 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
           {/* Mobile Sidebar Trigger Button - Only visible on mobile */}
           <button
             onClick={() => setIsMobileOpen(true)}
-            className="fixed z-30 top-4 left-4 p-2 rounded-md bg-white shadow-md"
+            className="fixed z-50 top-4 left-4 p-2 rounded-md bg-primary text-white shadow-md"
             aria-label="Open sidebar"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

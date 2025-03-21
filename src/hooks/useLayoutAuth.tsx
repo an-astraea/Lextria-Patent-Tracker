@@ -16,7 +16,6 @@ export const useLayoutAuth = () => {
       const storedUser = localStorage.getItem('user');
       console.log('Stored user:', storedUser);
       
-      // Handle authentication logic
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);

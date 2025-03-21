@@ -25,10 +25,12 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
   user,
   onLogout
 }) => {
+  console.log('MobileSidebar rendering with isOpen:', isOpen);
+  
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 w-64 h-full flex flex-col transition-transform duration-300 ease-in-out bg-white border-r border-border",
+        "fixed inset-y-0 left-0 z-50 w-64 h-full flex flex-col transition-transform duration-300 ease-in-out bg-white border-r border-border shadow-lg",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}
     >

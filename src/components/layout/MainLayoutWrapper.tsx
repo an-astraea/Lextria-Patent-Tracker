@@ -16,19 +16,24 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
     console.log('MainLayoutWrapper rendering with:', { 
       isIndexPage, 
       isLoading, 
-      userRole: user?.role 
+      userRole: user?.role,
+      path: window.location.pathname
     });
   }, [isIndexPage, isLoading, user]);
 
   // Login page doesn't need sidebar
   if (isIndexPage) {
+    console.log('Rendering without sidebar (index page)');
     return <MainLayout>{children}</MainLayout>;
   }
 
   // Show loading state while checking authentication
   if (isLoading) {
+    console.log('Rendering loading layout');
     return <LoadingLayout />;
   }
+
+  console.log('Selecting sidebar based on role:', user?.role);
 
   // Render layout based on user role
   if (user?.role === 'admin') {

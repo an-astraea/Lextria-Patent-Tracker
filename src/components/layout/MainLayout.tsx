@@ -13,11 +13,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
   const isMobile = useIsMobile();
   const hasSidebar = !!sidebarComponent;
 
+  console.log('MainLayout rendering with:', { hasSidebar, isMobile });
+
   return (
     <div className="flex min-h-screen h-screen bg-background">
       {/* Sidebar - always visible when available */}
       {hasSidebar && (
-        <div className="h-full">
+        <div className="h-full z-30">
           {sidebarComponent}
         </div>
       )}
