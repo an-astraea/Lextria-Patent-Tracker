@@ -15,9 +15,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
 
   return (
     <div className="flex min-h-screen h-screen bg-background">
-      {/* Sidebar - always visible */}
+      {/* Sidebar - always visible when available */}
       {hasSidebar && (
-        <div className="fixed z-40 h-full">
+        <div className="h-full">
           {sidebarComponent}
         </div>
       )}
@@ -25,7 +25,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
       {/* Main content */}
       <main className={cn(
         "flex-1 overflow-hidden transition-all duration-300",
-        isMobile ? "ml-0 pt-14" : (hasSidebar ? "ml-64" : "ml-0"),
+        isMobile ? "w-full" : (hasSidebar ? "ml-0" : "ml-0"),
       )}>
         <ScrollArea className="h-full w-full">
           <div className="p-6">

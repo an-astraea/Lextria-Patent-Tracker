@@ -11,7 +11,7 @@ export const useLayoutAuth = () => {
   const isIndexPage = location.pathname === '/';
 
   useEffect(() => {
-    console.log('useLayoutAuth hook running');
+    console.log('useLayoutAuth hook running, path:', location.pathname);
     try {
       const storedUser = localStorage.getItem('user');
       console.log('Stored user:', storedUser);

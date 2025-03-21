@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import MainLayout from './MainLayout';
 import AdminSidebar from '../AdminSidebar';
 import { useLayoutAuth } from '@/hooks/useLayoutAuth';
@@ -12,8 +12,13 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
   const { user, isLoading, isIndexPage, handleLogout } = useLayoutAuth();
 
   // Log current state for debugging
-  console.log('isIndexPage:', isIndexPage);
-  console.log('user:', user);
+  useEffect(() => {
+    console.log('MainLayoutWrapper rendering with:', { 
+      isIndexPage, 
+      isLoading, 
+      userRole: user?.role 
+    });
+  }, [isIndexPage, isLoading, user]);
 
   // Login page doesn't need sidebar
   if (isIndexPage) {

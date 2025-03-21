@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { X } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SidebarUser from './SidebarUser';
 import SidebarNav from './SidebarNav';
@@ -30,7 +30,7 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       "h-screen flex flex-col bg-white border-r border-border transition-all duration-300",
       isCollapsed ? "w-20" : "w-64"
     )}>
-      {/* Logo and Close Button */}
+      {/* Logo and Collapse Button */}
       <div className="p-4 border-b border-border flex items-center justify-between">
         {!isCollapsed && (
           <h2 className="text-xl font-bold text-black">PatentTrack</h2>
@@ -43,7 +43,7 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           onClick={toggleSidebar}
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {isCollapsed ? <X className="h-5 w-5" /> : <X className="h-5 w-5" />}
+          {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
         </button>
       </div>
 
