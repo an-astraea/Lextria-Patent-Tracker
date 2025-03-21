@@ -28,7 +28,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
 
   return (
     <div className="flex min-h-screen h-screen bg-background">
-      {/* Mobile menu toggle button - always visible on mobile */}
+      {/* Mobile menu toggle button - always visible on mobile when sidebar exists */}
       {hasSidebar && isMobile && (
         <button 
           onClick={toggleSidebar}
@@ -42,7 +42,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
       {/* Sidebar - always visible on desktop, conditionally visible on mobile */}
       {sidebarComponent && (
         <div className={cn(
-          "transition-all duration-300 ease-in-out",
+          "h-full transition-all duration-300 ease-in-out",
           isMobile ? 
             (isSidebarOpen ? "fixed z-40 left-0" : "fixed z-40 -left-full") : 
             "relative w-auto"
@@ -52,7 +52,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
       )}
       
       {/* Main content */}
-      <main className="flex-1 overflow-hidden transition-all duration-300">
+      <main className={cn(
+        "flex-1 overflow-hidden transition-all duration-300",
+        isMobile && hasSidebar ? "pt-14" : "" // Add padding top on mobile when sidebar exists
+      )}>
         <ScrollArea className="h-full w-full">
           <div className="p-6">
             {children}

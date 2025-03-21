@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 
 const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const isIndexPage = location.pathname === '/';
@@ -18,6 +19,8 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
     try {
       const storedUser = localStorage.getItem('user');
       console.log('Stored user:', storedUser);
+      
+      // Handle authentication logic
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
@@ -41,32 +44,32 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
           } else {
             navigate('/dashboard');
           }
-          return;
         }
         
         // Drafter-only pages
-        if (parsedUser.role === 'filer' && currentPath.startsWith('/drafts')) {
+        else if (parsedUser.role === 'filer' && currentPath.startsWith('/drafts')) {
           console.log('Filer trying to access drafter page:', currentPath);
           toast.error('You do not have permission to access this page');
           navigate('/filings');
-          return;
         }
         
         // Filer-only pages
-        if (parsedUser.role === 'drafter' && currentPath.startsWith('/filings')) {
+        else if (parsedUser.role === 'drafter' && currentPath.startsWith('/filings')) {
           console.log('Drafter trying to access filer page:', currentPath);
           toast.error('You do not have permission to access this page');
           navigate('/drafts');
-          return;
         }
       } else if (!isIndexPage) {
         navigate('/');
       }
+      
+      setIsLoading(false);
     } catch (error) {
       console.error('Error getting user from localStorage:', error);
       if (!isIndexPage) {
         navigate('/');
       }
+      setIsLoading(false);
     }
   }, [navigate, isIndexPage, location.pathname]);
 
@@ -80,12 +83,13 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
   console.log('user:', user);
   console.log('current path:', location.pathname);
 
+  // Login page doesn't need sidebar
   if (isIndexPage) {
     return <MainLayout>{children}</MainLayout>;
   }
 
-  if (!user) {
-    // For non-index pages without user, show loading state
+  // Show loading state while checking authentication
+  if (isLoading) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-full">
@@ -96,6 +100,12 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
         </div>
       </MainLayout>
     );
+  }
+
+  // Handle case where user isn't logged in but we're not on index page
+  if (!user && !isIndexPage) {
+    navigate('/');
+    return null;
   }
 
   // Add role-specific sidebar content
@@ -175,8 +185,34 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
     );
   }
 
-  // Fallback if role doesn't match any condition
-  return <MainLayout>{children}</MainLayout>;
+  // Fallback - use a default sidebar for any other roles or situations
+  // This ensures there is always a sidebar
+  const defaultNavItems = [
+    {
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      href: '/dashboard',
+    },
+    {
+      label: 'Patents',
+      icon: FileText,
+      href: '/patents',
+    }
+  ];
+    
+  return (
+    <MainLayout 
+      sidebarComponent={
+        <Sidebar 
+          navItems={defaultNavItems} 
+          user={user} 
+          onLogout={handleLogout}
+        />
+      }
+    >
+      {children}
+    </MainLayout>
+  );
 };
 
 export default MainLayoutWrapper;
