@@ -94,6 +94,54 @@ const BulkUpload: React.FC = () => {
     });
   };
 
+  // Generate a sample Excel file with populated data
+  const downloadSampleExcel = () => {
+    // Create a sample patent data for Excel export
+    const sampleData = [{
+      'tracking_id*': 'PAT-123456',
+      'patent_applicant*': 'Sample Applicant Ltd.',
+      'client_id*': 'CLIENT-001',
+      'patent_title*': 'Method and System for AI-Based Patent Analysis',
+      'applicant_addr*': '123 Innovation Street, Tech City, 10001',
+      'inventor_ph_no*': '9876543210',
+      'inventor_email*': 'inventor@example.com',
+      'application_no': 'APP-2023-12345',
+      'date_of_filing': '2023-05-15',
+      'ps_drafter_assgn': 'John Smith',
+      'ps_drafter_deadline': '2023-06-15',
+      'ps_filer_assgn': 'Jane Doe',
+      'ps_filer_deadline': '2023-07-15',
+      'cs_drafter_assgn': 'Robert Johnson',
+      'cs_drafter_deadline': '2023-08-15',
+      'cs_filer_assgn': 'Emily Wilson',
+      'cs_filer_deadline': '2023-09-15',
+      'fer_status': '0',
+      'inventor_name*': 'Dr. Alan Inventor',
+      'inventor_addr*': '456 Research Avenue, Innovation Park, 20002',
+      'inventor_name2': 'Sarah Co-Inventor',
+      'inventor_addr2': '789 Technology Road, Science District, 30003'
+    }];
+
+    // Create a worksheet with the sample data
+    const ws = XLSX.utils.json_to_sheet(sampleData);
+
+    // Add column width specifications
+    const wscols = Object.keys(sampleData[0]).map(() => ({ wch: 25 }));
+    ws['!cols'] = wscols;
+
+    // Create a workbook and add the worksheet
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Sample Patent Data');
+
+    // Generate the Excel file and trigger download
+    XLSX.writeFile(wb, 'sample_patent_data.xlsx');
+    
+    toast({
+      title: "Sample Data Downloaded",
+      description: "An Excel file with sample patent data has been downloaded.",
+    });
+  };
+
   // Sample patent data for quick testing
   const getSamplePatentData = (): PatentFormData[] => {
     const today = new Date();
@@ -411,12 +459,21 @@ const BulkUpload: React.FC = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Sample Patent</CardTitle>
+              <CardTitle>Sample Data</CardTitle>
               <CardDescription>
-                Upload a sample patent with pre-filled data for testing.
+                Download or upload sample patent data for testing.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              <Button 
+                onClick={downloadSampleExcel} 
+                className="w-full" 
+                variant="outline"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download Sample Data
+              </Button>
+              
               <Button 
                 onClick={handleSampleUpload} 
                 className="w-full" 
@@ -483,6 +540,7 @@ const BulkUpload: React.FC = () => {
           <CardContent>
             <ol className="list-decimal pl-5 space-y-2">
               <li>Click "Download Template" to get the Excel template with required fields.</li>
+              <li>Or click "Download Sample Data" to get a pre-filled Excel file with example data.</li>
               <li>Fill the template with your patent data. Fields marked with * are required.</li>
               <li>You can add multiple inventors by adding columns: inventor_name2, inventor_addr2, etc.</li>
               <li>Save the file and click "Upload" to submit your data.</li>
@@ -507,3 +565,4 @@ const BulkUpload: React.FC = () => {
 };
 
 export default BulkUpload;
+
