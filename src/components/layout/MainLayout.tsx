@@ -13,7 +13,7 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) => {
   const isMobile = useIsMobile();
   const hasSidebar = !!sidebarComponent;
-  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
   // Force sidebar to be visible on desktop
   useEffect(() => {
@@ -39,12 +39,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
         </button>
       )}
       
-      {/* Sidebar */}
+      {/* Sidebar - always visible on desktop, conditionally visible on mobile */}
       {sidebarComponent && (
         <div className={cn(
           "transition-all duration-300 ease-in-out",
-          isMobile ? "fixed z-40 left-0" : "relative",
-          !isMobile && !isSidebarOpen && "w-0",
+          isMobile ? 
+            (isSidebarOpen ? "fixed z-40 left-0" : "fixed z-40 -left-full") : 
+            "relative w-auto"
         )}>
           {sidebarComponent}
         </div>

@@ -15,6 +15,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ navItems, user, onLogout }) => {
+  // Default to expanded sidebar (isCollapsed = false)
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const isMobile = useIsMobile();

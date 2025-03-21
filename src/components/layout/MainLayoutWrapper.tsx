@@ -98,6 +98,7 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
     );
   }
 
+  // Add role-specific sidebar content
   if (user?.role === 'admin') {
     return (
       <MainLayout 
