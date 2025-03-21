@@ -1,0 +1,229 @@
+
+import * as XLSX from 'xlsx';
+import { PatentFormData } from '@/lib/types';
+
+export const downloadExcelTemplate = () => {
+  const headers = [
+    'tracking_id*',
+    'patent_applicant*',
+    'client_id*',
+    'patent_title*',
+    'applicant_addr*',
+    'inventor_ph_no*',
+    'inventor_email*',
+    'application_no',
+    'date_of_filing',
+    'ps_drafter_assgn',
+    'ps_drafter_deadline',
+    'ps_filer_assgn',
+    'ps_filer_deadline',
+    'cs_drafter_assgn',
+    'cs_drafter_deadline',
+    'cs_filer_assgn',
+    'cs_filer_deadline',
+    'fer_status',
+    'inventor_name*',
+    'inventor_addr*'
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet([headers]);
+
+  const sampleRow = [
+    'PAT-123456',
+    'Example Applicant',
+    'CLIENT-001',
+    'Example Patent Title',
+    '123 Applicant Street, City, Country',
+    '1234567890',
+    'inventor@example.com',
+    'APP-12345 (optional)',
+    '2023-01-01 (YYYY-MM-DD, optional)',
+    'John Doe (employee full name)',
+    '2023-02-01 (YYYY-MM-DD)',
+    'Jane Smith (employee full name)',
+    '2023-03-01 (YYYY-MM-DD)',
+    'John Doe (employee full name)',
+    '2023-04-01 (YYYY-MM-DD)',
+    'Jane Smith (employee full name)',
+    '2023-05-01 (YYYY-MM-DD)',
+    '0 (use 0 for no, 1 for yes)',
+    'John Inventor',
+    '456 Inventor Avenue, City, Country'
+  ];
+
+  XLSX.utils.sheet_add_aoa(ws, [sampleRow], { origin: 1 });
+
+  const wscols = headers.map(() => ({ wch: 25 }));
+  ws['!cols'] = wscols;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Patent Template');
+
+  XLSX.writeFile(wb, 'patent_upload_template.xlsx');
+  
+  return true;
+};
+
+export const downloadSampleExcelData = () => {
+  const sampleData = [{
+    'tracking_id*': 'PAT-123456',
+    'patent_applicant*': 'Sample Applicant Ltd.',
+    'client_id*': 'CLIENT-001',
+    'patent_title*': 'Method and System for AI-Based Patent Analysis',
+    'applicant_addr*': '123 Innovation Street, Tech City, 10001',
+    'inventor_ph_no*': '9876543210',
+    'inventor_email*': 'inventor@example.com',
+    'application_no': 'APP-2023-12345',
+    'date_of_filing': '2023-05-15',
+    'ps_drafter_assgn': 'John Smith',
+    'ps_drafter_deadline': '2023-06-15',
+    'ps_filer_assgn': 'Jane Doe',
+    'ps_filer_deadline': '2023-07-15',
+    'cs_drafter_assgn': 'Robert Johnson',
+    'cs_drafter_deadline': '2023-08-15',
+    'cs_filer_assgn': 'Emily Wilson',
+    'cs_filer_deadline': '2023-09-15',
+    'fer_status': '0',
+    'inventor_name*': 'Dr. Alan Inventor',
+    'inventor_addr*': '456 Research Avenue, Innovation Park, 20002',
+    'inventor_name2': 'Sarah Co-Inventor',
+    'inventor_addr2': '789 Technology Road, Science District, 30003'
+  }];
+
+  const ws = XLSX.utils.json_to_sheet(sampleData);
+
+  const wscols = Object.keys(sampleData[0]).map(() => ({ wch: 25 }));
+  ws['!cols'] = wscols;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Sample Patent Data');
+
+  XLSX.writeFile(wb, 'sample_patent_data.xlsx');
+  
+  return true;
+};
+
+export const getSamplePatentData = (): PatentFormData[] => {
+  const today = new Date();
+  const futureDate = new Date();
+  futureDate.setDate(today.getDate() + 30);
+  
+  const formattedToday = today.toISOString().split('T')[0];
+  const formattedFuture = futureDate.toISOString().split('T')[0];
+  
+  return [
+    {
+      tracking_id: `SAMPLE-${Date.now()}`,
+      patent_applicant: "Sample Company Ltd.",
+      client_id: "CLIENT-SAMPLE",
+      patent_title: "Sample Innovative Technology Patent",
+      applicant_addr: "123 Sample Street, Sample City, 12345",
+      inventor_ph_no: "1234567890",
+      inventor_email: "inventor@example.com",
+      application_no: "APP-SAMPLE-123",
+      date_of_filing: formattedToday,
+      ps_drafter_assgn: "John Doe",
+      ps_drafter_deadline: formattedFuture,
+      ps_filer_assgn: "Jane Smith",
+      ps_filer_deadline: formattedFuture,
+      cs_drafter_assgn: "John Doe",
+      cs_drafter_deadline: formattedFuture,
+      cs_filer_assgn: "Jane Smith",
+      cs_filer_deadline: formattedFuture,
+      fer_status: 0,
+      inventors: [
+        {
+          inventor_name: "Sample Inventor",
+          inventor_addr: "456 Inventor Avenue, Invention City, 67890"
+        },
+        {
+          inventor_name: "Second Inventor",
+          inventor_addr: "789 Innovation Road, Tech Town, 54321"
+        }
+      ]
+    }
+  ];
+};
+
+export const validatePatentData = (jsonData: Record<string, any>[]): { patentData: PatentFormData[], errors: string[] } => {
+  const patentData: PatentFormData[] = [];
+  const errors: string[] = [];
+
+  for (let i = 0; i < jsonData.length; i++) {
+    const row = jsonData[i];
+    const rowIndex = i + 2; // +2 because Excel is 1-indexed and we have a header row
+
+    try {
+      const requiredFields = [
+        'tracking_id',
+        'patent_applicant',
+        'client_id',
+        'patent_title',
+        'applicant_addr',
+        'inventor_ph_no',
+        'inventor_email',
+        'inventor_name',
+        'inventor_addr'
+      ];
+
+      for (const field of requiredFields) {
+        if (!row[field + '*'] && !row[field]) {
+          throw new Error(`Missing required field: ${field}`);
+        }
+      }
+
+      const patent: PatentFormData = {
+        tracking_id: row['tracking_id*'] || row['tracking_id'],
+        patent_applicant: row['patent_applicant*'] || row['patent_applicant'],
+        client_id: row['client_id*'] || row['client_id'],
+        patent_title: row['patent_title*'] || row['patent_title'],
+        applicant_addr: row['applicant_addr*'] || row['applicant_addr'],
+        inventor_ph_no: row['inventor_ph_no*'] || row['inventor_ph_no'],
+        inventor_email: row['inventor_email*'] || row['inventor_email'],
+        application_no: row['application_no'] || null,
+        date_of_filing: row['date_of_filing'] || null,
+        ps_drafter_assgn: row['ps_drafter_assgn'] || null,
+        ps_drafter_deadline: row['ps_drafter_deadline'] || null,
+        ps_filer_assgn: row['ps_filer_assgn'] || null,
+        ps_filer_deadline: row['ps_filer_deadline'] || null,
+        cs_drafter_assgn: row['cs_drafter_assgn'] || null,
+        cs_drafter_deadline: row['cs_drafter_deadline'] || null,
+        cs_filer_assgn: row['cs_filer_assgn'] || null,
+        cs_filer_deadline: row['cs_filer_deadline'] || null,
+        fer_status: row['fer_status'] ? parseInt(row['fer_status'], 10) : 0,
+        inventors: [
+          {
+            inventor_name: row['inventor_name*'] || row['inventor_name'],
+            inventor_addr: row['inventor_addr*'] || row['inventor_addr']
+          }
+        ]
+      };
+
+      const dateFields = ['date_of_filing', 'ps_drafter_deadline', 'ps_filer_deadline', 'cs_drafter_deadline', 'cs_filer_deadline'];
+      for (const field of dateFields) {
+        if (patent[field as keyof PatentFormData] && !/^\d{4}-\d{2}-\d{2}$/.test(patent[field as keyof PatentFormData] as string)) {
+          throw new Error(`Invalid date format for ${field}. Use YYYY-MM-DD format.`);
+        }
+      }
+
+      for (let j = 2; j <= 10; j++) {
+        const nameField = `inventor_name${j}`;
+        const addrField = `inventor_addr${j}`;
+        
+        if ((row[nameField] || row[`${nameField}*`]) && (row[addrField] || row[`${addrField}*`])) {
+          patent.inventors.push({
+            inventor_name: row[`${nameField}*`] || row[nameField],
+            inventor_addr: row[`${addrField}*`] || row[addrField]
+          });
+        }
+      }
+
+      patentData.push(patent);
+    } catch (error) {
+      console.error(`Error in row ${rowIndex}:`, error);
+      errors.push(`Row ${rowIndex}: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }
+
+  return { patentData, errors };
+};
