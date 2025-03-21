@@ -1,4 +1,3 @@
-
 export interface Patent {
   id: string;
   tracking_id: string;

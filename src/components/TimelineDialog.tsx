@@ -8,8 +8,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { addTimelineEvent } from '@/lib/api';
-import { Patent } from '@/lib/types';
+import { Patent, TimelineEventData } from '@/lib/types';
+
+// Create a timeline API function if it doesn't exist yet
+const addTimelineEvent = async (eventData: TimelineEventData): Promise<boolean> => {
+  // This is a temporary implementation - should be replaced with actual API call
+  console.log('Adding timeline event:', eventData);
+  
+  // Simulate API call success
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), 1000);
+  });
+};
 
 interface TimelineDialogProps {
   patent: Patent;

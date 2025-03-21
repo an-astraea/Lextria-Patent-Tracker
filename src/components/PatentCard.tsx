@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import TimelineDialog from './TimelineDialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface PatentCardProps {
   patent: Patent;
@@ -222,18 +222,31 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
         </div>
       </CardFooter>
 
-      {/* Timeline Dialog with all required props */}
-      <TimelineDialog 
-        open={showTimelineDialog} 
-        onOpenChange={setShowTimelineDialog} 
-        milestones={timelineMilestones}
-        patent={patent}
-      >
-        <Button variant="ghost" size="sm" className="flex items-center gap-1">
-          <History className="h-4 w-4" />
-          <span>Timeline</span>
-        </Button>
-      </TimelineDialog>
+      {/* Simple Timeline Dialog */}
+      <Dialog open={showTimelineDialog} onOpenChange={setShowTimelineDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Patent Timeline</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {timelineMilestones.length > 0 ? timelineMilestones.map((milestone: any) => (
+              <div key={milestone.id} className="flex gap-2">
+                <div className="flex-shrink-0">
+                  <History className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium">{milestone.event_type}</h4>
+                  <p className="text-sm text-muted-foreground">{milestone.event_description}</p>
+                  {milestone.employee_name && <p className="text-xs text-muted-foreground mt-1">By: {milestone.employee_name}</p>}
+                </div>
+              </div>
+            )) : (
+              <p className="text-center text-muted-foreground">No timeline events available</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

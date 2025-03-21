@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -403,230 +402,232 @@ const PatentDetails = () => {
   }
 
   return (
-    <TooltipProvider>
-      <div className="space-y-8 pb-10">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate('/patents')}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+    <div className="space-y-8 pb-10">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate('/patents')}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back
+          </Button>
+          <h1 className="text-2xl font-bold tracking-tight">Patent Details</h1>
+        </div>
+        
+        <div className="flex gap-2">
+          {user?.role === 'admin' && (
+            <Button 
+              onClick={() => navigate(`/patents/edit/${patent.id}`)}
+            >
+              Edit Patent
             </Button>
-            <h1 className="text-2xl font-bold tracking-tight">Patent Details</h1>
-          </div>
-          
-          <div className="flex gap-2">
-            {user?.role === 'admin' && (
-              <Button 
-                onClick={() => navigate(`/patents/edit/${patent.id}`)}
-              >
-                Edit Patent
-              </Button>
-            )}
-          </div>
+          )}
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
+          <PatentBasicInfo patent={patent} />
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2">
-            <PatentBasicInfo patent={patent} />
-          </div>
-          
-          <div className="md:col-span-1">
-            <InventorsList patent={patent} />
-          </div>
+        <div className="md:col-span-1">
+          <InventorsList patent={patent} />
         </div>
+      </div>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-1/2">
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="status">Status</TabsTrigger>
+          <TabsTrigger value="forms">Forms</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
+        </TabsList>
         
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-1/2">
-            <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="status">Status</TabsTrigger>
-            <TabsTrigger value="forms">Forms</TabsTrigger>
-            <TabsTrigger value="notes">Notes</TabsTrigger>
-          </TabsList>
+        <TabsContent value="details" className="space-y-6">
+          <AssignmentDetails 
+            patent={patent} 
+          />
           
-          <TabsContent value="details" className="space-y-6">
-            <AssignmentDetails 
-              patent={patent} 
-            />
-            
-            {patent.fer_status === 1 && (
-              <FEREntriesSection 
-                patent={patent} 
-                userRole={user?.role} 
-                userName={user?.full_name} 
-                employees={employees}
-                refreshPatentData={fetchPatentData}
-                onApproveDraft={handleFERDraftApproval}
-                onApproveFiling={handleFERFilingApproval}
-                onCompleteDraft={handleFERDraftCompletion}
-                onCompleteFiling={handleFERFilingCompletion}
-              />
-            )}
-            
-            {isAssignedDrafter() && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Drafting Tasks</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Alert>
-                    <AlertTitle>Ready to complete {getDrafterCompletionField()}?</AlertTitle>
-                    <AlertDescription>
-                      Once you mark the draft as complete, it will be submitted for review.
-                    </AlertDescription>
-                  </Alert>
-                  <Button onClick={handleCompleteDrafting} className="mt-4">
-                    <Check className="mr-2 h-4 w-4" /> Mark Draft as Complete
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-            
-            {isAssignedFiler() && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Filing Tasks</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Alert>
-                    <AlertTitle>Ready to complete {getFilerCompletionField()}?</AlertTitle>
-                    <AlertDescription>
-                      Once you mark the filing as complete, it will be submitted for review.
-                    </AlertDescription>
-                  </Alert>
-                  <Button onClick={handleCompleteFiling} className="mt-4">
-                    <Check className="mr-2 h-4 w-4" /> Mark Filing as Complete
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-            
-            <PatentTimeline 
-              patentId={patent.id} 
-              onAddTimelineClick={() => setShowTimelineDialog(true)}
-            />
-            
-            <PatentNotes 
+          {patent.fer_status === 1 && (
+            <FEREntriesSection 
               patent={patent} 
               userRole={user?.role} 
+              userName={user?.full_name} 
+              employees={employees}
               refreshPatentData={fetchPatentData}
+              onApproveDraft={handleFERDraftApproval}
+              onApproveFiling={handleFERFilingApproval}
+              onCompleteDraft={handleFERDraftCompletion}
+              onCompleteFiling={handleFERFilingCompletion}
             />
-          </TabsContent>
+          )}
           
-          <TabsContent value="status" className="space-y-6">
-            <PatentStatusSection patent={patent} />
-          </TabsContent>
-          
-          <TabsContent value="forms" className="space-y-6">
+          {isAssignedDrafter() && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Form Requirements
-                </CardTitle>
+                <CardTitle>Drafting Tasks</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="mb-4 text-sm text-muted-foreground">
-                  The following forms are required for the patent filing process. Check all that apply.
-                </p>
-                
-                <FormRequirementsList 
-                  patent={patent} 
-                  userRole={user?.role}
-                  onUpdate={handleFormUpdate}
-                  formValues={formValues}
-                />
-                
-                {(user?.role === 'admin' || user?.role === 'filer') && (
-                  <div className="mt-6 flex justify-end">
-                    <Button onClick={saveFormValues}>Save Form Requirements</Button>
-                  </div>
-                )}
+                <Alert>
+                  <AlertTitle>Ready to complete {getDrafterCompletionField()}?</AlertTitle>
+                  <AlertDescription>
+                    Once you mark the draft as complete, it will be submitted for review.
+                  </AlertDescription>
+                </Alert>
+                <Button onClick={handleCompleteDrafting} className="mt-4">
+                  <Check className="mr-2 h-4 w-4" /> Mark Draft as Complete
+                </Button>
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
           
-          <TabsContent value="notes" className="space-y-6">
-            <PatentNotes 
-              patent={patent} 
-              userRole={user?.role} 
-              refreshPatentData={fetchPatentData}
-            />
-          </TabsContent>
-        </Tabs>
-      
-        {/* Timeline Dialog */}
-        <TimelineDialog 
-          patent={patent} 
-          onClose={() => setShowTimelineDialog(false)}
-          open={showTimelineDialog}
-          onSave={fetchPatentData}
-        />
-      
-        {/* Drafting Completion Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Complete Drafting Task</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to mark this drafting task as complete? This will submit 
-                your work for review.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={confirmCompleteDrafting} disabled={isCompletingDraft}>
-                {isCompletingDraft ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  'Confirm Completion'
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          {isAssignedFiler() && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Filing Tasks</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Alert>
+                  <AlertTitle>Ready to complete {getFilerCompletionField()}?</AlertTitle>
+                  <AlertDescription>
+                    Once you mark the filing as complete, it will be submitted for review.
+                  </AlertDescription>
+                </Alert>
+                <Button onClick={handleCompleteFiling} className="mt-4">
+                  <Check className="mr-2 h-4 w-4" /> Mark Filing as Complete
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+          
+          <PatentTimeline 
+            patentId={patent.id} 
+            onAddTimelineClick={() => setShowTimelineDialog(true)}
+          />
+          
+          <PatentNotes 
+            patent={patent} 
+            userRole={user?.role} 
+            refreshPatentData={fetchPatentData}
+          />
+        </TabsContent>
         
-        {/* Filing Completion Dialog */}
-        <Dialog open={showFilingDialog} onOpenChange={setShowFilingDialog}>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>Complete Filing Task</DialogTitle>
-              <DialogDescription>
-                Please review and confirm all required forms before marking this filing as complete.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="max-h-[50vh] overflow-y-auto">
+        <TabsContent value="status" className="space-y-6">
+          <PatentStatusSection 
+            patent={patent}
+            userRole={user?.role}
+            refreshPatentData={fetchPatentData} 
+          />
+        </TabsContent>
+        
+        <TabsContent value="forms" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Form Requirements
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-sm text-muted-foreground">
+                The following forms are required for the patent filing process. Check all that apply.
+              </p>
+              
               <FormRequirementsList 
                 patent={patent} 
                 userRole={user?.role}
                 onUpdate={handleFormUpdate}
                 formValues={formValues}
               />
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowFilingDialog(false)}>
-                Cancel
-              </Button>
-              <Button onClick={confirmCompleteFiling} disabled={isCompletingFiling}>
-                {isCompletingFiling ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  'Confirm Filing Completion'
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </TooltipProvider>
+              
+              {(user?.role === 'admin' || user?.role === 'filer') && (
+                <div className="mt-6 flex justify-end">
+                  <Button onClick={saveFormValues}>Save Form Requirements</Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="notes" className="space-y-6">
+          <PatentNotes 
+            patent={patent} 
+            userRole={user?.role} 
+            refreshPatentData={fetchPatentData}
+          />
+        </TabsContent>
+      </Tabs>
+    
+      {/* Timeline Dialog */}
+      <TimelineDialog 
+        patent={patent} 
+        onClose={() => setShowTimelineDialog(false)}
+        open={showTimelineDialog}
+        onSave={fetchPatentData}
+      />
+    
+      {/* Drafting Completion Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Complete Drafting Task</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to mark this drafting task as complete? This will submit 
+              your work for review.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmCompleteDrafting} disabled={isCompletingDraft}>
+              {isCompletingDraft ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'Confirm Completion'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Filing Completion Dialog */}
+      <Dialog open={showFilingDialog} onOpenChange={setShowFilingDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Complete Filing Task</DialogTitle>
+            <DialogDescription>
+              Please review and confirm all required forms before marking this filing as complete.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="max-h-[50vh] overflow-y-auto">
+            <FormRequirementsList 
+              patent={patent} 
+              userRole={user?.role}
+              onUpdate={handleFormUpdate}
+              formValues={formValues}
+            />
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFilingDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmCompleteFiling} disabled={isCompletingFiling}>
+              {isCompletingFiling ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'Confirm Filing Completion'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 
