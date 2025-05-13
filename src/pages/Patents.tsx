@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { fetchPatents, deletePatent } from '@/lib/api';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';  // Fixed import
 import { Patent } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import PatentListHeader from '@/components/patents/PatentListHeader';
@@ -19,6 +19,7 @@ const Patents = () => {
   const [loading, setLoading] = useState(true);
   const [patentToDelete, setPatentToDelete] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const { toast } = useToast();  // Using the toast hook properly
   
   useEffect(() => {
     const loadPatents = async () => {
@@ -29,14 +30,18 @@ const Patents = () => {
         setFilteredPatents(data);
       } catch (error) {
         console.error("Error loading patents:", error);
-        toast.error("Failed to load patents");
+        toast({
+          title: "Error",
+          description: "Failed to load patents",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
     };
     
     loadPatents();
-  }, []);
+  }, [toast]);
   
   const handleSearch = (query: string, field?: string) => {
     if (!query.trim()) {
@@ -80,13 +85,24 @@ const Patents = () => {
         const updatedPatents = patents.filter(p => p.id !== patentToDelete);
         setPatents(updatedPatents);
         setFilteredPatents(filteredPatents.filter(p => p.id !== patentToDelete));
-        toast.success("Patent deleted successfully");
+        toast({
+          title: "Success", 
+          description: "Patent deleted successfully"
+        });
       } else {
-        toast.error("Failed to delete patent");
+        toast({
+          title: "Error",
+          description: "Failed to delete patent",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error("Error deleting patent:", error);
-      toast.error("An error occurred while deleting the patent");
+      toast({
+        title: "Error",
+        description: "An error occurred while deleting the patent",
+        variant: "destructive"
+      });
     } finally {
       setDeleteDialogOpen(false);
       setPatentToDelete(null);

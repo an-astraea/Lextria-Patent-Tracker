@@ -1,11 +1,15 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Patent } from '@/lib/types';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Edit, Trash2, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Edit, Eye, Trash2 } from 'lucide-react';
+import { Patent } from '@/lib/types';
+import { DataTable } from '@/components/ui/data-table';
+import { ColumnDef } from '@tanstack/react-table';
 import StatusBadge from '@/components/StatusBadge';
+import { format } from 'date-fns';
 
 interface PatentListTabsProps {
   filteredPatents: Patent[];
@@ -24,98 +28,163 @@ const PatentListTabs: React.FC<PatentListTabsProps> = ({
   onDeletePatent,
   userRole,
 }) => {
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState('all');
   
-  const patentsToShow = () => {
-    switch (activeTab) {
-      case "inProgress":
-        return getInProgressPatents();
-      case "completed":
-        return getCompletedPatents();
-      case "withdrawn":
-        return getWithdrawnPatents();
-      default:
-        return filteredPatents;
-    }
-  };
-
-  const renderPatentsList = () => {
-    const patents = patentsToShow();
-    
-    if (patents.length === 0) {
-      return (
-        <div className="text-center py-10">
-          <p className="text-muted-foreground">No patents found</p>
-        </div>
-      );
-    }
-    
-    return (
-      <div className="space-y-4">
-        {patents.map(patent => (
-          <div key={patent.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border p-4 rounded-lg">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h3 className="font-medium">{patent.patent_title}</h3>
-                <StatusBadge status={patent.status || 'pending'} />
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <div>ID: {patent.tracking_id}</div>
-                <div>Applicant: {patent.patent_applicant}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 mt-2 sm:mt-0">
-              <Link to={`/patents/${patent.id}`}>
-                <Button variant="outline" size="sm">
-                  <Eye className="h-4 w-4 mr-1" />
-                  View
-                </Button>
-              </Link>
-              {userRole === 'admin' && (
-                <>
-                  <Link to={`/patents/edit/${patent.id}`}>
-                    <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                  </Link>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => onDeletePatent(patent.id)}
-                    className="border-destructive text-destructive hover:bg-destructive/10"
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    Delete
+  // Define columns for patents table
+  const columns: ColumnDef<Patent>[] = [
+    {
+      accessorKey: 'tracking_id',
+      header: 'ID',
+      cell: ({ row }) => (
+        <div className="font-medium">{row.original.tracking_id}</div>
+      ),
+    },
+    {
+      accessorKey: 'patent_title',
+      header: 'Title',
+      cell: ({ row }) => (
+        <div className="max-w-[300px] truncate">{row.original.patent_title}</div>
+      ),
+    },
+    {
+      accessorKey: 'patent_applicant',
+      header: 'Applicant',
+    },
+    {
+      accessorKey: 'client_id',
+      header: 'Client ID',
+    },
+    {
+      accessorKey: 'date_of_filing',
+      header: 'Filing Date',
+      cell: ({ row }) => {
+        const date = row.original.date_of_filing;
+        if (!date) return <span className="text-muted-foreground">Not filed</span>;
+        return format(new Date(date), 'MMM dd, yyyy');
+      }
+    },
+    {
+      accessorKey: 'ps_drafting_status',
+      header: 'PS Drafting',
+      cell: ({ row }) => <StatusBadge value={row.original.ps_drafting_status} />,
+    },
+    {
+      accessorKey: 'ps_filing_status',
+      header: 'PS Filing',
+      cell: ({ row }) => <StatusBadge value={row.original.ps_filing_status} />,
+    },
+    {
+      accessorKey: 'cs_drafting_status',
+      header: 'CS Drafting',
+      cell: ({ row }) => <StatusBadge value={row.original.cs_drafting_status} />,
+    },
+    {
+      accessorKey: 'cs_filing_status',
+      header: 'CS Filing',
+      cell: ({ row }) => <StatusBadge value={row.original.cs_filing_status} />,
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => {
+        const patent = row.original;
+        return (
+          <div className="flex items-center gap-2">
+            <Link to={`/patents/${patent.id}`}>
+              <Button variant="ghost" size="sm">
+                <Eye className="h-4 w-4 mr-1" />
+                View
+              </Button>
+            </Link>
+            
+            {userRole === 'admin' && (
+              <>
+                <Link to={`/patents/edit/${patent.id}`}>
+                  <Button variant="ghost" size="sm">
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
                   </Button>
-                </>
-              )}
-            </div>
+                </Link>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDeletePatent(patent.id)}
+                  className="text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete
+                </Button>
+              </>
+            )}
           </div>
-        ))}
-      </div>
-    );
-  };
+        );
+      },
+    },
+  ];
   
   return (
-    <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
-      <TabsList className="grid grid-cols-4">
-        <TabsTrigger value="all">All Patents</TabsTrigger>
-        <TabsTrigger value="inProgress">In Progress</TabsTrigger>
-        <TabsTrigger value="completed">Completed</TabsTrigger>
-        <TabsTrigger value="withdrawn">Withdrawn</TabsTrigger>
+    <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <TabsList>
+        <TabsTrigger value="all">
+          All
+          <Badge variant="secondary" className="ml-2">
+            {filteredPatents.length}
+          </Badge>
+        </TabsTrigger>
+        <TabsTrigger value="in-progress">
+          In Progress
+          <Badge variant="secondary" className="ml-2">
+            {getInProgressPatents().length}
+          </Badge>
+        </TabsTrigger>
+        <TabsTrigger value="completed">
+          Completed
+          <Badge variant="secondary" className="ml-2">
+            {getCompletedPatents().length}
+          </Badge>
+        </TabsTrigger>
+        <TabsTrigger value="withdrawn">
+          Withdrawn
+          <Badge variant="secondary" className="ml-2">
+            {getWithdrawnPatents().length}
+          </Badge>
+        </TabsTrigger>
       </TabsList>
-      <TabsContent value="all" className="pt-4">
-        {renderPatentsList()}
+      
+      <TabsContent value="all" className="border rounded-lg p-4">
+        <DataTable
+          columns={columns}
+          data={filteredPatents}
+          searchField="tracking_id"
+          placeholder="Search by tracking ID..."
+        />
       </TabsContent>
-      <TabsContent value="inProgress" className="pt-4">
-        {renderPatentsList()}
+      
+      <TabsContent value="in-progress" className="border rounded-lg p-4">
+        <DataTable
+          columns={columns}
+          data={getInProgressPatents()}
+          searchField="tracking_id"
+          placeholder="Search by tracking ID..."
+        />
       </TabsContent>
-      <TabsContent value="completed" className="pt-4">
-        {renderPatentsList()}
+      
+      <TabsContent value="completed" className="border rounded-lg p-4">
+        <DataTable
+          columns={columns}
+          data={getCompletedPatents()}
+          searchField="tracking_id"
+          placeholder="Search by tracking ID..."
+        />
       </TabsContent>
-      <TabsContent value="withdrawn" className="pt-4">
-        {renderPatentsList()}
+      
+      <TabsContent value="withdrawn" className="border rounded-lg p-4">
+        <DataTable
+          columns={columns}
+          data={getWithdrawnPatents()}
+          searchField="tracking_id"
+          placeholder="Search by tracking ID..."
+        />
       </TabsContent>
     </Tabs>
   );

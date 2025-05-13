@@ -1,5 +1,7 @@
 
-// Re-export useToast and toast from components/ui/use-toast
-import { useToast, toast } from "@/components/ui/use-toast";
+// This file handles the toast hooks and utilities
+import { useToast as useToastInternal, toast as toastInternal } from "@/components/ui/use-toast";
 
-export { useToast, toast };
+export const useToast = useToastInternal;
+export const toast = toastInternal;
+
