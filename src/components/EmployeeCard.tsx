@@ -63,7 +63,6 @@ const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onDelete }) => {
       </div>
       
       <CardFooter className="flex justify-end bg-muted/30 p-4 border-t gap-2">
-        {/* Added View button */}
         <Link to={`/employees/view/${employee.id}`}>
           <Button variant="ghost" size="sm">
             <Eye className="h-4 w-4" />
