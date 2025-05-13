@@ -66,22 +66,34 @@ const PatentListTabs: React.FC<PatentListTabsProps> = ({
     {
       accessorKey: 'ps_drafting_status',
       header: 'PS Drafting',
-      cell: ({ row }) => <StatusBadge value={row.original.ps_drafting_status} />,
+      cell: ({ row }) => {
+        const status = row.original.ps_drafting_status ? 'completed' : 'notStarted';
+        return <StatusBadge status={status} />;
+      },
     },
     {
       accessorKey: 'ps_filing_status',
       header: 'PS Filing',
-      cell: ({ row }) => <StatusBadge value={row.original.ps_filing_status} />,
+      cell: ({ row }) => {
+        const status = row.original.ps_filing_status ? 'completed' : 'notStarted';
+        return <StatusBadge status={status} />;
+      },
     },
     {
       accessorKey: 'cs_drafting_status',
       header: 'CS Drafting',
-      cell: ({ row }) => <StatusBadge value={row.original.cs_drafting_status} />,
+      cell: ({ row }) => {
+        const status = row.original.cs_drafting_status ? 'completed' : 'notStarted';
+        return <StatusBadge status={status} />;
+      },
     },
     {
       accessorKey: 'cs_filing_status',
       header: 'CS Filing',
-      cell: ({ row }) => <StatusBadge value={row.original.cs_filing_status} />,
+      cell: ({ row }) => {
+        const status = row.original.cs_filing_status ? 'completed' : 'notStarted';
+        return <StatusBadge status={status} />;
+      },
     },
     {
       id: 'actions',
