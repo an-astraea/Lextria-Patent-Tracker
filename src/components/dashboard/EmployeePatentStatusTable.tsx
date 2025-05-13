@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,7 +9,7 @@ interface EmployeePatentStatusTableProps {
 
 const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ patents }) => {
   // Define the status types we want to track
-  const statusTypes = ['Review', 'Completed', 'Drafting', 'Pending'];
+  const statusTypes = ['Review', 'Completed', 'Drafting', 'Pending Information'];
   
   // Calculate employee stats based on patents
   const employeeStats = useMemo(() => {
@@ -36,7 +35,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
           'Review': 0,
           'Completed': 0,
           'Drafting': 0,
-          'Pending': 0,
+          'Pending Information': 0,
           'Total': 0
         };
       }
@@ -64,7 +63,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
         
         // Pending for IDF state
         if (!patent.idf_received && patent.idf_sent) {
-          stats[patent.ps_drafter_assgn]['Pending']++;
+          stats[patent.ps_drafter_assgn]['Pending Information']++;
           // Avoid double counting in the total
           if (stats[patent.ps_drafter_assgn]['Drafting'] > 0) {
             stats[patent.ps_drafter_assgn]['Drafting']--;
@@ -92,7 +91,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
         
         // Pending for IDF state
         if (!patent.idf_received && patent.idf_sent) {
-          stats[patent.ps_filer_assgn]['Pending']++;
+          stats[patent.ps_filer_assgn]['Pending Information']++;
           // Avoid double counting in the total
           if (stats[patent.ps_filer_assgn]['Drafting'] > 0) {
             stats[patent.ps_filer_assgn]['Drafting']--;
@@ -120,7 +119,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
         
         // Pending for IDF state
         if (!patent.idf_received && patent.idf_sent) {
-          stats[patent.cs_drafter_assgn]['Pending']++;
+          stats[patent.cs_drafter_assgn]['Pending Information']++;
           // Avoid double counting in the total
           if (stats[patent.cs_drafter_assgn]['Drafting'] > 0) {
             stats[patent.cs_drafter_assgn]['Drafting']--;
@@ -148,7 +147,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
         
         // Pending for IDF state
         if (!patent.idf_received && patent.idf_sent) {
-          stats[patent.cs_filer_assgn]['Pending']++;
+          stats[patent.cs_filer_assgn]['Pending Information']++;
           // Avoid double counting in the total
           if (stats[patent.cs_filer_assgn]['Drafting'] > 0) {
             stats[patent.cs_filer_assgn]['Drafting']--;
@@ -199,7 +198,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
       
       // Additional pending for confirmation status (applicable for both PS and CS)
       if (patent.pending_ps_confirmation && patent.ps_drafter_assgn) {
-        stats[patent.ps_drafter_assgn]['Pending']++;
+        stats[patent.ps_drafter_assgn]['Pending Information']++;
         // Avoid double counting in the total
         if (stats[patent.ps_drafter_assgn]['Drafting'] > 0) {
           stats[patent.ps_drafter_assgn]['Drafting']--;
@@ -207,7 +206,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
       }
       
       if (patent.pending_cs_confirmation && patent.cs_drafter_assgn) {
-        stats[patent.cs_drafter_assgn]['Pending']++;
+        stats[patent.cs_drafter_assgn]['Pending Information']++;
         // Avoid double counting in the total
         if (stats[patent.cs_drafter_assgn]['Drafting'] > 0) {
           stats[patent.cs_drafter_assgn]['Drafting']--;
@@ -224,7 +223,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
       case 'Review': return 'bg-gray-300 text-black';  // Grey
       case 'Completed': return 'bg-green-500 text-white';  // Green
       case 'Drafting': return 'bg-yellow-400 text-black';  // Yellow
-      case 'Pending': return 'bg-blue-300 text-black';  // Light blue for pending info
+      case 'Pending Information': return 'bg-orange-300 text-black';  // Orange for pending info
       case 'Total': return 'bg-white text-black';  // White with black text for Total
       default: return '';
     }
