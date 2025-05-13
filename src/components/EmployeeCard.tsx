@@ -9,7 +9,8 @@ import {
   User, 
   Mail, 
   Phone,
-  Shield
+  Shield,
+  Eye
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -62,6 +63,14 @@ const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onDelete }) => {
       </div>
       
       <CardFooter className="flex justify-end bg-muted/30 p-4 border-t gap-2">
+        {/* Added View button */}
+        <Link to={`/employees/view/${employee.id}`}>
+          <Button variant="ghost" size="sm">
+            <Eye className="h-4 w-4" />
+            <span className="ml-1">View</span>
+          </Button>
+        </Link>
+        
         <Link to={`/employees/edit/${employee.id}`}>
           <Button variant="ghost" size="sm">
             <Edit className="h-4 w-4" />

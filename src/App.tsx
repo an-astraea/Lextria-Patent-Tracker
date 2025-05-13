@@ -16,6 +16,7 @@ import Drafts from './pages/Drafts';
 import Filings from './pages/Filings';
 import BulkUpload from './pages/BulkUpload';
 import Sheets from './pages/Sheets';
+import EmployeeDetails from './pages/EmployeeDetails'; // Add the new page
 import { Toaster } from './components/ui/toaster';
 import MainLayoutWrapper from './components/layout/MainLayoutWrapper';
 
@@ -43,6 +44,7 @@ function App() {
             <Route path="/employees" element={<Employees />} />
             <Route path="/employees/add" element={<AddEditEmployee />} />
             <Route path="/employees/edit/:id" element={<AddEditEmployee />} />
+            <Route path="/employees/view/:id" element={<EmployeeDetails />} /> {/* Add new route for employee details */}
             <Route path="/approvals" element={<Approvals />} />
             <Route path="/clients" element={<ClientDashboard />} />
             <Route path="/drafts" element={<Drafts />} />
