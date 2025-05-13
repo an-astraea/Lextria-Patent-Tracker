@@ -105,12 +105,12 @@ const Dashboard = () => {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
       
+      {/* This employee patent status table is shown for all users */}
+      <EmployeePatentStatusTable patents={patents} />
+      
       {/* Admin-specific sections */}
       {user?.role === 'admin' && (
         <>
-          {/* New Employee Patent Status Table - positioned at the top */}
-          <EmployeePatentStatusTable patents={patents} />
-          
           {/* Summary Cards */}
           <SummaryCards 
             patents={patents} 

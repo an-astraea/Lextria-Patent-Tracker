@@ -10,7 +10,7 @@ interface EmployeePatentStatusTableProps {
 
 const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ patents }) => {
   // Define the status types we want to track
-  const statusTypes = ['PS Drafting', 'PS Filing', 'CS Drafting', 'CS Filing', 'FER Drafting', 'FER Filing'];
+  const statusTypes = ['Review', 'Completed', 'Drafting', 'Pending'];
   
   // Calculate employee stats based on patents
   const employeeStats = useMemo(() => {
@@ -33,12 +33,10 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
     allEmployees.forEach(employee => {
       if (employee) {
         stats[employee] = {
-          'PS Drafting': 0,
-          'PS Filing': 0,
-          'CS Drafting': 0,
-          'CS Filing': 0,
-          'FER Drafting': 0,
-          'FER Filing': 0,
+          'Review': 0,
+          'Completed': 0,
+          'Drafting': 0,
+          'Pending': 0,
           'Total': 0
         };
       }
@@ -46,52 +44,154 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
     
     // Count patents for each employee by status
     patents.forEach(patent => {
-      // PS Drafting
-      if (patent.ps_drafter_assgn && patent.ps_drafting_status === 0) {
-        stats[patent.ps_drafter_assgn]['PS Drafting']++;
-        stats[patent.ps_drafter_assgn]['Total']++;
+      // Process PS Drafter tasks
+      if (patent.ps_drafter_assgn) {
+        // Review - when submitted for review
+        if (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0) {
+          stats[patent.ps_drafter_assgn]['Review']++;
+          stats[patent.ps_drafter_assgn]['Total']++;
+        } 
+        // Completed - when approved
+        else if (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 1) {
+          stats[patent.ps_drafter_assgn]['Completed']++;
+          stats[patent.ps_drafter_assgn]['Total']++;
+        }
+        // Drafting - in progress
+        else if (patent.ps_drafting_status === 0) {
+          stats[patent.ps_drafter_assgn]['Drafting']++;
+          stats[patent.ps_drafter_assgn]['Total']++;
+        }
       }
       
-      // PS Filing
-      if (patent.ps_filer_assgn && patent.ps_drafting_status === 1 && patent.ps_filing_status === 0) {
-        stats[patent.ps_filer_assgn]['PS Filing']++;
-        stats[patent.ps_filer_assgn]['Total']++;
+      // Process PS Filer tasks (only if drafting is completed)
+      if (patent.ps_filer_assgn && patent.ps_drafting_status === 1) {
+        // Review - when submitted for review
+        if (patent.ps_filing_status === 1 && patent.ps_review_file_status === 0) {
+          stats[patent.ps_filer_assgn]['Review']++;
+          stats[patent.ps_filer_assgn]['Total']++;
+        } 
+        // Completed - when approved
+        else if (patent.ps_filing_status === 1 && patent.ps_review_file_status === 1) {
+          stats[patent.ps_filer_assgn]['Completed']++;
+          stats[patent.ps_filer_assgn]['Total']++;
+        }
+        // Drafting - in progress
+        else if (patent.ps_filing_status === 0) {
+          stats[patent.ps_filer_assgn]['Drafting']++;
+          stats[patent.ps_filer_assgn]['Total']++;
+        }
       }
       
-      // CS Drafting
-      if (patent.cs_drafter_assgn && patent.cs_drafting_status === 0 && patent.ps_filing_status === 1) {
-        stats[patent.cs_drafter_assgn]['CS Drafting']++;
-        stats[patent.cs_drafter_assgn]['Total']++;
+      // Process CS Drafter tasks (only after PS is complete)
+      if (patent.cs_drafter_assgn && patent.ps_filing_status === 1) {
+        // Review - when submitted for review
+        if (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0) {
+          stats[patent.cs_drafter_assgn]['Review']++;
+          stats[patent.cs_drafter_assgn]['Total']++;
+        } 
+        // Completed - when approved
+        else if (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 1) {
+          stats[patent.cs_drafter_assgn]['Completed']++;
+          stats[patent.cs_drafter_assgn]['Total']++;
+        }
+        // Drafting - in progress
+        else if (patent.cs_drafting_status === 0) {
+          stats[patent.cs_drafter_assgn]['Drafting']++;
+          stats[patent.cs_drafter_assgn]['Total']++;
+        }
       }
       
-      // CS Filing
-      if (patent.cs_filer_assgn && patent.cs_drafting_status === 1 && patent.cs_filing_status === 0) {
-        stats[patent.cs_filer_assgn]['CS Filing']++;
-        stats[patent.cs_filer_assgn]['Total']++;
+      // Process CS Filer tasks (only if CS drafting is completed)
+      if (patent.cs_filer_assgn && patent.cs_drafting_status === 1) {
+        // Review - when submitted for review
+        if (patent.cs_filing_status === 1 && patent.cs_review_file_status === 0) {
+          stats[patent.cs_filer_assgn]['Review']++;
+          stats[patent.cs_filer_assgn]['Total']++;
+        } 
+        // Completed - when approved
+        else if (patent.cs_filing_status === 1 && patent.cs_review_file_status === 1) {
+          stats[patent.cs_filer_assgn]['Completed']++;
+          stats[patent.cs_filer_assgn]['Total']++;
+        }
+        // Drafting - in progress
+        else if (patent.cs_filing_status === 0) {
+          stats[patent.cs_filer_assgn]['Drafting']++;
+          stats[patent.cs_filer_assgn]['Total']++;
+        }
       }
       
-      // FER Drafting
-      if (patent.fer_drafter_assgn && patent.fer_status === 1 && patent.fer_drafter_status === 0) {
-        stats[patent.fer_drafter_assgn]['FER Drafting']++;
-        stats[patent.fer_drafter_assgn]['Total']++;
+      // Process FER tasks
+      if (patent.fer_status === 1) {
+        // FER Drafter
+        if (patent.fer_drafter_assgn) {
+          // Review - when submitted for review
+          if (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0) {
+            stats[patent.fer_drafter_assgn]['Review']++;
+            stats[patent.fer_drafter_assgn]['Total']++;
+          } 
+          // Completed - when approved
+          else if (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 1) {
+            stats[patent.fer_drafter_assgn]['Completed']++;
+            stats[patent.fer_drafter_assgn]['Total']++;
+          }
+          // Drafting - in progress
+          else if (patent.fer_drafter_status === 0) {
+            stats[patent.fer_drafter_assgn]['Drafting']++;
+            stats[patent.fer_drafter_assgn]['Total']++;
+          }
+        }
+        
+        // FER Filer (only if FER drafting is completed)
+        if (patent.fer_filer_assgn && patent.fer_drafter_status === 1) {
+          // Review - when submitted for review
+          if (patent.fer_filing_status === 1 && patent.fer_review_file_status === 0) {
+            stats[patent.fer_filer_assgn]['Review']++;
+            stats[patent.fer_filer_assgn]['Total']++;
+          } 
+          // Completed - when approved
+          else if (patent.fer_filing_status === 1 && patent.fer_review_file_status === 1) {
+            stats[patent.fer_filer_assgn]['Completed']++;
+            stats[patent.fer_filer_assgn]['Total']++;
+          }
+          // Drafting - in progress
+          else if (patent.fer_filing_status === 0) {
+            stats[patent.fer_filer_assgn]['Drafting']++;
+            stats[patent.fer_filer_assgn]['Total']++;
+          }
+        }
       }
       
-      // FER Filing
-      if (patent.fer_filer_assgn && patent.fer_drafter_status === 1 && patent.fer_filing_status === 0) {
-        stats[patent.fer_filer_assgn]['FER Filing']++;
-        stats[patent.fer_filer_assgn]['Total']++;
+      // Pending for confirmation status (applicable for both PS and CS)
+      if (patent.pending_ps_confirmation && patent.ps_drafter_assgn) {
+        stats[patent.ps_drafter_assgn]['Pending']++;
+        // Avoid double counting in the total
+        if (stats[patent.ps_drafter_assgn]['Drafting'] > 0) {
+          stats[patent.ps_drafter_assgn]['Drafting']--;
+        }
+      }
+      
+      if (patent.pending_cs_confirmation && patent.cs_drafter_assgn) {
+        stats[patent.cs_drafter_assgn]['Pending']++;
+        // Avoid double counting in the total
+        if (stats[patent.cs_drafter_assgn]['Drafting'] > 0) {
+          stats[patent.cs_drafter_assgn]['Drafting']--;
+        }
       }
     });
     
     return stats;
   }, [patents]);
   
-  // Function to get the appropriate background color based on count
-  const getBackgroundColor = (count: number) => {
-    if (count === 0) return '';
-    if (count <= 3) return 'bg-green-100';
-    if (count <= 6) return 'bg-yellow-100';
-    return 'bg-red-100';
+  // Function to get the appropriate background color based on status
+  const getBackgroundColor = (status: string) => {
+    switch (status) {
+      case 'Review': return 'bg-red-500 text-white';  // Red
+      case 'Completed': return 'bg-purple-500 text-white';  // Purple
+      case 'Drafting': return 'bg-yellow-400';  // Yellow
+      case 'Pending': return 'bg-orange-300';  // Orange
+      case 'Total': return 'bg-green-500 text-white';  // Green
+      default: return '';
+    }
   };
   
   // Sort employees by total count in descending order
@@ -106,8 +206,8 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
 
   return (
     <Card className="col-span-full">
-      <CardHeader className="pb-3">
-        <CardTitle>Patent Count by Employee & Status</CardTitle>
+      <CardHeader className="py-3 bg-blue-200">
+        <CardTitle className="text-center text-lg font-bold">MAIN DASHBOARD</CardTitle>
       </CardHeader>
       <CardContent>
         {hasData ? (
@@ -115,46 +215,43 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[150px]">Employee</TableHead>
-                  {statusTypes.map(status => (
-                    <TableHead key={status} className="text-center">{status}</TableHead>
+                  <TableHead className="font-bold">Status</TableHead>
+                  {sortedEmployees.map(employee => (
+                    <TableHead key={employee} className="text-center font-bold">{employee}</TableHead>
                   ))}
-                  <TableHead className="text-center">Total</TableHead>
+                  <TableHead className="text-center font-bold">TOTAL</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedEmployees.map(employee => (
-                  <TableRow key={employee}>
-                    <TableCell className="font-medium">{employee}</TableCell>
-                    {statusTypes.map(status => (
+                {statusTypes.map(status => (
+                  <TableRow key={status} className={getBackgroundColor(status)}>
+                    <TableCell className="font-bold">{status}</TableCell>
+                    {sortedEmployees.map(employee => (
                       <TableCell 
                         key={`${employee}-${status}`} 
-                        className={`text-center ${getBackgroundColor(employeeStats[employee][status])}`}
+                        className="text-center"
                       >
                         {employeeStats[employee][status]}
                       </TableCell>
                     ))}
                     <TableCell className="text-center font-bold">
-                      {employeeStats[employee]['Total']}
+                      {sortedEmployees.reduce(
+                        (sum, employee) => sum + employeeStats[employee][status], 
+                        0
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
-                <TableRow>
-                  <TableCell className="font-bold">Total</TableCell>
-                  {statusTypes.map(status => {
-                    const total = sortedEmployees.reduce(
-                      (sum, employee) => sum + employeeStats[employee][status], 
-                      0
-                    );
-                    return (
-                      <TableCell 
-                        key={`total-${status}`} 
-                        className={`text-center font-bold ${getBackgroundColor(total)}`}
-                      >
-                        {total}
-                      </TableCell>
-                    );
-                  })}
+                <TableRow className={getBackgroundColor('Total')}>
+                  <TableCell className="font-bold">TOTAL</TableCell>
+                  {sortedEmployees.map(employee => (
+                    <TableCell 
+                      key={`${employee}-total`} 
+                      className="text-center font-bold"
+                    >
+                      {employeeStats[employee]['Total']}
+                    </TableCell>
+                  ))}
                   <TableCell className="text-center font-bold">
                     {sortedEmployees.reduce(
                       (sum, employee) => sum + employeeStats[employee]['Total'], 
