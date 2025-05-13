@@ -61,6 +61,15 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
           stats[patent.ps_drafter_assgn]['Drafting']++;
           stats[patent.ps_drafter_assgn]['Total']++;
         }
+        
+        // Pending for IDF state
+        if (!patent.idf_received && patent.idf_sent) {
+          stats[patent.ps_drafter_assgn]['Pending']++;
+          // Avoid double counting in the total
+          if (stats[patent.ps_drafter_assgn]['Drafting'] > 0) {
+            stats[patent.ps_drafter_assgn]['Drafting']--;
+          }
+        }
       }
       
       // Process PS Filer tasks (only if drafting is completed)
@@ -79,6 +88,15 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
         else if (patent.ps_filing_status === 0) {
           stats[patent.ps_filer_assgn]['Drafting']++;
           stats[patent.ps_filer_assgn]['Total']++;
+        }
+        
+        // Pending for IDF state
+        if (!patent.idf_received && patent.idf_sent) {
+          stats[patent.ps_filer_assgn]['Pending']++;
+          // Avoid double counting in the total
+          if (stats[patent.ps_filer_assgn]['Drafting'] > 0) {
+            stats[patent.ps_filer_assgn]['Drafting']--;
+          }
         }
       }
       
@@ -99,6 +117,15 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
           stats[patent.cs_drafter_assgn]['Drafting']++;
           stats[patent.cs_drafter_assgn]['Total']++;
         }
+        
+        // Pending for IDF state
+        if (!patent.idf_received && patent.idf_sent) {
+          stats[patent.cs_drafter_assgn]['Pending']++;
+          // Avoid double counting in the total
+          if (stats[patent.cs_drafter_assgn]['Drafting'] > 0) {
+            stats[patent.cs_drafter_assgn]['Drafting']--;
+          }
+        }
       }
       
       // Process CS Filer tasks (only if CS drafting is completed)
@@ -117,6 +144,15 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
         else if (patent.cs_filing_status === 0) {
           stats[patent.cs_filer_assgn]['Drafting']++;
           stats[patent.cs_filer_assgn]['Total']++;
+        }
+        
+        // Pending for IDF state
+        if (!patent.idf_received && patent.idf_sent) {
+          stats[patent.cs_filer_assgn]['Pending']++;
+          // Avoid double counting in the total
+          if (stats[patent.cs_filer_assgn]['Drafting'] > 0) {
+            stats[patent.cs_filer_assgn]['Drafting']--;
+          }
         }
       }
       
@@ -161,7 +197,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
         }
       }
       
-      // Pending for confirmation status (applicable for both PS and CS)
+      // Additional pending for confirmation status (applicable for both PS and CS)
       if (patent.pending_ps_confirmation && patent.ps_drafter_assgn) {
         stats[patent.ps_drafter_assgn]['Pending']++;
         // Avoid double counting in the total
@@ -185,11 +221,11 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
   // Function to get the appropriate background color based on status
   const getBackgroundColor = (status: string) => {
     switch (status) {
-      case 'Review': return 'bg-red-500 text-white';  // Red
-      case 'Completed': return 'bg-purple-500 text-white';  // Purple
-      case 'Drafting': return 'bg-yellow-400';  // Yellow
-      case 'Pending': return 'bg-orange-300';  // Orange
-      case 'Total': return 'bg-green-500 text-white';  // Green
+      case 'Review': return 'bg-gray-300 text-black';  // Grey
+      case 'Completed': return 'bg-green-500 text-white';  // Green
+      case 'Drafting': return 'bg-yellow-400 text-black';  // Yellow
+      case 'Pending': return 'bg-blue-300 text-black';  // Light blue for pending info
+      case 'Total': return 'bg-white text-black';  // White with black text for Total
       default: return '';
     }
   };
