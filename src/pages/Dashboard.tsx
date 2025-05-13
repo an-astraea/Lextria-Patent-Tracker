@@ -15,14 +15,15 @@ import SummaryCards from '@/components/dashboard/SummaryCards';
 import ConversionStats from '@/components/dashboard/ConversionStats';
 import PatentStageChart from '@/components/dashboard/PatentStageChart';
 import PatentStatusStats from '@/components/dashboard/PatentStatusStats';
+import PatentStateTable from '@/components/dashboard/PatentStateTable';
+import PatentStatusTable from '@/components/dashboard/PatentStatusTable';
 import EmployeePatentTable from '@/components/dashboard/EmployeePatentTable';
 import TopEmployees from '@/components/dashboard/TopEmployees';
 import TopClients from '@/components/dashboard/TopClients';
 import PendingApprovals from '@/components/dashboard/PendingApprovals';
 import UserAssignments from '@/components/dashboard/UserAssignments';
 import DeadlinePatents from '@/components/dashboard/DeadlinePatents';
-import PatentStateTable from '@/components/dashboard/PatentStateTable';
-import PatentStatusTable from '@/components/dashboard/PatentStatusTable';
+import EmployeePatentStatusTable from '@/components/dashboard/EmployeePatentStatusTable';
 
 const Dashboard = () => {
   const [patents, setPatents] = useState<Patent[]>([]);
@@ -104,18 +105,21 @@ const Dashboard = () => {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
       
-      {/* Summary Cards */}
-      <SummaryCards 
-        patents={patents} 
-        pendingApprovalCount={pendingApprovalCount}
-        userAssignedPatents={userAssignedPatents}
-        userRole={user?.role}
-      />
-      
       {/* Admin-specific sections */}
       {user?.role === 'admin' && (
         <>
-          {/* Patent Processing State Table - new component */}
+          {/* New Employee Patent Status Table - positioned at the top */}
+          <EmployeePatentStatusTable patents={patents} />
+          
+          {/* Summary Cards */}
+          <SummaryCards 
+            patents={patents} 
+            pendingApprovalCount={pendingApprovalCount}
+            userAssignedPatents={userAssignedPatents}
+            userRole={user?.role}
+          />
+          
+          {/* Patent Processing State Table */}
           <PatentStatusTable patents={patents} />
           
           {/* Patent State Table (geographical) */}
@@ -144,6 +148,16 @@ const Dashboard = () => {
           {/* Pending Approvals */}
           <PendingApprovals pendingApprovalCount={pendingApprovalCount} />
         </>
+      )}
+      
+      {/* Non-admin specific sections */}
+      {user?.role !== 'admin' && (
+        <SummaryCards 
+          patents={patents} 
+          pendingApprovalCount={pendingApprovalCount}
+          userAssignedPatents={userAssignedPatents}
+          userRole={user?.role}
+        />
       )}
       
       {/* User Assignments */}
