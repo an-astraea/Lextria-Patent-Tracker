@@ -18,6 +18,7 @@ const Patents = () => {
   const [filteredPatents, setFilteredPatents] = useState<Patent[]>([]);
   const [loading, setLoading] = useState(true);
   const [patentToDelete, setPatentToDelete] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
   useEffect(() => {
     const loadPatents = async () => {
@@ -65,40 +66,37 @@ const Patents = () => {
   
   const handleDeletePatent = (id: string) => {
     setPatentToDelete(id);
+    setDeleteDialogOpen(true);
   };
   
   const confirmDeletePatent = async () => {
     if (!patentToDelete) return;
     
     try {
-      const result = await deletePatent(patentToDelete);
+      const success = await deletePatent(patentToDelete);
       
-      if (result.success) {
+      if (success) {
         // Remove the patent from the lists
         const updatedPatents = patents.filter(p => p.id !== patentToDelete);
         setPatents(updatedPatents);
-        setFilteredPatents(filterPatents(updatedPatents));
+        setFilteredPatents(filteredPatents.filter(p => p.id !== patentToDelete));
         toast.success("Patent deleted successfully");
       } else {
-        toast.error(`Failed to delete patent: ${result.message}`);
+        toast.error("Failed to delete patent");
       }
     } catch (error) {
       console.error("Error deleting patent:", error);
       toast.error("An error occurred while deleting the patent");
     } finally {
+      setDeleteDialogOpen(false);
       setPatentToDelete(null);
     }
   };
   
   const cancelDeletePatent = () => {
+    setDeleteDialogOpen(false);
     setPatentToDelete(null);
   };
-  
-  const filterPatents = (patentsList: Patent[]) => {
-    return patentsList;
-  };
-  
-  const getFilteredPatents = () => filteredPatents;
   
   const getInProgressPatents = () => {
     return filteredPatents.filter(patent => 
@@ -122,17 +120,10 @@ const Patents = () => {
   
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold tracking-tight">Patents</h1>
-        <Link to="/patents/add">
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Patent
-          </Button>
-        </Link>
-      </div>
-      
-      <PatentListHeader onSearch={handleSearch} />
+      <PatentListHeader 
+        userRole={user?.role}
+        onSearch={handleSearch} 
+      />
       
       <PatentListTabs
         filteredPatents={filteredPatents}
@@ -141,11 +132,10 @@ const Patents = () => {
         getWithdrawnPatents={getWithdrawnPatents}
         onDeletePatent={handleDeletePatent}
         userRole={user?.role || 'viewer'}
-        loading={loading}
       />
       
       <DeletePatentDialog
-        open={!!patentToDelete}
+        isOpen={deleteDialogOpen}
         onCancel={cancelDeletePatent}
         onConfirm={confirmDeletePatent}
       />

@@ -12,31 +12,29 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface DeletePatentDialogProps {
-  patentToDelete: string | null;
+  isOpen: boolean;
   onCancel: () => void;
-  onConfirm: (id: string) => void;
+  onConfirm: () => void;
 }
 
 const DeletePatentDialog: React.FC<DeletePatentDialogProps> = ({
-  patentToDelete,
+  isOpen,
   onCancel,
-  onConfirm
+  onConfirm,
 }) => {
   return (
-    <AlertDialog open={!!patentToDelete} onOpenChange={() => !patentToDelete && onCancel()}>
+    <AlertDialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you sure you want to delete this patent?</AlertDialogTitle>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the patent and remove all associated data from the system.
+            This action cannot be undone. This will permanently delete the patent
+            and remove all associated data from the system.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
-          <AlertDialogAction 
-            onClick={() => patentToDelete && onConfirm(patentToDelete)}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
+          <AlertDialogAction onClick={onConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
             Delete
           </AlertDialogAction>
         </AlertDialogFooter>
