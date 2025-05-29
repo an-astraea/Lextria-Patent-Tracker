@@ -1,6 +1,18 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Patent, EmployeeFormData, PatentFormData, FEREntry } from "@/lib/types";
+import { addPatentTimelineEntry } from "@/lib/api/timeline-api";
+
+// Helper function to get current user
+const getCurrentUser = () => {
+  try {
+    const storedUser = localStorage.getItem('user');
+    return storedUser ? JSON.parse(storedUser) : null;
+  } catch (error) {
+    console.error('Error getting user from localStorage:', error);
+    return null;
+  }
+};
 
 // Fetch all patents with their relationships
 export const fetchPatents = async () => {
@@ -75,6 +87,9 @@ export const fetchPatentTimeline = async (patentId: string) => {
 // Create a new patent
 export const createPatent = async (patentData: PatentFormData) => {
   try {
+    const currentUser = getCurrentUser();
+    const creatorName = currentUser?.full_name || 'Unknown User';
+
     const { data, error } = await supabase
       .from("patents")
       .insert([
@@ -110,6 +125,17 @@ export const createPatent = async (patentData: PatentFormData) => {
       return { success: false, message: error.message };
     }
 
+    const createdPatent = data[0];
+
+    // Add timeline entry for patent creation
+    await addPatentTimelineEntry(
+      createdPatent.id,
+      'patent_created',
+      `Patent "${patentData.patent_title}" was created by ${creatorName}`,
+      1,
+      creatorName
+    );
+
     if (patentData.inventors && patentData.inventors.length > 0) {
       const inventorsToInsert = patentData.inventors.map((inventor) => ({
         tracking_id: patentData.tracking_id,
@@ -126,22 +152,37 @@ export const createPatent = async (patentData: PatentFormData) => {
         return {
           success: true,
           message: "Patent created but failed to add inventors",
-          patent: data[0],
+          patent: createdPatent,
         };
       }
+
+      // Add timeline entry for inventors
+      await addPatentTimelineEntry(
+        createdPatent.id,
+        'inventors_added',
+        `${patentData.inventors.length} inventor(s) added by ${creatorName}`,
+        1,
+        creatorName
+      );
     }
 
-    return { success: true, message: "Patent created successfully", patent: data[0] };
+    return { success: true, message: "Patent created successfully", patent: createdPatent };
   } catch (error: any) {
     console.error("Error in createPatent:", error);
     return { success: false, message: error.message || "An unexpected error occurred" };
   }
 };
 
-// Update an existing patent - enhanced for drafter updates
+// Update an existing patent - enhanced for tracking changes
 export const updatePatent = async (id: string, patentData: Partial<PatentFormData>) => {
   try {
+    const currentUser = getCurrentUser();
+    const updaterName = currentUser?.full_name || 'Unknown User';
+    
     console.log('Updating patent with data:', patentData);
+    
+    // Get the current patent data to compare changes
+    const currentPatent = await fetchPatentById(id);
     
     const { data, error } = await supabase
       .from("patents")
@@ -157,6 +198,52 @@ export const updatePatent = async (id: string, patentData: Partial<PatentFormDat
       return { success: false, message: error.message };
     }
 
+    // Track specific changes made
+    const changes = [];
+    if (currentPatent) {
+      if (patentData.patent_title && patentData.patent_title !== currentPatent.patent_title) {
+        changes.push(`Patent title changed from "${currentPatent.patent_title}" to "${patentData.patent_title}"`);
+      }
+      if (patentData.patent_applicant && patentData.patent_applicant !== currentPatent.patent_applicant) {
+        changes.push(`Patent applicant changed from "${currentPatent.patent_applicant}" to "${patentData.patent_applicant}"`);
+      }
+      if (patentData.ps_drafter_assgn !== undefined && patentData.ps_drafter_assgn !== currentPatent.ps_drafter_assgn) {
+        changes.push(`PS Drafter assignment changed from "${currentPatent.ps_drafter_assgn || 'None'}" to "${patentData.ps_drafter_assgn || 'None'}"`);
+      }
+      if (patentData.ps_filer_assgn !== undefined && patentData.ps_filer_assgn !== currentPatent.ps_filer_assgn) {
+        changes.push(`PS Filer assignment changed from "${currentPatent.ps_filer_assgn || 'None'}" to "${patentData.ps_filer_assgn || 'None'}"`);
+      }
+      if (patentData.cs_drafter_assgn !== undefined && patentData.cs_drafter_assgn !== currentPatent.cs_drafter_assgn) {
+        changes.push(`CS Drafter assignment changed from "${currentPatent.cs_drafter_assgn || 'None'}" to "${patentData.cs_drafter_assgn || 'None'}"`);
+      }
+      if (patentData.cs_filer_assgn !== undefined && patentData.cs_filer_assgn !== currentPatent.cs_filer_assgn) {
+        changes.push(`CS Filer assignment changed from "${currentPatent.cs_filer_assgn || 'None'}" to "${patentData.cs_filer_assgn || 'None'}"`);
+      }
+      if (patentData.ps_drafter_deadline && patentData.ps_drafter_deadline !== currentPatent.ps_drafter_deadline) {
+        changes.push(`PS Drafter deadline changed to ${new Date(patentData.ps_drafter_deadline).toLocaleDateString()}`);
+      }
+      if (patentData.ps_filer_deadline && patentData.ps_filer_deadline !== currentPatent.ps_filer_deadline) {
+        changes.push(`PS Filer deadline changed to ${new Date(patentData.ps_filer_deadline).toLocaleDateString()}`);
+      }
+      if (patentData.cs_drafter_deadline && patentData.cs_drafter_deadline !== currentPatent.cs_drafter_deadline) {
+        changes.push(`CS Drafter deadline changed to ${new Date(patentData.cs_drafter_deadline).toLocaleDateString()}`);
+      }
+      if (patentData.cs_filer_deadline && patentData.cs_filer_deadline !== currentPatent.cs_filer_deadline) {
+        changes.push(`CS Filer deadline changed to ${new Date(patentData.cs_filer_deadline).toLocaleDateString()}`);
+      }
+    }
+
+    // Add timeline entry for updates
+    if (changes.length > 0) {
+      await addPatentTimelineEntry(
+        id,
+        'patent_updated',
+        `Patent updated by ${updaterName}: ${changes.join('; ')}`,
+        1,
+        updaterName
+      );
+    }
+
     console.log('Patent updated successfully:', data);
     return { success: true, message: "Patent updated successfully", patent: data[0] };
   } catch (error: any) {
@@ -168,11 +255,28 @@ export const updatePatent = async (id: string, patentData: Partial<PatentFormDat
 // Delete a patent
 export const deletePatent = async (id: string) => {
   try {
+    const currentUser = getCurrentUser();
+    const deleterName = currentUser?.full_name || 'Unknown User';
+
+    // Get patent info before deletion for timeline
+    const patent = await fetchPatentById(id);
+    
     const { error } = await supabase.from("patents").delete().eq("id", id);
 
     if (error) {
       console.error("Error deleting patent:", error);
       return { success: false, message: error.message };
+    }
+
+    // Add timeline entry for deletion (if patent existed)
+    if (patent) {
+      await addPatentTimelineEntry(
+        id,
+        'patent_deleted',
+        `Patent "${patent.patent_title}" was deleted by ${deleterName}`,
+        1,
+        deleterName
+      );
     }
 
     return { success: true, message: "Patent deleted successfully" };
@@ -188,6 +292,9 @@ export const updatePatentStatus = async (
   statusData: Record<string, any>
 ) => {
   try {
+    const currentUser = getCurrentUser();
+    const updaterName = currentUser?.full_name || 'Unknown User';
+
     const { error } = await supabase
       .from("patents")
       .update({
@@ -201,6 +308,20 @@ export const updatePatentStatus = async (
       return false;
     }
 
+    // Add timeline entry for status updates
+    const statusChanges = Object.entries(statusData)
+      .filter(([key, value]) => key !== 'updated_at')
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(', ');
+
+    await addPatentTimelineEntry(
+      patentId,
+      'status_updated',
+      `Patent status updated by ${updaterName}: ${statusChanges}`,
+      1,
+      updaterName
+    );
+
     return true;
   } catch (error) {
     console.error("Error in updatePatentStatus:", error);
@@ -211,6 +332,9 @@ export const updatePatentStatus = async (
 // Update patent notes
 export const updatePatentNotes = async (patentId: string, notes: string) => {
   try {
+    const currentUser = getCurrentUser();
+    const updaterName = currentUser?.full_name || 'Unknown User';
+
     const { error } = await supabase
       .from("patents")
       .update({ 
@@ -224,6 +348,15 @@ export const updatePatentNotes = async (patentId: string, notes: string) => {
       return false;
     }
 
+    // Add timeline entry for notes update
+    await addPatentTimelineEntry(
+      patentId,
+      'notes_updated',
+      `Patent notes updated by ${updaterName}`,
+      1,
+      updaterName
+    );
+
     return true;
   } catch (error) {
     console.error("Error in updatePatentNotes:", error);
@@ -233,6 +366,9 @@ export const updatePatentNotes = async (patentId: string, notes: string) => {
 
 // Update patent forms
 export const updatePatentForms = async (patentId: string, formData: Record<string, boolean>) => {
+  const currentUser = getCurrentUser();
+  const updaterName = currentUser?.full_name || 'Unknown User';
+
   const { data, error } = await supabase
     .from('patents')
     .update({
@@ -246,12 +382,31 @@ export const updatePatentForms = async (patentId: string, formData: Record<strin
     console.error('Error updating patent forms:', error);
     return false;
   }
+
+  // Add timeline entry for forms update
+  const formsUpdated = Object.entries(formData)
+    .filter(([key, value]) => key.startsWith('form_'))
+    .map(([key, value]) => `${key}: ${value ? 'checked' : 'unchecked'}`)
+    .join(', ');
+
+  if (formsUpdated) {
+    await addPatentTimelineEntry(
+      patentId,
+      'forms_updated',
+      `Patent forms updated by ${updaterName}: ${formsUpdated}`,
+      1,
+      updaterName
+    );
+  }
   
   return true;
 };
 
 // Function to update FER entry
 export const updateFEREntry = async (ferEntryId: string, ferData: Partial<FEREntry>) => {
+  const currentUser = getCurrentUser();
+  const updaterName = currentUser?.full_name || 'Unknown User';
+
   const { data, error } = await supabase
     .from('fer_entries')
     .update({
@@ -264,6 +419,17 @@ export const updateFEREntry = async (ferEntryId: string, ferData: Partial<FEREnt
   if (error) {
     console.error('Error updating FER entry:', error);
     return false;
+  }
+
+  // Get patent ID from FER entry to add timeline
+  if (data && data[0]) {
+    await addPatentTimelineEntry(
+      data[0].patent_id,
+      'fer_updated',
+      `FER entry updated by ${updaterName}`,
+      1,
+      updaterName
+    );
   }
   
   return true;
@@ -280,6 +446,9 @@ export const updatePatentPayment = async (
   }
 ) => {
   try {
+    const currentUser = getCurrentUser();
+    const updaterName = currentUser?.full_name || 'Unknown User';
+
     const { error } = await supabase
       .from("patents")
       .update({
@@ -292,6 +461,19 @@ export const updatePatentPayment = async (
       console.error("Error updating patent payment:", error);
       return false;
     }
+
+    // Add timeline entry for payment updates
+    const paymentChanges = Object.entries(paymentData)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(', ');
+
+    await addPatentTimelineEntry(
+      patentId,
+      'payment_updated',
+      `Payment information updated by ${updaterName}: ${paymentChanges}`,
+      1,
+      updaterName
+    );
 
     return true;
   } catch (error) {

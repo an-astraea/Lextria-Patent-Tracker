@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { History, ClipboardList, CalendarClock, User, FileText, Flag, Mail, CheckCircle } from 'lucide-react';
+import { History, ClipboardList, CalendarClock, User, FileText, Flag, Mail, CheckCircle, Edit, Plus, Trash2, DollarSign } from 'lucide-react';
 import { TimelineItem } from '@/lib/types';
 import { toast } from 'sonner';
 import { fetchPatentTimeline } from '@/lib/api/timeline-api';
@@ -48,6 +48,13 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({ patentId, onAddTimeline
 
   const getEventIcon = (eventType: string) => {
     switch (eventType) {
+      case 'patent_created':
+        return <Plus className="h-4 w-4" />;
+      case 'patent_updated':
+      case 'inventors_added':
+        return <Edit className="h-4 w-4" />;
+      case 'patent_deleted':
+        return <Trash2 className="h-4 w-4" />;
       case 'drafting':
       case 'ps_drafting_status_change':
       case 'cs_drafting_status_change':
@@ -88,6 +95,16 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({ patentId, onAddTimeline
       case 'cs_completion_status_change':
       case 'fer_completion_status_change':
         return <Flag className="h-4 w-4" />;
+      case 'payment_updated':
+        return <DollarSign className="h-4 w-4" />;
+      case 'forms_updated':
+        return <FileText className="h-4 w-4" />;
+      case 'notes_updated':
+        return <Edit className="h-4 w-4" />;
+      case 'status_updated':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'fer_updated':
+        return <ClipboardList className="h-4 w-4" />;
       default:
         return <History className="h-4 w-4" />;
     }
@@ -100,6 +117,25 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({ patentId, onAddTimeline
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  };
+
+  const getEventColor = (eventType: string) => {
+    switch (eventType) {
+      case 'patent_created':
+        return 'text-green-600 bg-green-100';
+      case 'patent_updated':
+      case 'inventors_added':
+        return 'text-blue-600 bg-blue-100';
+      case 'patent_deleted':
+        return 'text-red-600 bg-red-100';
+      case 'forms_updated':
+      case 'notes_updated':
+        return 'text-purple-600 bg-purple-100';
+      case 'payment_updated':
+        return 'text-yellow-600 bg-yellow-100';
+      default:
+        return 'text-gray-600 bg-gray-100';
+    }
   };
 
   return (
@@ -133,25 +169,27 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({ patentId, onAddTimeline
                 )}
                 
                 <div className="flex items-start gap-3">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border bg-background">
+                  <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${getEventColor(event.event_type)}`}>
                     {getEventIcon(event.event_type)}
                   </div>
                   
-                  <div className="flex flex-col space-y-1">
-                    <div className="flex items-center gap-2 text-sm font-medium">
+                  <div className="flex flex-col space-y-1 flex-1">
+                    <div className="flex items-center gap-2 text-sm font-medium flex-wrap">
                       <span className="capitalize">{formatEventType(event.event_type)}</span>
                       <span className="text-muted-foreground">•</span>
                       <span className="text-xs text-muted-foreground">{formatDate(event.created_at)}</span>
+                      {event.employee_name && (
+                        <>
+                          <span className="text-muted-foreground">•</span>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <User className="h-3 w-3" />
+                            <span className="font-medium text-primary">{event.employee_name}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
                     
-                    <p className="text-sm">{event.event_description}</p>
-                    
-                    {event.employee_name && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                        <User className="h-3 w-3" />
-                        <span>{event.employee_name}</span>
-                      </div>
-                    )}
+                    <p className="text-sm text-gray-700">{event.event_description}</p>
 
                     {event.deadline_date && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
