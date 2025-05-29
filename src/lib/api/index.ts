@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { standardizePatent, normalizePatents } from '@/lib/utils/type-converters';
 import { Patent } from '@/lib/types';
@@ -177,6 +178,7 @@ export * from './filer-api';
 export * from './review-api';
 export * from './fer-actions';
 export * from './inventors-api';
+export * from './reminder-api';
 
 // Export timeline API but exclude fetchPatentTimeline to avoid naming conflict
 export { addPatentTimelineEntry } from './timeline-api';

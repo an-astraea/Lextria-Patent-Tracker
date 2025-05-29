@@ -174,6 +174,50 @@ export type Database = {
           },
         ]
       }
+      patent_reminders: {
+        Row: {
+          created_at: string
+          days_stagnant: number
+          id: string
+          notes: string | null
+          patent_id: string
+          reminder_type: string
+          resolved_at: string | null
+          resolved_by: string | null
+          stage_name: string
+        }
+        Insert: {
+          created_at?: string
+          days_stagnant: number
+          id?: string
+          notes?: string | null
+          patent_id: string
+          reminder_type: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          stage_name: string
+        }
+        Update: {
+          created_at?: string
+          days_stagnant?: number
+          id?: string
+          notes?: string | null
+          patent_id?: string
+          reminder_type?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          stage_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patent_reminders_patent_id_fkey"
+            columns: ["patent_id"]
+            isOneToOne: false
+            referencedRelation: "patents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patent_timeline: {
         Row: {
           created_at: string
@@ -234,6 +278,7 @@ export type Database = {
           cs_filing_status: number
           cs_review_draft_status: number
           cs_review_file_status: number
+          current_stage: string | null
           date_of_filing: string | null
           fer_completion_status: number
           fer_drafter_assgn: string | null
@@ -245,6 +290,8 @@ export type Database = {
           fer_review_draft_status: number
           fer_review_file_status: number
           fer_status: number
+          follow_up_count: number | null
+          follow_up_status: string | null
           form_01: boolean | null
           form_02: boolean | null
           form_02_cs: boolean | null
@@ -291,6 +338,8 @@ export type Database = {
           inventor_email: string
           inventor_ph_no: string
           invoice_sent: boolean | null
+          last_follow_up_date: string | null
+          next_reminder_date: string | null
           notes: string | null
           other_forms: string | null
           patent_applicant: string
@@ -310,6 +359,7 @@ export type Database = {
           ps_filing_status: number
           ps_review_draft_status: number
           ps_review_file_status: number
+          stage_updated_at: string | null
           tracking_id: string
           updated_at: string | null
           withdrawn: boolean | null
@@ -332,6 +382,7 @@ export type Database = {
           cs_filing_status?: number
           cs_review_draft_status?: number
           cs_review_file_status?: number
+          current_stage?: string | null
           date_of_filing?: string | null
           fer_completion_status?: number
           fer_drafter_assgn?: string | null
@@ -343,6 +394,8 @@ export type Database = {
           fer_review_draft_status?: number
           fer_review_file_status?: number
           fer_status?: number
+          follow_up_count?: number | null
+          follow_up_status?: string | null
           form_01?: boolean | null
           form_02?: boolean | null
           form_02_cs?: boolean | null
@@ -389,6 +442,8 @@ export type Database = {
           inventor_email: string
           inventor_ph_no: string
           invoice_sent?: boolean | null
+          last_follow_up_date?: string | null
+          next_reminder_date?: string | null
           notes?: string | null
           other_forms?: string | null
           patent_applicant: string
@@ -408,6 +463,7 @@ export type Database = {
           ps_filing_status?: number
           ps_review_draft_status?: number
           ps_review_file_status?: number
+          stage_updated_at?: string | null
           tracking_id: string
           updated_at?: string | null
           withdrawn?: boolean | null
@@ -430,6 +486,7 @@ export type Database = {
           cs_filing_status?: number
           cs_review_draft_status?: number
           cs_review_file_status?: number
+          current_stage?: string | null
           date_of_filing?: string | null
           fer_completion_status?: number
           fer_drafter_assgn?: string | null
@@ -441,6 +498,8 @@ export type Database = {
           fer_review_draft_status?: number
           fer_review_file_status?: number
           fer_status?: number
+          follow_up_count?: number | null
+          follow_up_status?: string | null
           form_01?: boolean | null
           form_02?: boolean | null
           form_02_cs?: boolean | null
@@ -487,6 +546,8 @@ export type Database = {
           inventor_email?: string
           inventor_ph_no?: string
           invoice_sent?: boolean | null
+          last_follow_up_date?: string | null
+          next_reminder_date?: string | null
           notes?: string | null
           other_forms?: string | null
           patent_applicant?: string
@@ -506,6 +567,7 @@ export type Database = {
           ps_filing_status?: number
           ps_review_draft_status?: number
           ps_review_file_status?: number
+          stage_updated_at?: string | null
           tracking_id?: string
           updated_at?: string | null
           withdrawn?: boolean | null
@@ -517,7 +579,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_stagnant_patents: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

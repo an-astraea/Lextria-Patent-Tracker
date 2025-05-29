@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Patent } from '@/lib/types';
 import { toast } from 'sonner';
@@ -42,14 +43,22 @@ const Patents = () => {
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
-  // Fetch patents from Supabase
+  // Fetch patents from Supabase - now sorted by creation date (newest first)
   useEffect(() => {
     const getData = async () => {
       try {
         setLoading(true);
         const { patents } = await fetchPatentsAndEmployees();
-        setPatents(patents);
-        setFilteredPatents(patents);
+        
+        // Sort patents by creation date (newest first)
+        const sortedPatents = patents.sort((a, b) => {
+          const dateA = new Date(a.created_at || '');
+          const dateB = new Date(b.created_at || '');
+          return dateB.getTime() - dateA.getTime();
+        });
+        
+        setPatents(sortedPatents);
+        setFilteredPatents(sortedPatents);
       } catch (error) {
         console.error('Error fetching patents:', error);
         toast.error('Failed to load patents');

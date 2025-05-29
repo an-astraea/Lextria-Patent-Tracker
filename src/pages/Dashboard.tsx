@@ -24,6 +24,7 @@ import PendingApprovals from '@/components/dashboard/PendingApprovals';
 import UserAssignments from '@/components/dashboard/UserAssignments';
 import DeadlinePatents from '@/components/dashboard/DeadlinePatents';
 import EmployeePatentStatusTable from '@/components/dashboard/EmployeePatentStatusTable';
+import StagnantPatentsReminder from '@/components/dashboard/StagnantPatentsReminder';
 
 const Dashboard = () => {
   const [patents, setPatents] = useState<Patent[]>([]);
@@ -104,6 +105,9 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+      
+      {/* Stagnant Patents Reminder - shown for all users */}
+      <StagnantPatentsReminder userRole={user?.role} />
       
       {/* This employee patent status table is shown for all users */}
       <EmployeePatentStatusTable patents={patents} />

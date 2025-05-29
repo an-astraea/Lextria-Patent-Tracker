@@ -1,3 +1,4 @@
+
 export interface Patent {
   id: string;
   tracking_id: string;
@@ -105,6 +106,13 @@ export interface Patent {
   idf_received?: boolean;
   cs_data?: boolean;
   cs_data_received?: boolean;
+  // New reminder and follow-up fields
+  follow_up_count?: number;
+  follow_up_status?: 'active' | 'on_hold' | 'unresponsive';
+  last_follow_up_date?: string | null;
+  next_reminder_date?: string | null;
+  stage_updated_at?: string;
+  current_stage?: string;
   created_at?: string;
   updated_at?: string;
   inventors?: InventorInfo[];
@@ -227,4 +235,25 @@ export interface TimelineEventData {
   event_description: string;
   deadline_date?: string | null;
   employee_name?: string;
+}
+
+// New interfaces for reminder system
+export interface PatentReminder {
+  id: string;
+  patent_id: string;
+  reminder_type: 'stage_stagnant' | 'follow_up_needed' | 'unresponsive';
+  stage_name: string;
+  days_stagnant: number;
+  created_at: string;
+  resolved_at?: string | null;
+  resolved_by?: string | null;
+  notes?: string;
+  patent?: Patent;
+}
+
+export interface StagnantPatent {
+  patent: Patent;
+  days_stagnant: number;
+  current_stage: string;
+  reminders: PatentReminder[];
 }
