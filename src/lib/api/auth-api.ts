@@ -21,10 +21,10 @@ export const loginUser = async (email: string, password: string): Promise<Employ
       return null;
     }
 
-    // Cast the role to the expected type
+    // Cast the role to the expected type - now includes 'reviewer' instead of 'filer'
     const user: Employee = {
       ...data,
-      role: data.role as 'admin' | 'drafter' | 'filer'
+      role: data.role as 'admin' | 'drafter' | 'reviewer'
     };
 
     // Store user in localStorage
