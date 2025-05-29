@@ -1,3 +1,6 @@
+import { supabase } from "@/integrations/supabase/client";
+import { Patent, Employee, FERHistory, FEREntry, Inventor } from "./types";
+
 import {
   LayoutDashboard,
   Users,
@@ -11,8 +14,6 @@ import {
   Building2,
   Upload
 } from 'lucide-react';
-
-import { Patent, PatentFormData } from './types';
 
 export const adminNavItems = [
   {
