@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Patent } from '@/lib/types';
 import { toast } from 'sonner';
 import { fetchPatentsAndEmployees, deletePatent } from '@/lib/api';
 import PatentListHeader from '@/components/patents/PatentListHeader';
 import PatentFilters from '@/components/patents/PatentFilters';
+import PatentResultsCount from '@/components/patents/PatentResultsCount';
 import PatentListTabs from '@/components/patents/PatentListTabs';
 import DeletePatentDialog from '@/components/patents/DeletePatentDialog';
 
@@ -326,6 +326,13 @@ const Patents = () => {
         searchFields={searchFields}
         onSearch={handleSearch}
         getActiveFiltersCount={getActiveFiltersCount}
+      />
+      
+      <PatentResultsCount
+        filteredCount={filteredPatents.length}
+        totalCount={patents.length}
+        searchQuery={searchQuery}
+        hasActiveFilters={getActiveFiltersCount() > 0}
       />
       
       <PatentListTabs 
