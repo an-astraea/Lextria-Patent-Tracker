@@ -10,12 +10,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+interface FilterOption {
+  value: string | null;
+  label: string;
+  count?: number;
+}
+
 interface SearchFiltersProps {
   onSearch: (query: string, field?: string) => void;
   placeholder?: string;
   filters?: {
     name: string;
-    options: Array<{ value: string | null; label: string }>;
+    options: FilterOption[];
     onFilter: (value: string | null) => void;
     activeFilter: string | null;
   }[];
@@ -41,6 +47,13 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
       return field ? `Search by ${field.label}...` : placeholder;
     }
     return placeholder;
+  };
+
+  const formatOptionLabel = (option: FilterOption) => {
+    if (option.count !== undefined) {
+      return `${option.label} (${option.count})`;
+    }
+    return option.label;
   };
 
   return (
@@ -102,16 +115,21 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
             <Button variant="outline" className="sm:w-auto">
               <Filter className="mr-2 h-4 w-4" />
               {filter.name}
+              {filter.activeFilter && (
+                <span className="ml-1 text-xs bg-primary text-primary-foreground rounded px-1">
+                  1
+                </span>
+              )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="min-w-[200px]">
             {filter.options.map((option, optIndex) => (
               <DropdownMenuItem 
                 key={optIndex} 
                 onClick={() => filter.onFilter(option.value)}
                 className={filter.activeFilter === option.value ? "bg-accent" : ""}
               >
-                {option.label}
+                {formatOptionLabel(option)}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>

@@ -38,12 +38,6 @@ const Patents = () => {
     { value: 'application_no', label: 'Application No.' },
   ];
   
-  // For non-realtime search
-  const [pendingSearchQuery, setPendingSearchQuery] = useState('');
-  
-  // Get unique client IDs for filtering
-  const uniqueClientIds = [...new Set(patents.map(patent => patent.client_id))];
-  
   // Get user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
@@ -281,7 +275,6 @@ const Patents = () => {
       },
     });
     setSearchQuery('');
-    setPendingSearchQuery('');
   };
   
   const getInProgressPatents = () => {
@@ -327,6 +320,7 @@ const Patents = () => {
       <PatentListHeader userRole={user?.role} />
       
       <PatentFilters 
+        patents={patents}
         filters={filters}
         setFilters={setFilters}
         searchFields={searchFields}
