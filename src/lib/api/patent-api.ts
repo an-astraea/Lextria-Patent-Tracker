@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Patent, EmployeeFormData, PatentFormData, FEREntry } from "@/lib/types";
 
@@ -137,13 +138,16 @@ export const createPatent = async (patentData: PatentFormData) => {
   }
 };
 
-// Update an existing patent
+// Update an existing patent - enhanced for drafter updates
 export const updatePatent = async (id: string, patentData: Partial<PatentFormData>) => {
   try {
+    console.log('Updating patent with data:', patentData);
+    
     const { data, error } = await supabase
       .from("patents")
       .update({
         ...patentData,
+        updated_at: new Date().toISOString()
       })
       .eq("id", id)
       .select();
@@ -153,6 +157,7 @@ export const updatePatent = async (id: string, patentData: Partial<PatentFormDat
       return { success: false, message: error.message };
     }
 
+    console.log('Patent updated successfully:', data);
     return { success: true, message: "Patent updated successfully", patent: data[0] };
   } catch (error: any) {
     console.error("Error in updatePatent:", error);
@@ -185,7 +190,10 @@ export const updatePatentStatus = async (
   try {
     const { error } = await supabase
       .from("patents")
-      .update(statusData)
+      .update({
+        ...statusData,
+        updated_at: new Date().toISOString()
+      })
       .eq("id", patentId);
 
     if (error) {
@@ -205,7 +213,10 @@ export const updatePatentNotes = async (patentId: string, notes: string) => {
   try {
     const { error } = await supabase
       .from("patents")
-      .update({ notes })
+      .update({ 
+        notes,
+        updated_at: new Date().toISOString()
+      })
       .eq("id", patentId);
 
     if (error) {
@@ -224,7 +235,10 @@ export const updatePatentNotes = async (patentId: string, notes: string) => {
 export const updatePatentForms = async (patentId: string, formData: Record<string, boolean>) => {
   const { data, error } = await supabase
     .from('patents')
-    .update(formData)
+    .update({
+      ...formData,
+      updated_at: new Date().toISOString()
+    })
     .eq('id', patentId)
     .select();
   
@@ -240,7 +254,10 @@ export const updatePatentForms = async (patentId: string, formData: Record<strin
 export const updateFEREntry = async (ferEntryId: string, ferData: Partial<FEREntry>) => {
   const { data, error } = await supabase
     .from('fer_entries')
-    .update(ferData)
+    .update({
+      ...ferData,
+      updated_at: new Date().toISOString()
+    })
     .eq('id', ferEntryId)
     .select();
   
@@ -265,7 +282,10 @@ export const updatePatentPayment = async (
   try {
     const { error } = await supabase
       .from("patents")
-      .update(paymentData)
+      .update({
+        ...paymentData,
+        updated_at: new Date().toISOString()
+      })
       .eq("id", patentId);
 
     if (error) {

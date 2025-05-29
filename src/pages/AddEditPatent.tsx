@@ -69,10 +69,10 @@ const AddEditPatent = () => {
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
-  // Redirect if not admin or filer
+  // Updated access control - allow admin, filer, and drafter
   React.useEffect(() => {
-    if (user?.role !== 'admin' && user?.role !== 'filer') {
-      toast.error('Access denied. Admin or filer privileges required.');
+    if (!user || !['admin', 'filer', 'drafter'].includes(user.role)) {
+      toast.error('Access denied. Insufficient privileges.');
       navigate('/dashboard');
     }
   }, [user, navigate]);
@@ -158,6 +158,19 @@ const AddEditPatent = () => {
           setLoading(true);
           const patent = await fetchPatentById(id);
           if (patent) {
+            // Check if drafter has permission to edit this patent
+            if (user?.role === 'drafter') {
+              const canEdit = patent.ps_drafter_assgn === user.full_name || 
+                             patent.cs_drafter_assgn === user.full_name || 
+                             patent.fer_drafter_assgn === user.full_name;
+              
+              if (!canEdit) {
+                toast.error('You can only edit patents assigned to you');
+                navigate('/drafts');
+                return;
+              }
+            }
+            
             // Determine patent type based on existing data
             if (patent.cs_drafter_assgn || patent.cs_filer_assgn || patent.cs_drafting_status > 0 || patent.cs_filing_status > 0) {
               setPatentType('CS');
@@ -222,7 +235,7 @@ const AddEditPatent = () => {
     };
     
     getPatent();
-  }, [id, isEditMode, navigate]);
+  }, [id, isEditMode, navigate, user]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -414,7 +427,12 @@ const AddEditPatent = () => {
         
         if (success) {
           toast.success('Patent updated successfully');
-          navigate('/patents');
+          // Navigate based on user role
+          if (user?.role === 'drafter') {
+            navigate('/drafts');
+          } else {
+            navigate('/patents');
+          }
         }
       } else {
         const newPatent = await createPatent(cleanedFormData);
@@ -439,7 +457,12 @@ const AddEditPatent = () => {
           }
           
           toast.success('Patent created successfully');
-          navigate('/patents');
+          // Navigate based on user role
+          if (user?.role === 'drafter') {
+            navigate('/drafts');
+          } else {
+            navigate('/patents');
+          }
         }
       }
     } catch (error) {
@@ -460,6 +483,10 @@ const AddEditPatent = () => {
   
   // Check if FER should be enabled (only for CS type)
   const shouldShowFER = patentType === 'CS';
+  
+  // Check if user can edit certain fields
+  const canEditBasicInfo = user?.role === 'admin' || user?.role === 'filer' || !isEditMode;
+  const canEditAssignments = user?.role === 'admin' || !isEditMode;
   
   return (
     <div className="space-y-6">
@@ -498,6 +525,7 @@ const AddEditPatent = () => {
                   value={formData.client_id} 
                   onChange={handleChange} 
                   required
+                  readOnly={!canEditBasicInfo}
                 />
               </div>
               
@@ -509,6 +537,7 @@ const AddEditPatent = () => {
                   value={formData.patent_applicant} 
                   onChange={handleChange} 
                   required
+                  readOnly={!canEditBasicInfo}
                 />
               </div>
               
@@ -537,7 +566,8 @@ const AddEditPatent = () => {
                     id="application_no" 
                     name="application_no" 
                     value={formData.application_no} 
-                    onChange={handleChange} 
+                    onChange={handleChange}
+                    readOnly={!canEditBasicInfo}
                   />
                   <p className="text-sm text-muted-foreground">
                     This field appears when forms are selected for filing
@@ -554,6 +584,7 @@ const AddEditPatent = () => {
                     type="date" 
                     value={formData.date_of_filing} 
                     onChange={handleChange}
+                    readOnly={!canEditBasicInfo}
                   />
                   <p className="text-sm text-muted-foreground">
                     Set when the patent application is officially filed
@@ -569,6 +600,7 @@ const AddEditPatent = () => {
                   value={formData.patent_title} 
                   onChange={handleChange} 
                   required
+                  readOnly={!canEditBasicInfo}
                 />
               </div>
               
@@ -581,6 +613,7 @@ const AddEditPatent = () => {
                   onChange={handleChange} 
                   required
                   rows={3}
+                  readOnly={!canEditBasicInfo}
                 />
               </div>
               
@@ -592,6 +625,7 @@ const AddEditPatent = () => {
                   value={formData.inventor_ph_no} 
                   onChange={handleChange} 
                   required
+                  readOnly={!canEditBasicInfo}
                 />
               </div>
               
@@ -604,6 +638,7 @@ const AddEditPatent = () => {
                   value={formData.inventor_email} 
                   onChange={handleChange} 
                   required
+                  readOnly={!canEditBasicInfo}
                 />
               </div>
             </div>
@@ -625,6 +660,7 @@ const AddEditPatent = () => {
                     checked={!!formData.idf_sent}
                     onChange={(e) => setFormData(prev => ({ ...prev, idf_sent: e.target.checked }))}
                     className="rounded border-gray-300"
+                    disabled={!canEditBasicInfo}
                   />
                   <Label htmlFor="idf_sent">IDF Sent</Label>
                 </div>
@@ -641,6 +677,7 @@ const AddEditPatent = () => {
                     checked={!!formData.idf_received}
                     onChange={(e) => setFormData(prev => ({ ...prev, idf_received: e.target.checked }))}
                     className="rounded border-gray-300"
+                    disabled={!canEditBasicInfo}
                   />
                   <Label htmlFor="idf_received">IDF Received</Label>
                 </div>
@@ -659,6 +696,7 @@ const AddEditPatent = () => {
                         checked={!!formData.cs_data}
                         onChange={(e) => setFormData(prev => ({ ...prev, cs_data: e.target.checked }))}
                         className="rounded border-gray-300"
+                        disabled={!canEditBasicInfo}
                       />
                       <Label htmlFor="cs_data">CS Data Sent</Label>
                     </div>
@@ -675,6 +713,7 @@ const AddEditPatent = () => {
                         checked={!!formData.cs_data_received}
                         onChange={(e) => setFormData(prev => ({ ...prev, cs_data_received: e.target.checked }))}
                         className="rounded border-gray-300"
+                        disabled={!canEditBasicInfo}
                       />
                       <Label htmlFor="cs_data_received">CS Data Received</Label>
                     </div>
@@ -704,6 +743,7 @@ const AddEditPatent = () => {
                       value={inventor.inventor_name} 
                       onChange={(e) => handleInventorChange(index, 'inventor_name', e.target.value)} 
                       required
+                      readOnly={!canEditBasicInfo}
                     />
                   </div>
                   
@@ -714,11 +754,12 @@ const AddEditPatent = () => {
                       value={inventor.inventor_addr} 
                       onChange={(e) => handleInventorChange(index, 'inventor_addr', e.target.value)} 
                       required
+                      readOnly={!canEditBasicInfo}
                     />
                   </div>
                 </div>
                 
-                {formData.inventors.length > 1 && (
+                {formData.inventors.length > 1 && canEditBasicInfo && (
                   <Button 
                     type="button" 
                     variant="destructive" 
@@ -732,10 +773,12 @@ const AddEditPatent = () => {
               </div>
             ))}
             
-            <Button type="button" variant="outline" onClick={addInventor} className="w-full">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Another Inventor
-            </Button>
+            {canEditBasicInfo && (
+              <Button type="button" variant="outline" onClick={addInventor} className="w-full">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Another Inventor
+              </Button>
+            )}
           </CardContent>
         </Card>
         
@@ -752,6 +795,7 @@ const AddEditPatent = () => {
                   <Select 
                     value={formData.ps_drafter_assgn || undefined}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, ps_drafter_assgn: value }))}
+                    disabled={!canEditAssignments}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select drafter" />
@@ -776,6 +820,7 @@ const AddEditPatent = () => {
                     type="date" 
                     value={formData.ps_drafter_deadline || ''} 
                     onChange={(e) => setFormData(prev => ({ ...prev, ps_drafter_deadline: e.target.value }))}
+                    readOnly={user?.role === 'drafter' ? false : !canEditAssignments}
                   />
                 </div>
                 
@@ -784,6 +829,7 @@ const AddEditPatent = () => {
                   <Select 
                     value={formData.ps_filer_assgn || undefined}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, ps_filer_assgn: value }))}
+                    disabled={!canEditAssignments}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select filer" />
@@ -808,6 +854,7 @@ const AddEditPatent = () => {
                     type="date" 
                     value={formData.ps_filer_deadline || ''} 
                     onChange={(e) => setFormData(prev => ({ ...prev, ps_filer_deadline: e.target.value }))}
+                    readOnly={!canEditAssignments}
                   />
                 </div>
               </div>
@@ -828,6 +875,7 @@ const AddEditPatent = () => {
                   <Select 
                     value={formData.cs_drafter_assgn || undefined}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, cs_drafter_assgn: value }))}
+                    disabled={!canEditAssignments}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select drafter" />
@@ -852,6 +900,7 @@ const AddEditPatent = () => {
                     type="date" 
                     value={formData.cs_drafter_deadline || ''} 
                     onChange={(e) => setFormData(prev => ({ ...prev, cs_drafter_deadline: e.target.value }))}
+                    readOnly={user?.role === 'drafter' ? false : !canEditAssignments}
                   />
                 </div>
                 
@@ -860,6 +909,7 @@ const AddEditPatent = () => {
                   <Select 
                     value={formData.cs_filer_assgn || undefined}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, cs_filer_assgn: value }))}
+                    disabled={!canEditAssignments}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select filer" />
@@ -884,6 +934,7 @@ const AddEditPatent = () => {
                     type="date" 
                     value={formData.cs_filer_deadline || ''} 
                     onChange={(e) => setFormData(prev => ({ ...prev, cs_filer_deadline: e.target.value }))}
+                    readOnly={!canEditAssignments}
                   />
                 </div>
               </div>
@@ -905,6 +956,7 @@ const AddEditPatent = () => {
                   checked={!!formData.fer_status}
                   onChange={(e) => setFormData(prev => ({ ...prev, fer_status: e.target.checked ? 1 : 0 }))}
                   className="rounded border-gray-300"
+                  disabled={!canEditAssignments}
                 />
                 <Label htmlFor="fer_status">Enable FER</Label>
                 <p className="text-sm text-muted-foreground ml-2">
@@ -919,6 +971,7 @@ const AddEditPatent = () => {
                     <Select 
                       value={formData.fer_drafter_assgn || undefined}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, fer_drafter_assgn: value }))}
+                      disabled={!canEditAssignments}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select drafter" />
@@ -943,6 +996,7 @@ const AddEditPatent = () => {
                       type="date" 
                       value={formData.fer_drafter_deadline || ''} 
                       onChange={(e) => setFormData(prev => ({ ...prev, fer_drafter_deadline: e.target.value }))}
+                      readOnly={user?.role === 'drafter' ? false : !canEditAssignments}
                     />
                   </div>
                   
@@ -951,6 +1005,7 @@ const AddEditPatent = () => {
                     <Select 
                       value={formData.fer_filer_assgn || undefined}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, fer_filer_assgn: value }))}
+                      disabled={!canEditAssignments}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select filer" />
@@ -975,6 +1030,7 @@ const AddEditPatent = () => {
                       type="date" 
                       value={formData.fer_filer_deadline || ''} 
                       onChange={(e) => setFormData(prev => ({ ...prev, fer_filer_deadline: e.target.value }))}
+                      readOnly={!canEditAssignments}
                     />
                   </div>
                 </div>
@@ -984,10 +1040,12 @@ const AddEditPatent = () => {
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="text-sm font-medium">FER Entries</h4>
-                    <Button type="button" variant="outline" size="sm" onClick={handleAddFER}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add FER Entry
-                    </Button>
+                    {canEditAssignments && (
+                      <Button type="button" variant="outline" size="sm" onClick={handleAddFER}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add FER Entry
+                      </Button>
+                    )}
                   </div>
                   
                   {ferEntries.length > 0 ? (
@@ -1019,12 +1077,16 @@ const AddEditPatent = () => {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-2">
-                                  <Button type="button" variant="ghost" size="sm" onClick={() => handleEditFER(fer)}>
-                                    Edit
-                                  </Button>
-                                  <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => handleDeleteFER(fer)}>
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                  {canEditAssignments && (
+                                    <>
+                                      <Button type="button" variant="ghost" size="sm" onClick={() => handleEditFER(fer)}>
+                                        Edit
+                                      </Button>
+                                      <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => handleDeleteFER(fer)}>
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </>
+                                  )}
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -1034,7 +1096,7 @@ const AddEditPatent = () => {
                     </div>
                   ) : (
                     <div className="border rounded-md p-4 text-center text-muted-foreground">
-                      No FER entries yet. Click "Add FER Entry" to create one.
+                      No FER entries yet. {canEditAssignments && 'Click "Add FER Entry" to create one.'}
                     </div>
                   )}
                 </div>
@@ -1059,7 +1121,7 @@ const AddEditPatent = () => {
         </Card>
         
         <div className="flex justify-end gap-4 mt-8">
-          <Button type="button" variant="outline" onClick={() => navigate('/patents')}>
+          <Button type="button" variant="outline" onClick={() => navigate(-1)}>
             Cancel
           </Button>
           <Button type="submit" disabled={loading}>
