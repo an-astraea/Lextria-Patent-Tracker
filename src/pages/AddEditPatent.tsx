@@ -36,11 +36,12 @@ const AddEditPatent = () => {
     cs_drafter_deadline: '',
     cs_filer_assgn: '',
     cs_filer_deadline: '',
-    fer_status: false,
+    fer_status: 0, // Changed to number (0 = false, 1 = true)
     fer_drafter_assgn: '',
     fer_drafter_deadline: '',
     fer_filer_assgn: '',
-    fer_filer_deadline: ''
+    fer_filer_deadline: '',
+    inventors: []
   });
 
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -88,11 +89,15 @@ const AddEditPatent = () => {
           cs_drafter_deadline: patent.cs_drafter_deadline || '',
           cs_filer_assgn: patent.cs_filer_assgn || '',
           cs_filer_deadline: patent.cs_filer_deadline || '',
-          fer_status: patent.fer_status === 1,
+          fer_status: patent.fer_status || 0, // Ensure it's a number
           fer_drafter_assgn: patent.fer_drafter_assgn || '',
           fer_drafter_deadline: patent.fer_drafter_deadline || '',
           fer_filer_assgn: patent.fer_filer_assgn || '',
-          fer_filer_deadline: patent.fer_filer_deadline || ''
+          fer_filer_deadline: patent.fer_filer_deadline || '',
+          inventors: patent.inventors?.map(inv => ({
+            inventor_name: inv.inventor_name,
+            inventor_addr: inv.inventor_addr
+          })) || []
         });
       }
     } catch (error) {
@@ -359,13 +364,13 @@ const AddEditPatent = () => {
               <div className="flex items-center space-x-2">
                 <Switch
                   id="fer_status"
-                  checked={formData.fer_status}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, fer_status: checked }))}
+                  checked={formData.fer_status === 1}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, fer_status: checked ? 1 : 0 }))}
                 />
                 <Label htmlFor="fer_status">Enable FER Status</Label>
               </div>
 
-              {formData.fer_status && (
+              {formData.fer_status === 1 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="fer_drafter_assgn">FER Drafter</Label>
