@@ -12,8 +12,10 @@ import StatusBadge from '@/components/StatusBadge';
 import RefreshButton from '@/components/approvals/RefreshButton';
 import LoadingSpinner from '@/components/approvals/LoadingSpinner';
 import EmptyApprovals from '@/components/approvals/EmptyApprovals';
+import SearchFilters from '@/components/common/SearchFilters';
+import PatentResultsCount from '@/components/patents/PatentResultsCount';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { AlertCircle, Clock } from 'lucide-react';
+import { AlertCircle, Clock, Plus } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 6; // Number of items to show per page
 
@@ -21,11 +23,15 @@ const Drafts = () => {
   const navigate = useNavigate();
   const [activePatents, setActivePatents] = useState<Patent[]>([]);
   const [completedPatents, setCompletedPatents] = useState<Patent[]>([]);
+  const [filteredActivePatents, setFilteredActivePatents] = useState<Patent[]>([]);
+  const [filteredCompletedPatents, setFilteredCompletedPatents] = useState<Patent[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [activePage, setActivePage] = useState(1);
   const [completedPage, setCompletedPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchField, setSearchField] = useState<string | undefined>(undefined);
   const isMobile = useIsMobile();
 
   const userString = localStorage.getItem('user');
@@ -72,6 +78,8 @@ const Drafts = () => {
       
       setActivePatents(sortedActivePatents);
       setCompletedPatents(completedData);
+      setFilteredActivePatents(sortedActivePatents);
+      setFilteredCompletedPatents(completedData);
       setInitialLoadComplete(true);
       
       // Reset to first page when refreshing data
@@ -87,6 +95,56 @@ const Drafts = () => {
       setRefreshing(false);
     }
   };
+
+  // Search functionality
+  const handleSearch = (query: string, field?: string) => {
+    setSearchQuery(query);
+    setSearchField(field);
+    
+    const filterPatents = (patents: Patent[]) => {
+      if (!query) return patents;
+      
+      const lowerQuery = query.toLowerCase();
+      
+      if (field) {
+        switch (field) {
+          case 'tracking_id':
+            return patents.filter(patent => patent.tracking_id.toLowerCase().includes(lowerQuery));
+          case 'client_id':
+            return patents.filter(patent => patent.client_id.toLowerCase().includes(lowerQuery));
+          case 'patent_title':
+            return patents.filter(patent => patent.patent_title.toLowerCase().includes(lowerQuery));
+          case 'patent_applicant':
+            return patents.filter(patent => patent.patent_applicant.toLowerCase().includes(lowerQuery));
+          case 'application_no':
+            return patents.filter(patent => patent.application_no?.toLowerCase().includes(lowerQuery));
+          default:
+            return patents;
+        }
+      } else {
+        return patents.filter(patent =>
+          patent.patent_title.toLowerCase().includes(lowerQuery) ||
+          patent.tracking_id.toLowerCase().includes(lowerQuery) ||
+          patent.patent_applicant.toLowerCase().includes(lowerQuery) ||
+          patent.client_id.toLowerCase().includes(lowerQuery) ||
+          (patent.application_no && patent.application_no.toLowerCase().includes(lowerQuery))
+        );
+      }
+    };
+    
+    setFilteredActivePatents(filterPatents(activePatents));
+    setFilteredCompletedPatents(filterPatents(completedPatents));
+    setActivePage(1);
+    setCompletedPage(1);
+  };
+
+  const searchFields = [
+    { value: 'tracking_id', label: 'Tracking ID' },
+    { value: 'client_id', label: 'Client ID' },
+    { value: 'patent_title', label: 'Patent Title' },
+    { value: 'patent_applicant', label: 'Applicant' },
+    { value: 'application_no', label: 'Application No.' },
+  ];
 
   const handleRefresh = () => {
     loadPatents(true);
@@ -115,10 +173,14 @@ const Drafts = () => {
         }
         
         // Remove from active patents
-        setActivePatents(prevPatents => prevPatents.filter(p => p.id !== patent.id));
+        const newActivePatents = activePatents.filter(p => p.id !== patent.id);
+        setActivePatents(newActivePatents);
+        setFilteredActivePatents(newActivePatents);
         
         // Add to completed patents
-        setCompletedPatents(prevPatents => [updatedPatent, ...prevPatents]);
+        const newCompletedPatents = [updatedPatent, ...completedPatents];
+        setCompletedPatents(newCompletedPatents);
+        setFilteredCompletedPatents(newCompletedPatents);
       }
     } catch (error) {
       console.error('Error completing drafting task:', error);
@@ -202,8 +264,8 @@ const Drafts = () => {
     return data.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   };
 
-  const activePatentsPaginated = paginateData(activePatents, activePage);
-  const completedPatentsPaginated = paginateData(completedPatents, completedPage);
+  const activePatentsPaginated = paginateData(filteredActivePatents, activePage);
+  const completedPatentsPaginated = paginateData(filteredCompletedPatents, completedPage);
   
   const renderPagination = (data: Patent[], currentPage: number, setPage: React.Dispatch<React.SetStateAction<number>>) => {
     const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
@@ -246,19 +308,43 @@ const Drafts = () => {
     <div className="container mx-auto py-6 px-4 sm:px-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
         <h1 className="text-2xl font-bold">Drafting Assignments</h1>
-        <RefreshButton onRefresh={handleRefresh} loading={refreshing} />
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => navigate('/patents/add')}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Patent
+          </Button>
+          <RefreshButton onRefresh={handleRefresh} loading={refreshing} />
+        </div>
       </div>
+
+      <div className="mb-4">
+        <SearchFilters 
+          onSearch={handleSearch}
+          placeholder="Search patents..."
+          searchFields={searchFields}
+        />
+      </div>
+
+      <PatentResultsCount
+        filteredCount={searchQuery ? filteredActivePatents.length + filteredCompletedPatents.length : activePatents.length + completedPatents.length}
+        totalCount={activePatents.length + completedPatents.length}
+        searchQuery={searchQuery}
+        hasActiveFilters={!!searchQuery}
+      />
       
       <Tabs defaultValue="active" className="w-full">
         <TabsList className="mb-4 w-full sm:w-auto justify-start overflow-x-auto">
-          <TabsTrigger value="active">Active Tasks ({activePatents.length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed Tasks ({completedPatents.length})</TabsTrigger>
+          <TabsTrigger value="active">Active Tasks ({filteredActivePatents.length})</TabsTrigger>
+          <TabsTrigger value="completed">Completed Tasks ({filteredCompletedPatents.length})</TabsTrigger>
         </TabsList>
         
         <TabsContent value="active" className="min-h-[50vh]">
           {loading ? (
             <LoadingSpinner />
-          ) : activePatents.length > 0 ? (
+          ) : filteredActivePatents.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {activePatentsPaginated.map(patent => (
@@ -331,7 +417,7 @@ const Drafts = () => {
                   </Card>
                 ))}
               </div>
-              {renderPagination(activePatents, activePage, setActivePage)}
+              {renderPagination(filteredActivePatents, activePage, setActivePage)}
             </>
           ) : (
             <EmptyApprovals />
@@ -341,7 +427,7 @@ const Drafts = () => {
         <TabsContent value="completed" className="min-h-[50vh]">
           {loading ? (
             <LoadingSpinner />
-          ) : completedPatents.length > 0 ? (
+          ) : filteredCompletedPatents.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {completedPatentsPaginated.map(patent => (
@@ -374,7 +460,7 @@ const Drafts = () => {
                   </Card>
                 ))}
               </div>
-              {renderPagination(completedPatents, completedPage, setCompletedPage)}
+              {renderPagination(filteredCompletedPatents, completedPage, setCompletedPage)}
             </>
           ) : (
             <EmptyApprovals />

@@ -18,6 +18,7 @@ import AssignmentDetails from '@/components/patent/AssignmentDetails';
 import FormRequirementsList from '@/components/FormRequirementsList';
 import FEREntriesSection from '@/components/patent/FEREntriesSection';
 import TimelineDialog from '@/components/TimelineDialog';
+import DrafterUpdateSection from '@/components/patent/DrafterUpdateSection';
 import {
   Dialog,
   DialogContent,
@@ -401,7 +402,7 @@ const PatentDetails = () => {
   }
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="container mx-auto py-6 px-4 space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => navigate('/patents')}>
@@ -420,6 +421,16 @@ const PatentDetails = () => {
           )}
         </div>
       </div>
+      
+      {/* Drafter Update Section - Only show for drafters */}
+      {user?.role === 'drafter' && (
+        <DrafterUpdateSection
+          patent={patent}
+          userRole={user.role}
+          userName={user.full_name}
+          onPatentUpdate={setPatent}
+        />
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
