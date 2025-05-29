@@ -156,7 +156,7 @@ export interface Employee {
   email: string;
   ph_no: string;
   password?: string;
-  role: 'admin' | 'drafter' | 'reviewer'; // Updated roles: removed 'filer', added 'reviewer'
+  role: 'admin' | 'drafter' | 'filer'; // Reverted back to original roles
   created_at?: string;
   updated_at?: string;
 }
@@ -167,7 +167,7 @@ export interface EmployeeFormData {
   email: string;
   ph_no: string;
   password?: string;
-  role: 'admin' | 'drafter' | 'reviewer'; // Updated roles: removed 'filer', added 'reviewer'
+  role: 'admin' | 'drafter' | 'filer'; // Reverted back to original roles
 }
 
 export interface InventorInfo {

@@ -1,14 +1,14 @@
 
 import { useState, useEffect, createContext, useContext } from 'react';
 
-// Define the User interface - Updated roles
+// Define the User interface - Restored original roles
 interface User {
   id: string;
   emp_id: string;
   full_name: string;
   email: string;
   ph_no: string;
-  role: 'admin' | 'drafter' | 'reviewer'; // Updated roles: removed 'filer', added 'reviewer'
+  role: 'admin' | 'drafter' | 'filer'; // Restored original roles
   created_at: string;
   updated_at: string;
 }

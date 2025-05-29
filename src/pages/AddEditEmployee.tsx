@@ -87,7 +87,7 @@ const AddEditEmployee = () => {
   };
   
   const handleRoleChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, role: value as 'admin' | 'drafter' | 'reviewer' }));
+    setFormData((prev) => ({ ...prev, role: value as 'admin' | 'drafter' | 'filer' }));
   };
   
   const validateForm = (): boolean => {
@@ -209,7 +209,7 @@ const AddEditEmployee = () => {
                   <SelectContent>
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="drafter">Drafter</SelectItem>
-                    <SelectItem value="reviewer">Reviewer</SelectItem>
+                    <SelectItem value="filer">Filer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

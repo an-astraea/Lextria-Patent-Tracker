@@ -4,7 +4,7 @@ import { Employee, Patent } from "../types";
 import { toast } from "sonner";
 import { normalizePatents } from "../utils/type-converters";
 
-// Function to fetch patents that need review by reviewers
+// Function to fetch patents that need review by filers
 export const fetchPendingReviews = async (): Promise<Patent[]> => {
   try {
     const { data, error } = await supabase
@@ -53,10 +53,10 @@ export const fetchPatentsAndEmployees = async (): Promise<{patents: Patent[], em
       throw employeesResponse.error;
     }
 
-    // Cast the roles to the expected type - now includes 'reviewer' instead of 'filer'
+    // Cast the roles to the expected type - restored original roles
     const employees = (employeesResponse.data || []).map(employee => ({
       ...employee,
-      role: employee.role as 'admin' | 'drafter' | 'reviewer'
+      role: employee.role as 'admin' | 'drafter' | 'filer'
     }));
 
     // Normalize the patents data
