@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Loader2, FileText } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { loginUser } from '@/lib/api/auth-api';
+import { loginUser } from '@/lib/api';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -18,63 +18,54 @@ const Index = () => {
 
   // Check if user is already logged in
   React.useEffect(() => {
-    try {
-      const userString = localStorage.getItem('user');
-      if (userString) {
-        const user = JSON.parse(userString);
-        console.log('User already logged in, redirecting based on role:', user.role);
-        
-        // Redirect based on role
-        if (user.role === 'drafter') {
-          navigate('/drafts', { replace: true });
-        } else if (user.role === 'filer') {
-          navigate('/filings', { replace: true });
-        } else {
-          navigate('/dashboard', { replace: true });
-        }
+    const userString = localStorage.getItem('user');
+    if (userString) {
+      const user = JSON.parse(userString);
+      // Redirect based on role
+      if (user.role === 'drafter') {
+        navigate('/drafts');
+      } else if (user.role === 'filer') {
+        navigate('/filings');
+      } else {
+        navigate('/dashboard');
       }
-    } catch (error) {
-      console.error('Error checking existing user session:', error);
-      // Clear corrupted data
-      localStorage.removeItem('user');
     }
   }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email.trim() || !password.trim()) {
+    if (!email || !password) {
       toast.error('Please enter both email and password');
       return;
     }
     
     try {
       setLoading(true);
-      console.log('Attempting login for:', email);
       
       // Use the loginUser function from the API to authenticate the user
-      const user = await loginUser(email.trim(), password);
+      const response = await loginUser(email, password);
       
-      if (user) {
-        console.log('Login successful, user:', user);
+      if (response.success && response.user) {
+        // Store user in localStorage
+        localStorage.setItem('user', JSON.stringify(response.user));
+        
         toast.success('Login successful');
         
         // Redirect based on role
-        if (user.role === 'drafter') {
-          navigate('/drafts', { replace: true });
-        } else if (user.role === 'filer') {
-          navigate('/filings', { replace: true });
+        if (response.user.role === 'drafter') {
+          navigate('/drafts');
+        } else if (response.user.role === 'filer') {
+          navigate('/filings');
         } else {
-          navigate('/dashboard', { replace: true });
+          navigate('/dashboard');
         }
       } else {
-        console.log('Login failed - invalid credentials');
-        toast.error('Invalid email or password');
+        toast.error(response.message || 'Invalid credentials');
       }
       
     } catch (error) {
       console.error('Login error:', error);
-      toast.error('Login failed. Please check your credentials and try again.');
+      toast.error('Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -91,11 +82,6 @@ const Index = () => {
               alt="Lextria Research Logo" 
               className="h-full w-full p-2 relative z-10 object-contain"
               id="company-logo"
-              onError={(e) => {
-                // Fallback if logo fails to load
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
             />
           </div>
           <div>
@@ -132,7 +118,6 @@ const Index = () => {
                 disabled={loading} 
                 required 
                 className="border-gray-300 focus:border-primary focus:ring-primary"
-                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -146,7 +131,6 @@ const Index = () => {
                 disabled={loading} 
                 required 
                 className="border-gray-300 focus:border-primary focus:ring-primary"
-                autoComplete="current-password"
               />
             </div>
             

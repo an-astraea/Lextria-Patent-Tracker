@@ -39,10 +39,10 @@ export interface Patent {
   fer_review_file_status?: number;
   fer_completion_status?: number;
   // Status flow fields
-  pending_cs_confirmation?: boolean;
-  cs_confirmed?: boolean;
-  pending_ps_confirmation?: boolean;
-  ps_confirmed?: boolean;
+  pending_cs_confirmation?: boolean; // Sent CS for confirmation
+  cs_confirmed?: boolean;            // CS confirmed 
+  pending_ps_confirmation?: boolean; // Sent PS for confirmation
+  ps_confirmed?: boolean;            // PS confirmed
   // Form fields
   form_1?: boolean;
   form_2?: boolean;
@@ -108,7 +108,7 @@ export interface Patent {
   cs_data_received?: boolean;
   // New reminder and follow-up fields
   follow_up_count?: number;
-  follow_up_status?: string;
+  follow_up_status?: string; // Changed from union type to string to match database
   last_follow_up_date?: string | null;
   next_reminder_date?: string | null;
   stage_updated_at?: string;
@@ -138,7 +138,7 @@ export interface PatentFormData {
   cs_drafter_deadline?: string | null;
   cs_filer_assgn?: string | null;
   cs_filer_deadline?: string | null;
-  fer_status: number; // Changed from boolean to number to match database
+  fer_status: number;
   fer_drafter_assgn?: string | null;
   fer_drafter_deadline?: string | null;
   fer_filer_assgn?: string | null;
