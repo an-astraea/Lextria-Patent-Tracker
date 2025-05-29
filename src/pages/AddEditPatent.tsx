@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
-import { PatentFormData } from '@/lib/types';
+import { EmployeeFormData } from '@/lib/types';
 import { toast } from 'sonner';
 import { createEmployee, updateEmployee, fetchEmployeeById } from '@/lib/api';
 
@@ -15,7 +16,7 @@ const AddEditEmployee = () => {
   const navigate = useNavigate();
   const isEditing = Boolean(id);
   
-  const [formData, setFormData] = useState<PatentFormData>({
+  const [formData, setFormData] = useState<EmployeeFormData>({
     emp_id: '',
     full_name: '',
     email: '',
@@ -125,7 +126,7 @@ const AddEditEmployee = () => {
     try {
       if (isEditing && id) {
         // Create a copy of the form data that matches EmployeeFormData
-        const employeeData: PatentFormData = {
+        const employeeData: EmployeeFormData = {
           emp_id: formData.emp_id,
           full_name: formData.full_name,
           email: formData.email,
