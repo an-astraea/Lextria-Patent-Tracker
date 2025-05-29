@@ -1,16 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Patent, Employee, FERHistory, FEREntry, Inventor } from "./types";
+import { Patent, Employee, FERHistory, FEREntry, Inventor, PatentFormData, EmployeeFormData } from "./types";
 
 import {
   LayoutDashboard,
   Users,
   FileText,
-  Contact2,
-  FilePlus2,
-  FileSearch2,
-  FolderKanban,
-  CheckSquare,
   UserCheck,
+  CheckSquare,
+  Calendar,
+  Settings,
+  Bell,
+  Search,
   Building2,
   Upload
 } from 'lucide-react';
@@ -598,3 +598,254 @@ export const inventors: Inventor[] = [
     updated_at: "2023-01-05T09:45:00Z",
   },
 ];
+
+// Mock data functions with proper error handling
+export const fetchPatents = async (): Promise<Patent[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('patents')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching patents:', error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Failed to fetch patents:', error);
+    return [];
+  }
+};
+
+export const fetchEmployees = async (): Promise<Employee[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('employees')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching employees:', error);
+      throw error;
+    }
+
+    return (data || []).map(employee => ({
+      ...employee,
+      role: employee.role as 'admin' | 'drafter' | 'filer'
+    }));
+  } catch (error) {
+    console.error('Failed to fetch employees:', error);
+    return [];
+  }
+};
+
+export const createPatent = async (patentData: PatentFormData): Promise<Patent | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('patents')
+      .insert({
+        tracking_id: patentData.tracking_id,
+        patent_applicant: patentData.patent_applicant,
+        client_id: patentData.client_id,
+        application_no: patentData.application_no,
+        date_of_filing: patentData.date_of_filing,
+        patent_title: patentData.patent_title,
+        applicant_addr: patentData.applicant_addr,
+        inventor_ph_no: patentData.inventor_ph_no,
+        inventor_email: patentData.inventor_email,
+        ps_drafter_assgn: patentData.ps_drafter_assgn,
+        ps_drafter_deadline: patentData.ps_drafter_deadline,
+        ps_filer_assgn: patentData.ps_filer_assgn,
+        ps_filer_deadline: patentData.ps_filer_deadline,
+        cs_drafter_assgn: patentData.cs_drafter_assgn,
+        cs_drafter_deadline: patentData.cs_drafter_deadline,
+        cs_filer_assgn: patentData.cs_filer_assgn,
+        cs_filer_deadline: patentData.cs_filer_deadline,
+        fer_status: patentData.fer_status ? 1 : 0,
+        fer_drafter_assgn: patentData.fer_drafter_assgn,
+        fer_drafter_deadline: patentData.fer_drafter_deadline,
+        fer_filer_assgn: patentData.fer_filer_assgn,
+        fer_filer_deadline: patentData.fer_filer_deadline,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating patent:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Failed to create patent:', error);
+    return null;
+  }
+};
+
+export const updatePatent = async (id: string, patentData: Partial<PatentFormData>): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('patents')
+      .update(patentData)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating patent:', error);
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Failed to update patent:', error);
+    return false;
+  }
+};
+
+export const deletePatent = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('patents')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting patent:', error);
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Failed to delete patent:', error);
+    return false;
+  }
+};
+
+export const createEmployee = async (employeeData: EmployeeFormData): Promise<Employee | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('employees')
+      .insert({
+        emp_id: employeeData.emp_id,
+        full_name: employeeData.full_name,
+        email: employeeData.email,
+        ph_no: employeeData.ph_no,
+        password: employeeData.password,
+        role: employeeData.role
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating employee:', error);
+      throw error;
+    }
+
+    return {
+      ...data,
+      role: data.role as 'admin' | 'drafter' | 'filer'
+    };
+  } catch (error) {
+    console.error('Failed to create employee:', error);
+    return null;
+  }
+};
+
+export const updateEmployee = async (id: string, employeeData: Partial<EmployeeFormData>): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('employees')
+      .update(employeeData)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating employee:', error);
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Failed to update employee:', error);
+    return false;
+  }
+};
+
+export const deleteEmployee = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('employees')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting employee:', error);
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Failed to delete employee:', error);
+    return false;
+  }
+};
+
+export const createFERHistory = async (ferData: Omit<FERHistory, 'id' | 'created_at'>): Promise<FERHistory | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('fer_history')
+      .insert(ferData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating FER history:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Failed to create FER history:', error);
+    return null;
+  }
+};
+
+export const createFEREntry = async (ferEntry: Omit<FEREntry, 'id' | 'created_at' | 'updated_at'>): Promise<FEREntry | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('fer_entries')
+      .insert(ferEntry)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating FER entry:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Failed to create FER entry:', error);
+    return null;
+  }
+};
+
+export const createInventor = async (inventorData: Omit<Inventor, 'id'>): Promise<Inventor | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('inventors')
+      .insert(inventorData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating inventor:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Failed to create inventor:', error);
+    return null;
+  }
+};
