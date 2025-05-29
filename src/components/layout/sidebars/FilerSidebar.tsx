@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, FileText, CheckSquare } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, UserCheck, Building2 } from 'lucide-react';
 import Sidebar from '../../Sidebar';
 
 interface FilerSidebarProps {
@@ -24,6 +24,16 @@ const FilerSidebar: React.FC<FilerSidebarProps> = ({ user, onLogout }) => {
       label: 'My Filings',
       icon: CheckSquare,
       href: '/filings',
+    },
+    {
+      label: 'Approvals',
+      icon: UserCheck,
+      href: '/approvals',
+    },
+    {
+      label: 'Client Dashboard',
+      icon: Building2,
+      href: '/clients',
     }
   ];
   

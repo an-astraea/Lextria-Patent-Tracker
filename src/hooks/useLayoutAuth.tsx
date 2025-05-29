@@ -23,8 +23,8 @@ export const useLayoutAuth = () => {
         // Check if the user is trying to access a page they shouldn't have access to
         const currentPath = location.pathname;
         
-        // Admin-only pages
-        const adminOnlyPages = ['/employees', '/approvals', '/clients', '/bulk-upload'];
+        // Admin-only pages (only employees and bulk-upload are admin-only now)
+        const adminOnlyPages = ['/employees', '/bulk-upload'];
         
         // Prevent non-admins from accessing admin-only pages
         if (!parsedUser.role.includes('admin') && adminOnlyPages.some(page => currentPath.startsWith(page))) {
@@ -48,9 +48,9 @@ export const useLayoutAuth = () => {
           navigate('/filings');
         }
         
-        // Filer-only pages
-        else if (parsedUser.role === 'drafter' && currentPath.startsWith('/filings')) {
-          console.log('Drafter trying to access filer page:', currentPath);
+        // No filer restrictions for /filings, /approvals, or /clients pages
+        else if (parsedUser.role === 'drafter' && (currentPath.startsWith('/filings') || currentPath.startsWith('/approvals') || currentPath.startsWith('/clients'))) {
+          console.log('Drafter trying to access filer/admin page:', currentPath);
           toast.error('You do not have permission to access this page');
           navigate('/drafts');
         }

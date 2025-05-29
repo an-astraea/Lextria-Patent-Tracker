@@ -1,4 +1,97 @@
-import { Employee, FEREntry, FERHistory, Inventor, Patent } from "./types";
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  Contact2,
+  FilePlus2,
+  FileSearch2,
+  FolderKanban,
+  CheckSquare,
+  UserCheck,
+  Building2,
+  Upload
+} from 'lucide-react';
+
+import { Patent, PatentFormData } from './types';
+
+export const adminNavItems = [
+  {
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    href: '/dashboard',
+  },
+  {
+    label: 'Patents',
+    icon: FileText,
+    href: '/patents',
+  },
+  {
+    label: 'Employees',
+    icon: Users,
+    href: '/employees',
+  },
+  {
+    label: 'Approvals',
+    icon: CheckSquare,
+    href: '/approvals',
+  },
+  {
+    label: 'Client Dashboard',
+    icon: Building2,
+    href: '/clients',
+  },
+  {
+    label: 'Bulk Upload',
+    icon: Upload,
+    href: '/bulk-upload',
+  }
+];
+
+export const drafterNavItems = [
+  {
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    href: '/dashboard',
+  },
+  {
+    label: 'Patents',
+    icon: FileText,
+    href: '/patents',
+  },
+  {
+    label: 'My Drafts',
+    icon: FileSearch2,
+    href: '/drafts',
+  }
+];
+
+export const filerNavItems = [
+  {
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    href: '/dashboard',
+  },
+  {
+    label: 'Patents',
+    icon: FileText,
+    href: '/patents',
+  },
+  {
+    label: 'My Filings',
+    icon: CheckSquare,
+    href: '/filings',
+  },
+  {
+    label: 'Approvals',
+    icon: UserCheck,
+    href: '/approvals',
+  },
+  {
+    label: 'Client Dashboard',
+    icon: Building2,
+    href: '/clients',
+  }
+];
 
 // Sample patents data
 export const patents: Patent[] = [

@@ -24,24 +24,24 @@ const Approvals = () => {
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
 
-  // Redirect if not admin
+  // Redirect if not admin or filer
   React.useEffect(() => {
-    if (!user || user.role !== 'admin') {
-      toast.error('Access denied. Admin privileges required.');
+    if (!user || (user.role !== 'admin' && user.role !== 'filer')) {
+      toast.error('Access denied. Admin or Filer privileges required.');
       navigate('/dashboard');
     }
   }, [user, navigate]);
 
   // Load data only once on initial mount
   useEffect(() => {
-    if (user && user.role === 'admin' && !initialLoadDone) {
+    if (user && (user.role === 'admin' || user.role === 'filer') && !initialLoadDone) {
       loadReviews();
       setInitialLoadDone(true);
     }
   }, [user, initialLoadDone]);
 
   const loadReviews = async () => {
-    if (user && user.role === 'admin') {
+    if (user && (user.role === 'admin' || user.role === 'filer')) {
       try {
         setLoading(true);
         const reviews = await fetchPendingReviews();
