@@ -108,7 +108,7 @@ export interface Patent {
   cs_data_received?: boolean;
   // New reminder and follow-up fields
   follow_up_count?: number;
-  follow_up_status?: 'active' | 'on_hold' | 'unresponsive';
+  follow_up_status?: string; // Changed from union type to string to match database
   last_follow_up_date?: string | null;
   next_reminder_date?: string | null;
   stage_updated_at?: string;

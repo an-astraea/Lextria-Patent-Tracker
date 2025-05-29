@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Patent } from '@/lib/types';
 import { toast } from 'sonner';
+import { standardizePatent } from '@/lib/utils/type-converters';
 
 /**
  * Fetches drafting assignments for a specific drafter by their name
@@ -22,7 +23,7 @@ export const fetchDrafterAssignments = async (drafterName: string): Promise<Pate
       throw new Error('Failed to fetch drafting assignments');
     }
 
-    // For each patent, fetch the timeline information
+    // For each patent, fetch the timeline information and standardize the data
     const patentsWithTimeline = await Promise.all(
       psAssignments.map(async (patent) => {
         // Fetch timeline entries for this patent
@@ -34,14 +35,14 @@ export const fetchDrafterAssignments = async (drafterName: string): Promise<Pate
 
         if (timelineError) {
           console.error('Error fetching patent timeline:', timelineError);
-          return patent; // Return patent without timeline if there's an error
+          return standardizePatent(patent); // Return patent without timeline if there's an error
         }
 
-        // Return patent with timeline data
-        return {
+        // Return standardized patent with timeline data
+        return standardizePatent({
           ...patent,
           timeline: timeline || []
-        };
+        });
       })
     );
 
@@ -95,7 +96,7 @@ export const fetchDrafterCompletedAssignments = async (drafterName: string): Pro
       throw new Error('Failed to fetch completed drafting assignments');
     }
 
-    // For each patent, fetch the timeline information
+    // For each patent, fetch the timeline information and standardize the data
     const patentsWithTimeline = await Promise.all(
       completedAssignments.map(async (patent) => {
         const { data: timeline, error: timelineError } = await supabase
@@ -106,13 +107,13 @@ export const fetchDrafterCompletedAssignments = async (drafterName: string): Pro
 
         if (timelineError) {
           console.error('Error fetching patent timeline:', timelineError);
-          return patent;
+          return standardizePatent(patent);
         }
 
-        return {
+        return standardizePatent({
           ...patent,
           timeline: timeline || []
-        };
+        });
       })
     );
 

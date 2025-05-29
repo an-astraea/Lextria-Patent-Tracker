@@ -47,11 +47,25 @@ export const markFollowUpMade = async (patentId: string, notes?: string) => {
     const currentUser = getCurrentUser();
     const userName = currentUser?.full_name || 'Unknown User';
 
+    // Get current follow_up_count first
+    const { data: currentPatent, error: fetchError } = await supabase
+      .from('patents')
+      .select('follow_up_count')
+      .eq('id', patentId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching current patent:', fetchError);
+      return { success: false, message: fetchError.message };
+    }
+
+    const newFollowUpCount = (currentPatent?.follow_up_count || 0) + 1;
+
     // Update patent follow-up count and date
     const { error: updateError } = await supabase
       .from('patents')
       .update({
-        follow_up_count: supabase.raw('follow_up_count + 1'),
+        follow_up_count: newFollowUpCount,
         last_follow_up_date: new Date().toISOString().split('T')[0],
         next_reminder_date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 10 days from now
         updated_at: new Date().toISOString()
@@ -221,10 +235,13 @@ export const fetchPatentsByFollowUpStatus = async () => {
       };
     }
 
+    // Type assertion to handle the database response properly
+    const patents = data as any[];
+    
     const grouped = {
-      active: data?.filter(p => p.follow_up_status === 'active') || [],
-      on_hold: data?.filter(p => p.follow_up_status === 'on_hold') || [],
-      unresponsive: data?.filter(p => p.follow_up_status === 'unresponsive') || []
+      active: patents?.filter(p => p.follow_up_status === 'active') || [],
+      on_hold: patents?.filter(p => p.follow_up_status === 'on_hold') || [],
+      unresponsive: patents?.filter(p => p.follow_up_status === 'unresponsive') || []
     };
 
     return grouped;

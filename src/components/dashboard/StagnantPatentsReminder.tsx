@@ -26,7 +26,6 @@ import {
   resolveReminder,
   checkStagnantPatents
 } from '@/lib/api/reminder-api';
-import { Patent } from '@/lib/types';
 
 interface StagnantPatentsReminderProps {
   userRole?: string;
@@ -34,12 +33,12 @@ interface StagnantPatentsReminderProps {
 
 const StagnantPatentsReminder: React.FC<StagnantPatentsReminderProps> = ({ userRole = '' }) => {
   const [patents, setPatents] = useState<{
-    active: Patent[];
-    on_hold: Patent[];
-    unresponsive: Patent[];
+    active: any[];
+    on_hold: any[];
+    unresponsive: any[];
   }>({ active: [], on_hold: [], unresponsive: [] });
   const [loading, setLoading] = useState(true);
-  const [selectedPatent, setSelectedPatent] = useState<Patent | null>(null);
+  const [selectedPatent, setSelectedPatent] = useState<any | null>(null);
   const [actionType, setActionType] = useState<'follow_up' | 'hold' | 'resume' | null>(null);
   const [notes, setNotes] = useState('');
   const [showActionDialog, setShowActionDialog] = useState(false);
@@ -98,7 +97,7 @@ const StagnantPatentsReminder: React.FC<StagnantPatentsReminderProps> = ({ userR
     }
   };
 
-  const openActionDialog = (patent: Patent, action: 'follow_up' | 'hold' | 'resume') => {
+  const openActionDialog = (patent: any, action: 'follow_up' | 'hold' | 'resume') => {
     setSelectedPatent(patent);
     setActionType(action);
     setShowActionDialog(true);
@@ -127,7 +126,7 @@ const StagnantPatentsReminder: React.FC<StagnantPatentsReminderProps> = ({ userR
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  const PatentCard = ({ patent, status }: { patent: Patent; status: string }) => {
+  const PatentCard = ({ patent, status }: { patent: any; status: string }) => {
     const daysStagnant = patent.stage_updated_at ? getDaysStagnant(patent.stage_updated_at) : 0;
     
     return (
