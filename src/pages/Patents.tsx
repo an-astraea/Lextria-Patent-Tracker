@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Patent } from '@/lib/types';
 import { toast } from 'sonner';
@@ -30,13 +29,21 @@ const Patents = () => {
     },
   });
   
-  // Define searchFields for the SearchFilters component
+  // Define searchFields for the SearchFilters component - now includes stages
   const searchFields = [
     { value: 'tracking_id', label: 'Tracking ID' },
     { value: 'client_id', label: 'Client ID' },
     { value: 'patent_title', label: 'Patent Title' },
     { value: 'patent_applicant', label: 'Applicant' },
     { value: 'application_no', label: 'Application No.' },
+    { value: 'current_stage', label: 'Current Stage' },
+    { value: 'follow_up_status', label: 'Follow-up Status' },
+    { value: 'ps_drafter_assgn', label: 'PS Drafter' },
+    { value: 'ps_filer_assgn', label: 'PS Filer' },
+    { value: 'cs_drafter_assgn', label: 'CS Drafter' },
+    { value: 'cs_filer_assgn', label: 'CS Filer' },
+    { value: 'fer_drafter_assgn', label: 'FER Drafter' },
+    { value: 'fer_filer_assgn', label: 'FER Filer' },
   ];
   
   // Get user from localStorage
@@ -202,6 +209,46 @@ const Patents = () => {
               patent.application_no && patent.application_no.toLowerCase().includes(query)
             );
             break;
+          case 'current_stage':
+            filtered = filtered.filter(patent => 
+              patent.current_stage && patent.current_stage.toLowerCase().includes(query)
+            );
+            break;
+          case 'follow_up_status':
+            filtered = filtered.filter(patent => 
+              patent.follow_up_status && patent.follow_up_status.toLowerCase().includes(query)
+            );
+            break;
+          case 'ps_drafter_assgn':
+            filtered = filtered.filter(patent => 
+              patent.ps_drafter_assgn && patent.ps_drafter_assgn.toLowerCase().includes(query)
+            );
+            break;
+          case 'ps_filer_assgn':
+            filtered = filtered.filter(patent => 
+              patent.ps_filer_assgn && patent.ps_filer_assgn.toLowerCase().includes(query)
+            );
+            break;
+          case 'cs_drafter_assgn':
+            filtered = filtered.filter(patent => 
+              patent.cs_drafter_assgn && patent.cs_drafter_assgn.toLowerCase().includes(query)
+            );
+            break;
+          case 'cs_filer_assgn':
+            filtered = filtered.filter(patent => 
+              patent.cs_filer_assgn && patent.cs_filer_assgn.toLowerCase().includes(query)
+            );
+            break;
+          case 'fer_drafter_assgn':
+            filtered = filtered.filter(patent => 
+              patent.fer_drafter_assgn && patent.fer_drafter_assgn.toLowerCase().includes(query)
+            );
+            break;
+          case 'fer_filer_assgn':
+            filtered = filtered.filter(patent => 
+              patent.fer_filer_assgn && patent.fer_filer_assgn.toLowerCase().includes(query)
+            );
+            break;
           default:
             // If an unknown field is specified, fall back to all fields
             filtered = filtered.filter(
@@ -211,6 +258,8 @@ const Patents = () => {
                 patent.patent_applicant.toLowerCase().includes(query) ||
                 patent.client_id.toLowerCase().includes(query) ||
                 (patent.application_no && patent.application_no.toLowerCase().includes(query)) ||
+                (patent.current_stage && patent.current_stage.toLowerCase().includes(query)) ||
+                (patent.follow_up_status && patent.follow_up_status.toLowerCase().includes(query)) ||
                 (patent.ps_drafter_assgn && patent.ps_drafter_assgn.toLowerCase().includes(query)) ||
                 (patent.ps_filer_assgn && patent.ps_filer_assgn.toLowerCase().includes(query)) ||
                 (patent.cs_drafter_assgn && patent.cs_drafter_assgn.toLowerCase().includes(query)) ||
@@ -220,7 +269,7 @@ const Patents = () => {
             );
         }
       } else {
-        // General search across all fields
+        // General search across all fields including stages
         filtered = filtered.filter(
           (patent) =>
             patent.patent_title.toLowerCase().includes(query) ||
@@ -228,6 +277,8 @@ const Patents = () => {
             patent.patent_applicant.toLowerCase().includes(query) ||
             patent.client_id.toLowerCase().includes(query) ||
             (patent.application_no && patent.application_no.toLowerCase().includes(query)) ||
+            (patent.current_stage && patent.current_stage.toLowerCase().includes(query)) ||
+            (patent.follow_up_status && patent.follow_up_status.toLowerCase().includes(query)) ||
             (patent.ps_drafter_assgn && patent.ps_drafter_assgn.toLowerCase().includes(query)) ||
             (patent.ps_filer_assgn && patent.ps_filer_assgn.toLowerCase().includes(query)) ||
             (patent.cs_drafter_assgn && patent.cs_drafter_assgn.toLowerCase().includes(query)) ||
