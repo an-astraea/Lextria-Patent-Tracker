@@ -7,6 +7,7 @@ import PendingReviewCard, { ReviewType, getPendingReviewTypes } from '@/componen
 import RefreshButton from '@/components/approvals/RefreshButton';
 import EmptyApprovals from '@/components/approvals/EmptyApprovals';
 import LoadingSpinner from '@/components/approvals/LoadingSpinner';
+import SearchFilters from '@/components/common/SearchFilters';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -15,6 +16,7 @@ const ITEMS_PER_PAGE = 6; // Number of items to show per page
 const Approvals = () => {
   const navigate = useNavigate();
   const [pendingReviews, setPendingReviews] = useState<Patent[]>([]);
+  const [filteredReviews, setFilteredReviews] = useState<Patent[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,6 +42,11 @@ const Approvals = () => {
     }
   }, [user, initialLoadDone]);
 
+  // Update filtered reviews when pending reviews change
+  useEffect(() => {
+    setFilteredReviews(pendingReviews);
+  }, [pendingReviews]);
+
   const loadReviews = async () => {
     if (user && (user.role === 'admin' || user.role === 'filer')) {
       try {
@@ -53,6 +60,43 @@ const Approvals = () => {
         setLoading(false);
       }
     }
+  };
+
+  const handleSearch = (query: string, field?: string) => {
+    if (!query.trim()) {
+      setFilteredReviews(pendingReviews);
+      setCurrentPage(1);
+      return;
+    }
+
+    const searchQuery = query.toLowerCase();
+    const filtered = pendingReviews.filter(patent => {
+      if (field) {
+        switch (field) {
+          case 'tracking_id':
+            return patent.tracking_id.toLowerCase().includes(searchQuery);
+          case 'patent_title':
+            return patent.patent_title.toLowerCase().includes(searchQuery);
+          case 'patent_applicant':
+            return patent.patent_applicant.toLowerCase().includes(searchQuery);
+          case 'client_id':
+            return patent.client_id.toLowerCase().includes(searchQuery);
+          default:
+            return false;
+        }
+      } else {
+        // Search across all relevant fields
+        return (
+          patent.tracking_id.toLowerCase().includes(searchQuery) ||
+          patent.patent_title.toLowerCase().includes(searchQuery) ||
+          patent.patent_applicant.toLowerCase().includes(searchQuery) ||
+          patent.client_id.toLowerCase().includes(searchQuery)
+        );
+      }
+    });
+
+    setFilteredReviews(filtered);
+    setCurrentPage(1);
   };
 
   const handleApprove = async (patent: Patent, reviewType: ReviewType) => {
@@ -145,12 +189,20 @@ const Approvals = () => {
     loadReviews();
   };
 
-  // Pagination logic
-  const totalPages = Math.ceil(pendingReviews.length / ITEMS_PER_PAGE);
-  const paginatedReviews = pendingReviews.slice(
+  // Pagination logic - use filtered reviews
+  const totalPages = Math.ceil(filteredReviews.length / ITEMS_PER_PAGE);
+  const paginatedReviews = filteredReviews.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+
+  // Search fields configuration
+  const searchFields = [
+    { value: 'tracking_id', label: 'Tracking ID' },
+    { value: 'patent_title', label: 'Patent Title' },
+    { value: 'patent_applicant', label: 'Applicant' },
+    { value: 'client_id', label: 'Client ID' }
+  ];
 
   return (
     <div className="container mx-auto py-6 px-4 sm:px-6">
@@ -159,9 +211,18 @@ const Approvals = () => {
         <RefreshButton onRefresh={handleRefresh} loading={loading} />
       </div>
       
+      {/* Search Filters */}
+      <div className="mb-6">
+        <SearchFilters
+          onSearch={handleSearch}
+          placeholder="Search pending approvals..."
+          searchFields={searchFields}
+        />
+      </div>
+      
       {loading && !pendingReviews.length ? (
         <LoadingSpinner />
-      ) : pendingReviews.length > 0 ? (
+      ) : filteredReviews.length > 0 ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {paginatedReviews.map(patent => (
@@ -204,6 +265,10 @@ const Approvals = () => {
               </PaginationContent>
             </Pagination>
           )}
+        </div>
+      ) : pendingReviews.length > 0 ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">No approvals found matching your search criteria.</p>
         </div>
       ) : (
         <EmptyApprovals />
