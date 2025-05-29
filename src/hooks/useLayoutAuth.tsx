@@ -23,36 +23,64 @@ export const useLayoutAuth = () => {
         // Check if the user is trying to access a page they shouldn't have access to
         const currentPath = location.pathname;
         
-        // Admin-only pages
-        const adminOnlyPages = ['/employees', '/approvals', '/clients', '/bulk-upload'];
+        // Admin-only pages (admin can access everything)
+        const adminOnlyPages = ['/employees', '/bulk-upload'];
+        
+        // Reviewer-only pages (reviewer handles approvals now)
+        const reviewerOnlyPages = ['/approvals'];
+        
+        // Admin and reviewer can access these pages
+        const adminReviewerPages = ['/clients'];
         
         // Prevent non-admins from accessing admin-only pages
-        if (!parsedUser.role.includes('admin') && adminOnlyPages.some(page => currentPath.startsWith(page))) {
+        if (parsedUser.role !== 'admin' && adminOnlyPages.some(page => currentPath.startsWith(page))) {
           console.log('Non-admin trying to access admin page:', currentPath);
           toast.error('You do not have permission to access this page');
           
           // Redirect based on role
           if (parsedUser.role === 'drafter') {
             navigate('/drafts');
-          } else if (parsedUser.role === 'filer') {
-            navigate('/filings');
+          } else if (parsedUser.role === 'reviewer') {
+            navigate('/approvals');
+          } else {
+            navigate('/dashboard');
+          }
+        }
+        
+        // Prevent non-reviewers from accessing reviewer-only pages
+        else if (parsedUser.role !== 'reviewer' && parsedUser.role !== 'admin' && reviewerOnlyPages.some(page => currentPath.startsWith(page))) {
+          console.log('Non-reviewer trying to access reviewer page:', currentPath);
+          toast.error('You do not have permission to access this page');
+          
+          if (parsedUser.role === 'drafter') {
+            navigate('/drafts');
+          } else {
+            navigate('/dashboard');
+          }
+        }
+        
+        // Prevent non-admin/non-reviewer from accessing admin-reviewer pages
+        else if (!['admin', 'reviewer'].includes(parsedUser.role) && adminReviewerPages.some(page => currentPath.startsWith(page))) {
+          console.log('Non-admin/non-reviewer trying to access admin-reviewer page:', currentPath);
+          toast.error('You do not have permission to access this page');
+          
+          if (parsedUser.role === 'drafter') {
+            navigate('/drafts');
           } else {
             navigate('/dashboard');
           }
         }
         
         // Drafter-only pages
-        else if (parsedUser.role === 'filer' && currentPath.startsWith('/drafts')) {
-          console.log('Filer trying to access drafter page:', currentPath);
+        else if (parsedUser.role !== 'drafter' && parsedUser.role !== 'admin' && currentPath.startsWith('/drafts')) {
+          console.log('Non-drafter trying to access drafter page:', currentPath);
           toast.error('You do not have permission to access this page');
-          navigate('/filings');
-        }
-        
-        // Filer-only pages
-        else if (parsedUser.role === 'drafter' && currentPath.startsWith('/filings')) {
-          console.log('Drafter trying to access filer page:', currentPath);
-          toast.error('You do not have permission to access this page');
-          navigate('/drafts');
+          
+          if (parsedUser.role === 'reviewer') {
+            navigate('/approvals');
+          } else {
+            navigate('/dashboard');
+          }
         }
       } else if (!isIndexPage) {
         navigate('/');

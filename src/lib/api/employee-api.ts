@@ -16,7 +16,7 @@ export const fetchEmployees = async (): Promise<Employee[]> => {
     // Cast the roles to the expected type
     return (data || []).map(employee => ({
       ...employee,
-      role: employee.role as 'admin' | 'drafter' | 'filer'
+      role: employee.role as 'admin' | 'drafter' | 'reviewer'
     }));
   } catch (error) {
     console.error("Error fetching employees:", error);
@@ -44,7 +44,7 @@ export const fetchEmployeeById = async (id: string): Promise<Employee | null> =>
     // Cast the role to the expected type
     return {
       ...data,
-      role: data.role as 'admin' | 'drafter' | 'filer'
+      role: data.role as 'admin' | 'drafter' | 'reviewer'
     };
   } catch (error) {
     console.error("Error fetching employee:", error);
@@ -75,7 +75,7 @@ export const createEmployee = async (employee: Omit<Employee, 'id' | 'created_at
 
     return {
       ...data,
-      role: data.role as 'admin' | 'drafter' | 'filer'
+      role: data.role as 'admin' | 'drafter' | 'reviewer'
     };
   } catch (error) {
     console.error("Error creating employee:", error);

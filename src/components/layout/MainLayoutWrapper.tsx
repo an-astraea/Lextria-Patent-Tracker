@@ -5,7 +5,7 @@ import AdminSidebar from '../AdminSidebar';
 import { useLayoutAuth } from '@/hooks/useLayoutAuth';
 import LoadingLayout from './LoadingLayout';
 import DrafterSidebar from './sidebars/DrafterSidebar';
-import FilerSidebar from './sidebars/FilerSidebar';
+import ReviewerSidebar from './sidebars/ReviewerSidebar';
 import DefaultSidebar from './sidebars/DefaultSidebar';
 
 const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -52,10 +52,10 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
         {children}
       </MainLayout>
     );
-  } else if (user?.role === 'filer') {
+  } else if (user?.role === 'reviewer') {
     return (
       <MainLayout 
-        sidebarComponent={<FilerSidebar user={user} onLogout={handleLogout} />}
+        sidebarComponent={<ReviewerSidebar user={user} onLogout={handleLogout} />}
       >
         {children}
       </MainLayout>

@@ -1,4 +1,3 @@
-
 export interface Patent {
   id: string;
   tracking_id: string;
@@ -108,7 +107,7 @@ export interface Patent {
   cs_data_received?: boolean;
   // New reminder and follow-up fields
   follow_up_count?: number;
-  follow_up_status?: string; // Changed from union type to string to match database
+  follow_up_status?: 'active' | 'on_hold' | 'unresponsive';
   last_follow_up_date?: string | null;
   next_reminder_date?: string | null;
   stage_updated_at?: string;
@@ -157,7 +156,7 @@ export interface Employee {
   email: string;
   ph_no: string;
   password?: string;
-  role: string;
+  role: 'admin' | 'drafter' | 'reviewer'; // Updated roles: removed 'filer', added 'reviewer'
   created_at?: string;
   updated_at?: string;
 }
@@ -168,7 +167,7 @@ export interface EmployeeFormData {
   email: string;
   ph_no: string;
   password?: string;
-  role: string;
+  role: 'admin' | 'drafter' | 'reviewer'; // Updated roles: removed 'filer', added 'reviewer'
 }
 
 export interface InventorInfo {

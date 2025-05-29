@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { fetchPendingReviews, approvePatentReview, rejectPatentReview } from '@/lib/api';
@@ -24,24 +25,24 @@ const Approvals = () => {
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
 
-  // Redirect if not admin
+  // Redirect if not reviewer or admin
   React.useEffect(() => {
-    if (!user || user.role !== 'admin') {
-      toast.error('Access denied. Admin privileges required.');
+    if (!user || !['reviewer', 'admin'].includes(user.role)) {
+      toast.error('Access denied. Reviewer privileges required.');
       navigate('/dashboard');
     }
   }, [user, navigate]);
 
   // Load data only once on initial mount
   useEffect(() => {
-    if (user && user.role === 'admin' && !initialLoadDone) {
+    if (user && ['reviewer', 'admin'].includes(user.role) && !initialLoadDone) {
       loadReviews();
       setInitialLoadDone(true);
     }
   }, [user, initialLoadDone]);
 
   const loadReviews = async () => {
-    if (user && user.role === 'admin') {
+    if (user && ['reviewer', 'admin'].includes(user.role)) {
       try {
         setLoading(true);
         const reviews = await fetchPendingReviews();

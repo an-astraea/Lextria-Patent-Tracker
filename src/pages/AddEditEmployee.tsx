@@ -22,7 +22,7 @@ const AddEditEmployee = () => {
     email: '',
     ph_no: '',
     password: '',
-    role: 'drafter',
+    role: 'drafter', // Default to drafter
   });
   
   const [loading, setLoading] = useState(false);
@@ -87,7 +87,7 @@ const AddEditEmployee = () => {
   };
   
   const handleRoleChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, role: value as 'admin' | 'drafter' | 'filer' }));
+    setFormData((prev) => ({ ...prev, role: value as 'admin' | 'drafter' | 'reviewer' }));
   };
   
   const validateForm = (): boolean => {
@@ -209,7 +209,7 @@ const AddEditEmployee = () => {
                   <SelectContent>
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="drafter">Drafter</SelectItem>
-                    <SelectItem value="filer">Filer</SelectItem>
+                    <SelectItem value="reviewer">Reviewer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
