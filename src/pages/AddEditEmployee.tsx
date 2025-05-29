@@ -22,7 +22,7 @@ const AddEditEmployee = () => {
     email: '',
     ph_no: '',
     password: '',
-    role: 'drafter', // Default to drafter
+    role: 'drafter',
   });
   
   const [loading, setLoading] = useState(false);

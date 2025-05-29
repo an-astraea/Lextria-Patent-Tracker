@@ -23,17 +23,11 @@ export const useLayoutAuth = () => {
         // Check if the user is trying to access a page they shouldn't have access to
         const currentPath = location.pathname;
         
-        // Admin-only pages (admin can access everything)
-        const adminOnlyPages = ['/employees', '/bulk-upload'];
-        
-        // Filer-only pages (filer handles approvals now)
-        const filerOnlyPages = ['/approvals'];
-        
-        // Admin and filer can access these pages
-        const adminFilerPages = ['/clients'];
+        // Admin-only pages
+        const adminOnlyPages = ['/employees', '/approvals', '/clients', '/bulk-upload'];
         
         // Prevent non-admins from accessing admin-only pages
-        if (parsedUser.role !== 'admin' && adminOnlyPages.some(page => currentPath.startsWith(page))) {
+        if (!parsedUser.role.includes('admin') && adminOnlyPages.some(page => currentPath.startsWith(page))) {
           console.log('Non-admin trying to access admin page:', currentPath);
           toast.error('You do not have permission to access this page');
           
@@ -41,46 +35,24 @@ export const useLayoutAuth = () => {
           if (parsedUser.role === 'drafter') {
             navigate('/drafts');
           } else if (parsedUser.role === 'filer') {
-            navigate('/approvals');
-          } else {
-            navigate('/dashboard');
-          }
-        }
-        
-        // Prevent non-filers from accessing filer-only pages
-        else if (parsedUser.role !== 'filer' && parsedUser.role !== 'admin' && filerOnlyPages.some(page => currentPath.startsWith(page))) {
-          console.log('Non-filer trying to access filer page:', currentPath);
-          toast.error('You do not have permission to access this page');
-          
-          if (parsedUser.role === 'drafter') {
-            navigate('/drafts');
-          } else {
-            navigate('/dashboard');
-          }
-        }
-        
-        // Prevent non-admin/non-filer from accessing admin-filer pages
-        else if (!['admin', 'filer'].includes(parsedUser.role) && adminFilerPages.some(page => currentPath.startsWith(page))) {
-          console.log('Non-admin/non-filer trying to access admin-filer page:', currentPath);
-          toast.error('You do not have permission to access this page');
-          
-          if (parsedUser.role === 'drafter') {
-            navigate('/drafts');
+            navigate('/filings');
           } else {
             navigate('/dashboard');
           }
         }
         
         // Drafter-only pages
-        else if (parsedUser.role !== 'drafter' && parsedUser.role !== 'admin' && currentPath.startsWith('/drafts')) {
-          console.log('Non-drafter trying to access drafter page:', currentPath);
+        else if (parsedUser.role === 'filer' && currentPath.startsWith('/drafts')) {
+          console.log('Filer trying to access drafter page:', currentPath);
           toast.error('You do not have permission to access this page');
-          
-          if (parsedUser.role === 'filer') {
-            navigate('/approvals');
-          } else {
-            navigate('/dashboard');
-          }
+          navigate('/filings');
+        }
+        
+        // Filer-only pages
+        else if (parsedUser.role === 'drafter' && currentPath.startsWith('/filings')) {
+          console.log('Drafter trying to access filer page:', currentPath);
+          toast.error('You do not have permission to access this page');
+          navigate('/drafts');
         }
       } else if (!isIndexPage) {
         navigate('/');

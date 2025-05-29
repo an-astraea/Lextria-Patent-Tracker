@@ -21,7 +21,7 @@ export const loginUser = async (email: string, password: string): Promise<Employ
       return null;
     }
 
-    // Cast the role to the expected type - restored original roles
+    // Cast the role to the expected type
     const user: Employee = {
       ...data,
       role: data.role as 'admin' | 'drafter' | 'filer'

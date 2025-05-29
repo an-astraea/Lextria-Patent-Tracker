@@ -13,7 +13,7 @@ export const fetchEmployees = async (): Promise<Employee[]> => {
       throw error;
     }
 
-    // Cast the roles to the expected type - restored original roles
+    // Cast the roles to the expected type
     return (data || []).map(employee => ({
       ...employee,
       role: employee.role as 'admin' | 'drafter' | 'filer'
@@ -41,7 +41,7 @@ export const fetchEmployeeById = async (id: string): Promise<Employee | null> =>
       return null;
     }
 
-    // Cast the role to the expected type - restored original roles
+    // Cast the role to the expected type
     return {
       ...data,
       role: data.role as 'admin' | 'drafter' | 'filer'
