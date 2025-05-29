@@ -17,6 +17,7 @@ import {
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import PatentTimeline from '@/components/patent/PatentTimeline';
 
 interface PatentCardProps {
   patent: Patent;
@@ -31,7 +32,6 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
   
   // Add state for timeline dialog
   const [showTimelineDialog, setShowTimelineDialog] = useState(false);
-  const [timelineMilestones, setTimelineMilestones] = useState([]);
 
   const determineStatus = (patent: Patent) => {
     if (patent.ps_completion_status === 1 && patent.cs_completion_status === 1) {
@@ -82,46 +82,8 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Function to generate timeline milestones (simplified for demo)
+  // Function to open the full timeline dialog
   const openTimelineDialog = () => {
-    // In a real app, you might fetch this data from the API
-    // This is simplified mock data based on patent statuses
-    const milestones = [
-      patent.ps_drafting_status === 1 && {
-        id: 'ps-draft',
-        event_type: 'PS Drafting Completed',
-        event_description: 'Provisional specification drafting was completed',
-        created_at: new Date().toISOString(),
-        status: 1,
-        employee_name: patent.ps_drafter_assgn,
-      },
-      patent.ps_filing_status === 1 && {
-        id: 'ps-file',
-        event_type: 'PS Filing Completed',
-        event_description: 'Provisional specification filing was completed',
-        created_at: new Date().toISOString(),
-        status: 1,
-        employee_name: patent.ps_filer_assgn,
-      },
-      patent.cs_drafting_status === 1 && {
-        id: 'cs-draft',
-        event_type: 'CS Drafting Completed',
-        event_description: 'Complete specification drafting was completed',
-        created_at: new Date().toISOString(),
-        status: 1,
-        employee_name: patent.cs_drafter_assgn,
-      },
-      patent.cs_filing_status === 1 && {
-        id: 'cs-file',
-        event_type: 'CS Filing Completed',
-        event_description: 'Complete specification filing was completed',
-        created_at: new Date().toISOString(),
-        status: 1,
-        employee_name: patent.cs_filer_assgn,
-      },
-    ].filter(Boolean);
-    
-    setTimelineMilestones(milestones);
     setShowTimelineDialog(true);
   };
 
@@ -222,28 +184,23 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
         </div>
       </CardFooter>
 
-      {/* Simple Timeline Dialog */}
+      {/* Full Timeline Dialog */}
       <Dialog open={showTimelineDialog} onOpenChange={setShowTimelineDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Patent Timeline</DialogTitle>
+            <DialogTitle>Patent Timeline - {patent.patent_title}</DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
-            {timelineMilestones.length > 0 ? timelineMilestones.map((milestone: any) => (
-              <div key={milestone.id} className="flex gap-2">
-                <div className="flex-shrink-0">
-                  <History className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium">{milestone.event_type}</h4>
-                  <p className="text-sm text-muted-foreground">{milestone.event_description}</p>
-                  {milestone.employee_name && <p className="text-xs text-muted-foreground mt-1">By: {milestone.employee_name}</p>}
-                </div>
-              </div>
-            )) : (
-              <p className="text-center text-muted-foreground">No timeline events available</p>
-            )}
+          <div className="py-4">
+            <PatentTimeline 
+              patentId={patent.id} 
+              onAddTimelineClick={() => {
+                // Close this dialog and redirect to patent details for adding timeline events
+                setShowTimelineDialog(false);
+                // You could add a toast here to inform the user to go to patent details to add events
+                toast.info('Visit the patent details page to add new timeline events');
+              }}
+            />
           </div>
         </DialogContent>
       </Dialog>
