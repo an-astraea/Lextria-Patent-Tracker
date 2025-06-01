@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -254,7 +255,7 @@ const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
                           {fer.fer_drafter_status === 1 ? "Completed" : "Pending"}
                         </Badge>
                         {fer.fer_review_draft_status === 1 && (
-                          <Badge variant="warning" className="ml-1">Under Review</Badge>
+                          <Badge variant="outline" className="ml-1">Under Review</Badge>
                         )}
                       </TableCell>
                       <TableCell>
@@ -262,7 +263,7 @@ const FEREntriesSection: React.FC<FEREntriesSectionProps> = ({
                           {fer.fer_filing_status === 1 ? "Completed" : "Pending"}
                         </Badge>
                         {fer.fer_review_file_status === 1 && (
-                          <Badge variant="warning" className="ml-1">Under Review</Badge>
+                          <Badge variant="outline" className="ml-1">Under Review</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
