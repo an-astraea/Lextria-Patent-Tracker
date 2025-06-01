@@ -42,10 +42,6 @@ const AddEditPatent = () => {
     fer_drafter_deadline: '',
     fer_filer_assgn: '',
     fer_filer_deadline: '',
-    idf_sent: false,
-    idf_received: false,
-    cs_data: false,
-    cs_data_received: false,
     inventors: [{ inventor_name: '', inventor_addr: '' }]
   });
 
@@ -99,10 +95,6 @@ const AddEditPatent = () => {
           fer_drafter_deadline: patent.fer_drafter_deadline || '',
           fer_filer_assgn: patent.fer_filer_assgn || '',
           fer_filer_deadline: patent.fer_filer_deadline || '',
-          idf_sent: patent.idf_sent || false,
-          idf_received: patent.idf_received || false,
-          cs_data: patent.cs_data || false,
-          cs_data_received: patent.cs_data_received || false,
           inventors: patent.inventors && patent.inventors.length > 0 
             ? patent.inventors.map(inv => ({ inventor_name: inv.inventor_name, inventor_addr: inv.inventor_addr }))
             : [{ inventor_name: '', inventor_addr: '' }]
