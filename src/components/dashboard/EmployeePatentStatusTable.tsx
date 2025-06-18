@@ -1,14 +1,17 @@
-
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Patent } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 interface EmployeePatentStatusTableProps {
   patents: Patent[];
 }
 
 const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ patents }) => {
+  const navigate = useNavigate();
+  
   // Define the status types we want to track
   const statusTypes = ['Review', 'Completed', 'Drafting', 'Pending Confirmation', 'Pending Information'];
   
@@ -269,6 +272,10 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
   // Check if we have any data to show
   const hasData = sortedEmployees.length > 0;
 
+  const handleEmployeeClick = (employeeName: string) => {
+    navigate(`/employee/${encodeURIComponent(employeeName)}`);
+  };
+
   return (
     <Card className="col-span-full">
       <CardHeader className="py-3 bg-blue-200">
@@ -282,7 +289,15 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
                 <TableRow>
                   <TableHead className="font-bold">Status</TableHead>
                   {sortedEmployees.map(employee => (
-                    <TableHead key={employee} className="text-center font-bold">{employee}</TableHead>
+                    <TableHead key={employee} className="text-center font-bold">
+                      <Button 
+                        variant="ghost" 
+                        className="p-0 h-auto font-bold text-foreground hover:text-primary"
+                        onClick={() => handleEmployeeClick(employee)}
+                      >
+                        {employee}
+                      </Button>
+                    </TableHead>
                   ))}
                   <TableHead className="text-center font-bold">TOTAL</TableHead>
                 </TableRow>
