@@ -24,7 +24,11 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
   // Login page doesn't need sidebar
   if (isIndexPage) {
     console.log('Rendering without sidebar (index page)');
-    return <MainLayout>{children}</MainLayout>;
+    return (
+      <div className="min-h-screen w-full">
+        <MainLayout>{children}</MainLayout>
+      </div>
+    );
   }
 
   // Show loading state while checking authentication
@@ -35,45 +39,29 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
 
   console.log('Selecting sidebar based on role:', user?.role);
 
-  // Render layout based on user role
+  // Render layout based on user role with proper container
+  const renderWithSidebar = (sidebarComponent: React.ReactNode) => (
+    <div className="min-h-screen w-full flex">
+      <MainLayout sidebarComponent={sidebarComponent}>
+        {children}
+      </MainLayout>
+    </div>
+  );
+
   if (user?.role === 'admin') {
-    return (
-      <MainLayout 
-        sidebarComponent={<AdminSidebar onLogout={handleLogout} />}
-      >
-        {children}
-      </MainLayout>
-    );
+    return renderWithSidebar(<AdminSidebar onLogout={handleLogout} />);
   } else if (user?.role === 'drafter') {
-    return (
-      <MainLayout 
-        sidebarComponent={<DrafterSidebar user={user} onLogout={handleLogout} />}
-      >
-        {children}
-      </MainLayout>
-    );
+    return renderWithSidebar(<DrafterSidebar user={user} onLogout={handleLogout} />);
   } else if (user?.role === 'filer') {
-    return (
-      <MainLayout 
-        sidebarComponent={<FilerSidebar user={user} onLogout={handleLogout} />}
-      >
-        {children}
-      </MainLayout>
-    );
+    return renderWithSidebar(<FilerSidebar user={user} onLogout={handleLogout} />);
   }
 
   // Fallback - use a default sidebar for any other roles or situations
-  return (
-    <MainLayout 
-      sidebarComponent={
-        <DefaultSidebar 
-          user={user || { full_name: "Guest", role: "guest" }} 
-          onLogout={handleLogout}
-        />
-      }
-    >
-      {children}
-    </MainLayout>
+  return renderWithSidebar(
+    <DefaultSidebar 
+      user={user || { full_name: "Guest", role: "guest" }} 
+      onLogout={handleLogout}
+    />
   );
 };
 

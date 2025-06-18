@@ -19,15 +19,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
     <div className="flex min-h-screen h-screen w-full bg-background">
       {/* Sidebar - always visible when available */}
       {hasSidebar && (
-        <div className="h-full z-30 flex-shrink-0">
+        <div className="h-full z-30 flex-shrink-0 w-auto">
           {sidebarComponent}
         </div>
       )}
       
       {/* Main content */}
-      <main className="flex-1 w-full overflow-hidden">
+      <main className="flex-1 w-full min-w-0 overflow-hidden">
         <ScrollArea className="h-full w-full">
-          <div className="p-6 w-full">
+          <div className="p-4 md:p-6 w-full max-w-none">
             {children}
           </div>
         </ScrollArea>

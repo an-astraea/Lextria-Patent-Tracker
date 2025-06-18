@@ -9,6 +9,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Patent } from '@/lib/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface EmployeeStats {
   name: string;
@@ -91,32 +92,39 @@ const EmployeePatentTable: React.FC<EmployeePatentTableProps> = ({ patents }) =>
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Employee</TableHead>
-            <TableHead className="text-right">Total Assigned</TableHead>
-            <TableHead className="text-right">PS Completed</TableHead>
-            <TableHead className="text-right">CS Completed</TableHead>
-            <TableHead className="text-right">FER Completed</TableHead>
-            <TableHead className="text-right">In Progress</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {employeeStats.map((employee) => (
-            <TableRow key={employee.name}>
-              <TableCell className="font-medium">{employee.name}</TableCell>
-              <TableCell className="text-right">{employee.totalAssigned}</TableCell>
-              <TableCell className="text-right">{employee.psCompleted}</TableCell>
-              <TableCell className="text-right">{employee.csCompleted}</TableCell>
-              <TableCell className="text-right">{employee.ferCompleted}</TableCell>
-              <TableCell className="text-right">{employee.inProgress}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Employee Performance ({employeeStats.length})</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="w-full overflow-auto max-h-[60vh]">
+          <Table>
+            <TableHeader className="sticky top-0 bg-background z-10">
+              <TableRow>
+                <TableHead className="min-w-[150px]">Employee</TableHead>
+                <TableHead className="text-right min-w-[120px]">Total Assigned</TableHead>
+                <TableHead className="text-right min-w-[120px]">PS Completed</TableHead>
+                <TableHead className="text-right min-w-[120px]">CS Completed</TableHead>
+                <TableHead className="text-right min-w-[120px]">FER Completed</TableHead>
+                <TableHead className="text-right min-w-[120px]">In Progress</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {employeeStats.map((employee) => (
+                <TableRow key={employee.name}>
+                  <TableCell className="font-medium">{employee.name}</TableCell>
+                  <TableCell className="text-right">{employee.totalAssigned}</TableCell>
+                  <TableCell className="text-right">{employee.psCompleted}</TableCell>
+                  <TableCell className="text-right">{employee.csCompleted}</TableCell>
+                  <TableCell className="text-right">{employee.ferCompleted}</TableCell>
+                  <TableCell className="text-right">{employee.inProgress}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
