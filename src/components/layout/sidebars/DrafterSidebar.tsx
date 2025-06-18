@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, FileText, Edit, Plus } from 'lucide-react';
+import { LayoutDashboard, FileText, Edit, Plus, Building2 } from 'lucide-react';
 import Sidebar from '../../Sidebar';
 
 interface DrafterSidebarProps {
@@ -14,6 +14,11 @@ const DrafterSidebar: React.FC<DrafterSidebarProps> = ({ user, onLogout }) => {
       label: 'Dashboard',
       icon: LayoutDashboard,
       href: '/dashboard',
+    },
+    {
+      label: 'Company Dashboard',
+      icon: Building2,
+      href: '/company-dashboard',
     },
     {
       label: 'Patents',

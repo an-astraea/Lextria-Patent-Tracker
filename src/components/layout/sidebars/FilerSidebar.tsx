@@ -16,6 +16,11 @@ const FilerSidebar: React.FC<FilerSidebarProps> = ({ user, onLogout }) => {
       href: '/dashboard',
     },
     {
+      label: 'Company Dashboard',
+      icon: Building2,
+      href: '/company-dashboard',
+    },
+    {
       label: 'Patents',
       icon: FileText,
       href: '/patents',

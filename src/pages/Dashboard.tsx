@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Patent } from '@/lib/types';
 import { 
   fetchPatents, 
@@ -27,7 +28,7 @@ import EmployeePatentStatusTable from '@/components/dashboard/EmployeePatentStat
 import StagnantPatentsReminder from '@/components/dashboard/StagnantPatentsReminder';
 
 const Dashboard = () => {
-  const navigate = useNavigate();
+  const location = useLocation();
   const [patents, setPatents] = useState<Patent[]>([]);
   const [userAssignedPatents, setUserAssignedPatents] = useState<Patent[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<Patent[]>([]);
@@ -37,13 +38,17 @@ const Dashboard = () => {
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
-  // Redirect drafters and filers to their personal dashboard
+  // Check if this is the company dashboard route
+  const isCompanyDashboard = location.pathname === '/company-dashboard';
+  
+  // For personal dashboard (/dashboard), redirect drafters and filers to their employee dashboard
+  // For company dashboard (/company-dashboard), show the company view for all users
   useEffect(() => {
-    if (user && (user.role === 'drafter' || user.role === 'filer')) {
-      navigate(`/employee/${encodeURIComponent(user.full_name)}`);
+    if (!isCompanyDashboard && user && (user.role === 'drafter' || user.role === 'filer')) {
+      window.location.href = `/employee/${encodeURIComponent(user.full_name)}`;
       return;
     }
-  }, [user, navigate]);
+  }, [user, isCompanyDashboard]);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -75,11 +80,11 @@ const Dashboard = () => {
       }
     };
 
-    // Only fetch data for admin users (since drafters/filers get redirected)
-    if (user?.role === 'admin') {
+    // Fetch data for company dashboard (all users) or admin personal dashboard
+    if (isCompanyDashboard || user?.role === 'admin') {
       fetchData();
     }
-  }, [user?.full_name, user?.role]);
+  }, [user?.full_name, user?.role, isCompanyDashboard]);
   
   const refreshPendingApprovals = async () => {
     if (user?.role === 'admin') {
@@ -106,8 +111,8 @@ const Dashboard = () => {
   
   const pendingApprovalCount = pendingApprovals.length;
 
-  // Show loading for admin users only (drafters/filers get redirected)
-  if (loading && user?.role === 'admin') {
+  // Show loading for company dashboard or admin users
+  if (loading && (isCompanyDashboard || user?.role === 'admin')) {
     return (
       <div className="flex justify-center items-center h-96">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -115,22 +120,24 @@ const Dashboard = () => {
     );
   }
   
-  // Only render the company dashboard for admin users
-  if (user?.role !== 'admin') {
+  // Only render the company dashboard for company dashboard route or admin users on personal dashboard
+  if (!isCompanyDashboard && user?.role !== 'admin') {
     return null; // Component will redirect, so return null
   }
   
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Company Dashboard</h1>
+      <h1 className="text-2xl font-bold tracking-tight">
+        {isCompanyDashboard ? 'Company Dashboard' : 'Dashboard'}
+      </h1>
       
-      {/* Stagnant Patents Reminder - shown for admin users */}
+      {/* Stagnant Patents Reminder */}
       <StagnantPatentsReminder userRole={user?.role} />
       
       {/* Company-wide employee patent status table */}
       <EmployeePatentStatusTable patents={patents} />
       
-      {/* Admin-specific sections */}
+      {/* Company dashboard sections */}
       <>
         {/* Summary Cards */}
         <SummaryCards 
@@ -166,8 +173,10 @@ const Dashboard = () => {
         {/* Top Clients */}
         <TopClients patents={patents} />
         
-        {/* Pending Approvals */}
-        <PendingApprovals pendingApprovalCount={pendingApprovalCount} />
+        {/* Pending Approvals - only show for admin */}
+        {user?.role === 'admin' && (
+          <PendingApprovals pendingApprovalCount={pendingApprovalCount} />
+        )}
       </>
       
       {/* Deadline Patents */}
