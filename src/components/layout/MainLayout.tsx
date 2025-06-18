@@ -16,21 +16,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
   console.log('MainLayout rendering with:', { hasSidebar, isMobile });
 
   return (
-    <div className="flex min-h-screen h-screen bg-background">
+    <div className="flex min-h-screen h-screen w-full bg-background">
       {/* Sidebar - always visible when available */}
       {hasSidebar && (
-        <div className="h-full z-30">
+        <div className="h-full z-30 flex-shrink-0">
           {sidebarComponent}
         </div>
       )}
       
       {/* Main content */}
-      <main className={cn(
-        "flex-1 overflow-hidden transition-all duration-300",
-        isMobile ? "w-full" : (hasSidebar ? "ml-0" : "ml-0"),
-      )}>
+      <main className="flex-1 w-full overflow-hidden">
         <ScrollArea className="h-full w-full">
-          <div className="p-6">
+          <div className="p-6 w-full">
             {children}
           </div>
         </ScrollArea>
