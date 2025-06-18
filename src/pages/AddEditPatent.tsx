@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -70,10 +69,10 @@ const AddEditPatent = () => {
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
-  // Redirect if not admin or filer
+  // Allow admin, filer, and drafter access
   React.useEffect(() => {
-    if (user?.role !== 'admin' && user?.role !== 'filer') {
-      toast.error('Access denied. Admin or filer privileges required.');
+    if (user?.role !== 'admin' && user?.role !== 'filer' && user?.role !== 'drafter') {
+      toast.error('Access denied. Admin, filer, or drafter privileges required.');
       navigate('/dashboard');
     }
   }, [user, navigate]);

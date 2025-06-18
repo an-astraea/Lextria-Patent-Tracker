@@ -162,7 +162,7 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
         </div>
         
         <div className="flex items-center gap-1">
-          {user?.role === 'admin' && (
+          {(user?.role === 'admin' || user?.role === 'drafter') && (
             <>
               <Link to={`/patents/edit/${patent.id}`}>
                 <Button variant="ghost" size="sm">
@@ -170,15 +170,17 @@ const PatentCard = ({ patent, showDeadline, onDelete }: PatentCardProps) => {
                 </Button>
               </Link>
               
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleDelete}
-                className="hover:text-destructive"
-                disabled={!onDelete}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {user?.role === 'admin' && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleDelete}
+                  className="hover:text-destructive"
+                  disabled={!onDelete}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </>
           )}
         </div>
