@@ -8,16 +8,23 @@ import { Patent } from '@/lib/types';
 import { fetchPatents } from '@/lib/api';
 import { toast } from 'sonner';
 import SearchFilters from '@/components/common/SearchFilters';
-import PatentCard from '@/components/PatentCard';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+
+interface EnhancedPatent extends Patent {
+  tasks: {
+    type: string;
+    status: string;
+    deadline?: string;
+  }[];
+}
 
 const EmployeeDashboard = () => {
   const { employeeName } = useParams<{ employeeName: string }>();
   const navigate = useNavigate();
   const [patents, setPatents] = useState<Patent[]>([]);
-  const [filteredPatents, setFilteredPatents] = useState<Patent[]>([]);
+  const [filteredPatents, setFilteredPatents] = useState<EnhancedPatent[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -54,7 +61,6 @@ const EmployeeDashboard = () => {
         );
         
         setPatents(employeePatents);
-        setFilteredPatents(employeePatents);
       } catch (error) {
         console.error('Error fetching employee patents:', error);
         toast.error('Failed to load employee patents');
@@ -77,11 +83,8 @@ const EmployeeDashboard = () => {
     let pendingInformation = 0;
 
     patents.forEach(patent => {
-      let hasTask = false;
-
       // PS Drafter tasks
       if (patent.ps_drafter_assgn === employeeName) {
-        hasTask = true;
         if (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 1) {
           completed++;
         } else if (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0) {
@@ -97,7 +100,6 @@ const EmployeeDashboard = () => {
 
       // PS Filer tasks
       if (patent.ps_filer_assgn === employeeName && patent.ps_drafting_status === 1) {
-        hasTask = true;
         if (patent.ps_filing_status === 1 && patent.ps_review_file_status === 1) {
           completed++;
         } else if (patent.ps_filing_status === 1 && patent.ps_review_file_status === 0) {
@@ -113,7 +115,6 @@ const EmployeeDashboard = () => {
 
       // CS Drafter tasks
       if (patent.cs_drafter_assgn === employeeName && patent.ps_filing_status === 1) {
-        hasTask = true;
         if (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 1) {
           completed++;
         } else if (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0) {
@@ -129,7 +130,6 @@ const EmployeeDashboard = () => {
 
       // CS Filer tasks
       if (patent.cs_filer_assgn === employeeName && patent.cs_drafting_status === 1) {
-        hasTask = true;
         if (patent.cs_filing_status === 1 && patent.cs_review_file_status === 1) {
           completed++;
         } else if (patent.cs_filing_status === 1 && patent.cs_review_file_status === 0) {
@@ -146,7 +146,6 @@ const EmployeeDashboard = () => {
       // FER tasks
       if (patent.fer_status === 1) {
         if (patent.fer_drafter_assgn === employeeName) {
-          hasTask = true;
           if (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 1) {
             completed++;
           } else if (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0) {
@@ -157,7 +156,6 @@ const EmployeeDashboard = () => {
         }
 
         if (patent.fer_filer_assgn === employeeName && patent.fer_drafter_status === 1) {
-          hasTask = true;
           if (patent.fer_filing_status === 1 && patent.fer_review_file_status === 1) {
             completed++;
           } else if (patent.fer_filing_status === 1 && patent.fer_review_file_status === 0) {
@@ -246,7 +244,7 @@ const EmployeeDashboard = () => {
         });
       }
 
-      return { ...patent, tasks };
+      return { ...patent, tasks } as EnhancedPatent;
     });
   }, [patents, employeeName]);
 
