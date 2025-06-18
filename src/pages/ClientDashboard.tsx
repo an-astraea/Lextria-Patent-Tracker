@@ -63,7 +63,7 @@ const ClientDashboard = () => {
     }
   }, [selectedClient, patents, filters]);
 
-  const handleFilterChange = (filterGroup, filterName, value) => {
+  const handleFilterChange = (filterGroup: string, filterName: string, value: any) => {
     setFilters(prevFilters => ({
       ...prevFilters,
       [filterGroup]: {
@@ -73,7 +73,7 @@ const ClientDashboard = () => {
     }));
   };
 
-  const handleDateRangeChange = (field, value) => {
+  const handleDateRangeChange = (field: string, value: any) => {
     setFilters(prevFilters => ({
       ...prevFilters,
       dateRange: {
@@ -124,8 +124,8 @@ const ClientDashboard = () => {
   }
 
   return (
-    <div className="w-full max-w-none">
-      <div className="container px-4 py-6 mx-auto max-w-7xl">
+    <div className="w-full h-full">
+      <div className="p-4 md:p-6 w-full">
         <PageHeader
           title="Client Dashboard"
           subtitle="View patent statistics and details for specific clients"
@@ -157,58 +157,6 @@ const ClientDashboard = () => {
                     ],
                     onFilter: (value) => handleFilterChange('patentStatus', 'status', value),
                     activeFilter: filters.patentStatus.status
-                  },
-                  {
-                    name: "Drafting Status",
-                    options: [
-                      { value: null, label: "All" },
-                      { value: "ps_drafting", label: "PS Drafting" },
-                      { value: "cs_drafting", label: "CS Drafting" },
-                      { value: "fer_drafting", label: "FER Drafting" }
-                    ],
-                    onFilter: (value) => {
-                      if (value === 'ps_drafting') {
-                        handleFilterChange('draftingStatus', 'psDrafting', true);
-                      } else if (value === 'cs_drafting') {
-                        handleFilterChange('draftingStatus', 'csDrafting', true);
-                      } else if (value === 'fer_drafting') {
-                        handleFilterChange('draftingStatus', 'ferDrafting', true);
-                      } else {
-                        // Reset all drafting filters
-                        handleFilterChange('draftingStatus', 'psDrafting', false);
-                        handleFilterChange('draftingStatus', 'csDrafting', false);
-                        handleFilterChange('draftingStatus', 'ferDrafting', false);
-                      }
-                    },
-                    activeFilter: filters.draftingStatus.psDrafting ? 'ps_drafting' : 
-                                 filters.draftingStatus.csDrafting ? 'cs_drafting' : 
-                                 filters.draftingStatus.ferDrafting ? 'fer_drafting' : null
-                  },
-                  {
-                    name: "Filing Status",
-                    options: [
-                      { value: null, label: "All" },
-                      { value: "ps_filing", label: "PS Filing" },
-                      { value: "cs_filing", label: "CS Filing" },
-                      { value: "fer_filing", label: "FER Filing" }
-                    ],
-                    onFilter: (value) => {
-                      if (value === 'ps_filing') {
-                        handleFilterChange('filingStatus', 'psFiling', true);
-                      } else if (value === 'cs_filing') {
-                        handleFilterChange('filingStatus', 'csFiling', true);
-                      } else if (value === 'fer_filing') {
-                        handleFilterChange('filingStatus', 'ferFiling', true);
-                      } else {
-                        // Reset all filing filters
-                        handleFilterChange('filingStatus', 'psFiling', false);
-                        handleFilterChange('filingStatus', 'csFiling', false);
-                        handleFilterChange('filingStatus', 'ferFiling', false);
-                      }
-                    },
-                    activeFilter: filters.filingStatus.psFiling ? 'ps_filing' : 
-                                filters.filingStatus.csFiling ? 'cs_filing' : 
-                                filters.filingStatus.ferFiling ? 'fer_filing' : null
                   }
                 ]}
               />

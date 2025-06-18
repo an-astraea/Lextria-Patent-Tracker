@@ -16,6 +16,7 @@ import Filings from "./pages/Filings";
 import BulkUpload from "./pages/BulkUpload";
 import ClientDashboard from "./pages/ClientDashboard";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
+import Sheets from "./pages/Sheets";
 import NotFound from "./pages/NotFound";
 import "./App.css";
 
@@ -42,6 +43,7 @@ function App() {
             <Route path="/filings" element={<Filings />} />
             <Route path="/bulk-upload" element={<BulkUpload />} />
             <Route path="/client-dashboard" element={<ClientDashboard />} />
+            <Route path="/sheets" element={<Sheets />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </MainLayoutWrapper>
