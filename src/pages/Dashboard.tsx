@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Patent } from '@/lib/types';
 import { 
   fetchPatents, 
@@ -27,6 +27,7 @@ import EmployeePatentStatusTable from '@/components/dashboard/EmployeePatentStat
 import StagnantPatentsReminder from '@/components/dashboard/StagnantPatentsReminder';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [patents, setPatents] = useState<Patent[]>([]);
   const [userAssignedPatents, setUserAssignedPatents] = useState<Patent[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<Patent[]>([]);
@@ -35,6 +36,14 @@ const Dashboard = () => {
   
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
+  
+  // Redirect drafters and filers to their personal dashboard
+  useEffect(() => {
+    if (user && (user.role === 'drafter' || user.role === 'filer')) {
+      navigate(`/employee/${encodeURIComponent(user.full_name)}`);
+      return;
+    }
+  }, [user, navigate]);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -66,7 +75,10 @@ const Dashboard = () => {
       }
     };
 
-    fetchData();
+    // Only fetch data for admin users (since drafters/filers get redirected)
+    if (user?.role === 'admin') {
+      fetchData();
+    }
   }, [user?.full_name, user?.role]);
   
   const refreshPendingApprovals = async () => {
@@ -94,7 +106,8 @@ const Dashboard = () => {
   
   const pendingApprovalCount = pendingApprovals.length;
 
-  if (loading) {
+  // Show loading for admin users only (drafters/filers get redirected)
+  if (loading && user?.role === 'admin') {
     return (
       <div className="flex justify-center items-center h-96">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -102,73 +115,60 @@ const Dashboard = () => {
     );
   }
   
+  // Only render the company dashboard for admin users
+  if (user?.role !== 'admin') {
+    return null; // Component will redirect, so return null
+  }
+  
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Company Dashboard</h1>
       
-      {/* Stagnant Patents Reminder - shown for all users */}
+      {/* Stagnant Patents Reminder - shown for admin users */}
       <StagnantPatentsReminder userRole={user?.role} />
       
-      {/* This employee patent status table is shown for all users */}
+      {/* Company-wide employee patent status table */}
       <EmployeePatentStatusTable patents={patents} />
       
       {/* Admin-specific sections */}
-      {user?.role === 'admin' && (
-        <>
-          {/* Summary Cards */}
-          <SummaryCards 
-            patents={patents} 
-            pendingApprovalCount={pendingApprovalCount}
-            userAssignedPatents={userAssignedPatents}
-            userRole={user?.role}
-          />
-          
-          {/* Patent Processing State Table */}
-          <PatentStatusTable patents={patents} />
-          
-          {/* Patent State Table (geographical) */}
-          <PatentStateTable patents={patents} />
-          
-          {/* Conversion Stats */}
-          <ConversionStats patents={patents} />
-          
-          {/* Patent Stage Chart */}
-          {patents.length > 0 && (
-            <PatentStageChart patents={patents} />
-          )}
-          
-          {/* Patent Status Stats */}
-          <PatentStatusStats patents={patents} />
-          
-          {/* Employee Patent Table */}
-          <EmployeePatentTable patents={patents} />
-          
-          {/* Top Employees */}
-          <TopEmployees patents={patents} />
-          
-          {/* Top Clients */}
-          <TopClients patents={patents} />
-          
-          {/* Pending Approvals */}
-          <PendingApprovals pendingApprovalCount={pendingApprovalCount} />
-        </>
-      )}
-      
-      {/* Non-admin specific sections */}
-      {user?.role !== 'admin' && (
+      <>
+        {/* Summary Cards */}
         <SummaryCards 
           patents={patents} 
           pendingApprovalCount={pendingApprovalCount}
           userAssignedPatents={userAssignedPatents}
           userRole={user?.role}
         />
-      )}
-      
-      {/* User Assignments */}
-      <UserAssignments 
-        userAssignedPatents={userAssignedPatents} 
-        userRole={user?.role || ''}
-      />
+        
+        {/* Patent Processing State Table */}
+        <PatentStatusTable patents={patents} />
+        
+        {/* Patent State Table (geographical) */}
+        <PatentStateTable patents={patents} />
+        
+        {/* Conversion Stats */}
+        <ConversionStats patents={patents} />
+        
+        {/* Patent Stage Chart */}
+        {patents.length > 0 && (
+          <PatentStageChart patents={patents} />
+        )}
+        
+        {/* Patent Status Stats */}
+        <PatentStatusStats patents={patents} />
+        
+        {/* Employee Patent Table */}
+        <EmployeePatentTable patents={patents} />
+        
+        {/* Top Employees */}
+        <TopEmployees patents={patents} />
+        
+        {/* Top Clients */}
+        <TopClients patents={patents} />
+        
+        {/* Pending Approvals */}
+        <PendingApprovals pendingApprovalCount={pendingApprovalCount} />
+      </>
       
       {/* Deadline Patents */}
       <DeadlinePatents patents={patents} />

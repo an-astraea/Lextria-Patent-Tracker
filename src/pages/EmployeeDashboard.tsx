@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,13 +33,18 @@ const EmployeeDashboard = () => {
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
 
-  // Redirect if not admin
+  // Check if this is the user's own dashboard or if user is admin
+  const isOwnDashboard = user && employeeName === user.full_name;
+  const isAdmin = user?.role === 'admin';
+  const canViewDashboard = isOwnDashboard || isAdmin;
+
+  // Redirect if user doesn't have permission
   useEffect(() => {
-    if (user?.role !== 'admin') {
-      toast.error('Access denied. Admin privileges required.');
+    if (!canViewDashboard) {
+      toast.error('Access denied. You can only view your own dashboard.');
       navigate('/dashboard');
     }
-  }, [user, navigate]);
+  }, [canViewDashboard, navigate]);
 
   useEffect(() => {
     const fetchEmployeePatents = async () => {
@@ -310,7 +314,7 @@ const EmployeeDashboard = () => {
     }
   };
 
-  if (user?.role !== 'admin') {
+  if (!canViewDashboard) {
     return null;
   }
 
@@ -325,14 +329,21 @@ const EmployeeDashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
+        {/* Only show back button for admin users */}
+        {isAdmin && (
+          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        )}
         <div className="flex items-center gap-3">
           <User className="h-6 w-6" />
           <div>
-            <h1 className="text-2xl font-bold">{employeeName}</h1>
-            <p className="text-muted-foreground">Employee Dashboard</p>
+            <h1 className="text-2xl font-bold">
+              {isOwnDashboard ? 'My Dashboard' : employeeName}
+            </h1>
+            <p className="text-muted-foreground">
+              {isOwnDashboard ? 'Personal Dashboard' : 'Employee Dashboard'}
+            </p>
           </div>
         </div>
       </div>
