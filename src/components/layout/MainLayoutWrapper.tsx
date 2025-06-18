@@ -25,7 +25,7 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
   if (isIndexPage) {
     console.log('Rendering without sidebar (index page)');
     return (
-      <div className="min-h-screen w-full">
+      <div className="min-h-screen w-full max-w-none">
         <MainLayout>{children}</MainLayout>
       </div>
     );
@@ -41,7 +41,7 @@ const MainLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
 
   // Render layout based on user role with proper container
   const renderWithSidebar = (sidebarComponent: React.ReactNode) => (
-    <div className="min-h-screen w-full flex">
+    <div className="min-h-screen w-full max-w-none flex">
       <MainLayout sidebarComponent={sidebarComponent}>
         {children}
       </MainLayout>

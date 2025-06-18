@@ -27,7 +27,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, sidebarComponent }) =
       {/* Main content */}
       <main className="flex-1 w-full min-w-0 overflow-hidden">
         <ScrollArea className="h-full w-full">
-          <div className="w-full h-full min-h-screen">
+          <div className="w-full h-full min-h-screen p-0 m-0">
             {children}
           </div>
         </ScrollArea>

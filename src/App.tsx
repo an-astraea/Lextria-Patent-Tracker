@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import MainLayoutWrapper from "./components/layout/MainLayoutWrapper";
@@ -43,6 +43,7 @@ function App() {
             <Route path="/filings" element={<Filings />} />
             <Route path="/bulk-upload" element={<BulkUpload />} />
             <Route path="/client-dashboard" element={<ClientDashboard />} />
+            <Route path="/clients" element={<Navigate to="/client-dashboard" replace />} />
             <Route path="/sheets" element={<Sheets />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
