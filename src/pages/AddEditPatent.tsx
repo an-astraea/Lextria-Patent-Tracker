@@ -15,7 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { fetchPatentById, createPatent, updatePatent } from '@/lib/api/patent-api';
 import { fetchEmployees } from '@/lib/api/employee-api';
 import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
-import { Patent, Employee } from '@/lib/types';
+import { Patent, Employee, PatentFormData } from '@/lib/types';
 
 const inventorSchema = z.object({
   inventor_name: z.string().min(1, 'Inventor name is required'),
@@ -59,7 +59,7 @@ const patentSchema = z.object({
   fer_filing_status: z.number().optional(),
 });
 
-type PatentFormData = z.infer<typeof patentSchema>;
+type FormData = z.infer<typeof patentSchema>;
 
 const AddEditPatent = () => {
   const { id } = useParams();
@@ -75,7 +75,7 @@ const AddEditPatent = () => {
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
 
-  const form = useForm<PatentFormData>({
+  const form = useForm<FormData>({
     resolver: zodResolver(patentSchema),
     defaultValues: {
       tracking_id: '',
@@ -190,22 +190,19 @@ const AddEditPatent = () => {
     loadData();
   }, [id, isEditMode, form, navigate]);
 
-  const onSubmit = async (data: PatentFormData) => {
+  const onSubmit = async (data: FormData) => {
     setSubmitting(true);
     try {
       // Ensure inventors have required fields
       const processedInventors = data.inventors?.filter(inv => 
         inv.inventor_name && inv.inventor_addr
-      ).map(inv => ({
-        inventor_name: inv.inventor_name,
-        inventor_addr: inv.inventor_addr
-      })) || [];
+      ) || [];
 
       if (isEditMode && id) {
-        // For updates, we can use partial data but need proper typing
+        // For updates, create properly typed update data
         const updateData: Partial<PatentFormData> = {
           ...data,
-          inventors: processedInventors.length > 0 ? processedInventors : undefined
+          inventors: processedInventors
         };
         
         const result = await updatePatent(id, updateData);
@@ -216,7 +213,7 @@ const AddEditPatent = () => {
           toast.error(result.message);
         }
       } else {
-        // For creation, ensure all required fields are present
+        // For creation, ensure all required fields are present and properly typed
         if (!data.tracking_id || !data.patent_applicant || !data.client_id || 
             !data.patent_title || !data.applicant_addr || !data.inventor_ph_no || 
             !data.inventor_email) {
@@ -234,21 +231,21 @@ const AddEditPatent = () => {
           inventor_email: data.inventor_email,
           inventors: processedInventors,
           // Optional fields with defaults
-          application_no: data.application_no,
-          date_of_filing: data.date_of_filing,
-          ps_drafter_assgn: data.ps_drafter_assgn,
-          ps_drafter_deadline: data.ps_drafter_deadline,
-          ps_filer_assgn: data.ps_filer_assgn,
-          ps_filer_deadline: data.ps_filer_deadline,
-          cs_drafter_assgn: data.cs_drafter_assgn,
-          cs_drafter_deadline: data.cs_drafter_deadline,
-          cs_filer_assgn: data.cs_filer_assgn,
-          cs_filer_deadline: data.cs_filer_deadline,
+          application_no: data.application_no || undefined,
+          date_of_filing: data.date_of_filing || undefined,
+          ps_drafter_assgn: data.ps_drafter_assgn || undefined,
+          ps_drafter_deadline: data.ps_drafter_deadline || undefined,
+          ps_filer_assgn: data.ps_filer_assgn || undefined,
+          ps_filer_deadline: data.ps_filer_deadline || undefined,
+          cs_drafter_assgn: data.cs_drafter_assgn || undefined,
+          cs_drafter_deadline: data.cs_drafter_deadline || undefined,
+          cs_filer_assgn: data.cs_filer_assgn || undefined,
+          cs_filer_deadline: data.cs_filer_deadline || undefined,
           fer_status: data.fer_status || 0,
-          fer_drafter_assgn: data.fer_drafter_assgn,
-          fer_drafter_deadline: data.fer_drafter_deadline,
-          fer_filer_assgn: data.fer_filer_assgn,
-          fer_filer_deadline: data.fer_filer_deadline,
+          fer_drafter_assgn: data.fer_drafter_assgn || undefined,
+          fer_drafter_deadline: data.fer_drafter_deadline || undefined,
+          fer_filer_assgn: data.fer_filer_assgn || undefined,
+          fer_filer_deadline: data.fer_filer_deadline || undefined,
           idf_sent: data.idf_sent,
           idf_received: data.idf_received,
           cs_data: data.cs_data,
