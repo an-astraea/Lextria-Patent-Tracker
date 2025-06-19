@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { fetchPendingReviews, approvePatentReview, rejectPatentReview } from '@/lib/api';
@@ -81,16 +82,43 @@ const Approvals = () => {
             return patent.patent_applicant.toLowerCase().includes(searchQuery);
           case 'client_id':
             return patent.client_id.toLowerCase().includes(searchQuery);
+          case 'ps_drafter_assgn':
+            return patent.ps_drafter_assgn?.toLowerCase().includes(searchQuery) || false;
+          case 'ps_filer_assgn':
+            return patent.ps_filer_assgn?.toLowerCase().includes(searchQuery) || false;
+          case 'cs_drafter_assgn':
+            return patent.cs_drafter_assgn?.toLowerCase().includes(searchQuery) || false;
+          case 'cs_filer_assgn':
+            return patent.cs_filer_assgn?.toLowerCase().includes(searchQuery) || false;
+          case 'fer_drafter_assgn':
+            return patent.fer_drafter_assgn?.toLowerCase().includes(searchQuery) || false;
+          case 'fer_filer_assgn':
+            return patent.fer_filer_assgn?.toLowerCase().includes(searchQuery) || false;
+          case 'all_employees':
+            return (
+              patent.ps_drafter_assgn?.toLowerCase().includes(searchQuery) ||
+              patent.ps_filer_assgn?.toLowerCase().includes(searchQuery) ||
+              patent.cs_drafter_assgn?.toLowerCase().includes(searchQuery) ||
+              patent.cs_filer_assgn?.toLowerCase().includes(searchQuery) ||
+              patent.fer_drafter_assgn?.toLowerCase().includes(searchQuery) ||
+              patent.fer_filer_assgn?.toLowerCase().includes(searchQuery)
+            );
           default:
             return false;
         }
       } else {
-        // Search across all relevant fields
+        // Search across all relevant fields including employee assignments
         return (
           patent.tracking_id.toLowerCase().includes(searchQuery) ||
           patent.patent_title.toLowerCase().includes(searchQuery) ||
           patent.patent_applicant.toLowerCase().includes(searchQuery) ||
-          patent.client_id.toLowerCase().includes(searchQuery)
+          patent.client_id.toLowerCase().includes(searchQuery) ||
+          patent.ps_drafter_assgn?.toLowerCase().includes(searchQuery) ||
+          patent.ps_filer_assgn?.toLowerCase().includes(searchQuery) ||
+          patent.cs_drafter_assgn?.toLowerCase().includes(searchQuery) ||
+          patent.cs_filer_assgn?.toLowerCase().includes(searchQuery) ||
+          patent.fer_drafter_assgn?.toLowerCase().includes(searchQuery) ||
+          patent.fer_filer_assgn?.toLowerCase().includes(searchQuery)
         );
       }
     });
@@ -196,12 +224,19 @@ const Approvals = () => {
     currentPage * ITEMS_PER_PAGE
   );
 
-  // Search fields configuration
+  // Enhanced search fields configuration with employee assignments
   const searchFields = [
     { value: 'tracking_id', label: 'Tracking ID' },
     { value: 'patent_title', label: 'Patent Title' },
     { value: 'patent_applicant', label: 'Applicant' },
-    { value: 'client_id', label: 'Client ID' }
+    { value: 'client_id', label: 'Client ID' },
+    { value: 'ps_drafter_assgn', label: 'PS Drafter' },
+    { value: 'ps_filer_assgn', label: 'PS Filer' },
+    { value: 'cs_drafter_assgn', label: 'CS Drafter' },
+    { value: 'cs_filer_assgn', label: 'CS Filer' },
+    { value: 'fer_drafter_assgn', label: 'FER Drafter' },
+    { value: 'fer_filer_assgn', label: 'FER Filer' },
+    { value: 'all_employees', label: 'Any Employee' }
   ];
 
   return (
@@ -211,11 +246,11 @@ const Approvals = () => {
         <RefreshButton onRefresh={handleRefresh} loading={loading} />
       </div>
       
-      {/* Search Filters */}
+      {/* Enhanced Search Filters */}
       <div className="mb-6">
         <SearchFilters
           onSearch={handleSearch}
-          placeholder="Search pending approvals..."
+          placeholder="Search pending approvals by patent details or employee names..."
           searchFields={searchFields}
         />
       </div>

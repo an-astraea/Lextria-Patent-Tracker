@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Patent, EmployeeFormData, PatentFormData, FEREntry } from "@/lib/types";
 import { addPatentTimelineEntry } from "@/lib/api/timeline-api";
@@ -122,7 +121,7 @@ export const createPatent = async (patentData: PatentFormData) => {
 
     if (error) {
       console.error("Error creating patent:", error);
-      return { success: false, message: error.message };
+      throw new Error(error.message);
     }
 
     const createdPatent = data[0];
@@ -169,11 +168,11 @@ export const createPatent = async (patentData: PatentFormData) => {
     return { success: true, message: "Patent created successfully", patent: createdPatent };
   } catch (error: any) {
     console.error("Error in createPatent:", error);
-    return { success: false, message: error.message || "An unexpected error occurred" };
+    throw new Error(error.message || "An unexpected error occurred");
   }
 };
 
-// Update an existing patent - enhanced for tracking changes
+// Update an existing patent - fixed for better error handling
 export const updatePatent = async (id: string, patentData: Partial<PatentFormData>) => {
   try {
     const currentUser = getCurrentUser();
@@ -184,18 +183,25 @@ export const updatePatent = async (id: string, patentData: Partial<PatentFormDat
     // Get the current patent data to compare changes
     const currentPatent = await fetchPatentById(id);
     
+    // Ensure we have the updated_at field
+    const updateData = {
+      ...patentData,
+      updated_at: new Date().toISOString()
+    };
+
     const { data, error } = await supabase
       .from("patents")
-      .update({
-        ...patentData,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq("id", id)
       .select();
 
     if (error) {
       console.error("Error updating patent:", error);
-      return { success: false, message: error.message };
+      throw new Error(error.message);
+    }
+
+    if (!data || data.length === 0) {
+      throw new Error("No patent was updated. Please check if the patent exists.");
     }
 
     // Track specific changes made
@@ -248,7 +254,7 @@ export const updatePatent = async (id: string, patentData: Partial<PatentFormDat
     return { success: true, message: "Patent updated successfully", patent: data[0] };
   } catch (error: any) {
     console.error("Error in updatePatent:", error);
-    return { success: false, message: error.message || "An unexpected error occurred" };
+    throw new Error(error.message || "An unexpected error occurred");
   }
 };
 

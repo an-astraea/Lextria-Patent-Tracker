@@ -41,15 +41,8 @@ const Dashboard = () => {
   // Check if this is the company dashboard route
   const isCompanyDashboard = location.pathname === '/company-dashboard';
   
-  // For personal dashboard (/dashboard), redirect drafters and filers to their employee dashboard
+  // For personal dashboard (/dashboard), show appropriate content based on user role
   // For company dashboard (/company-dashboard), show the company view for all users
-  useEffect(() => {
-    if (!isCompanyDashboard && user && (user.role === 'drafter' || user.role === 'filer')) {
-      window.location.href = `/employee/${encodeURIComponent(user.full_name)}`;
-      return;
-    }
-  }, [user, isCompanyDashboard]);
-  
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -80,10 +73,7 @@ const Dashboard = () => {
       }
     };
 
-    // Fetch data for company dashboard (all users) or admin personal dashboard
-    if (isCompanyDashboard || user?.role === 'admin') {
-      fetchData();
-    }
+    fetchData();
   }, [user?.full_name, user?.role, isCompanyDashboard]);
   
   const refreshPendingApprovals = async () => {
@@ -111,8 +101,7 @@ const Dashboard = () => {
   
   const pendingApprovalCount = pendingApprovals.length;
 
-  // Show loading for company dashboard or admin users
-  if (loading && (isCompanyDashboard || user?.role === 'admin')) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -120,11 +109,36 @@ const Dashboard = () => {
     );
   }
   
-  // Only render the company dashboard for company dashboard route or admin users on personal dashboard
-  if (!isCompanyDashboard && user?.role !== 'admin') {
-    return null; // Component will redirect, so return null
+  // Personal dashboard for drafters and filers
+  if (!isCompanyDashboard && (user?.role === 'drafter' || user?.role === 'filer')) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold tracking-tight">
+          My Dashboard - {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+        </h1>
+        
+        {/* User-specific assignments */}
+        <UserAssignments 
+          userAssignedPatents={userAssignedPatents}
+          userRole={user.role}
+          userName={user.full_name}
+        />
+        
+        {/* Summary cards for user's work */}
+        <SummaryCards 
+          patents={patents} 
+          pendingApprovalCount={0}
+          userAssignedPatents={userAssignedPatents}
+          userRole={user?.role}
+        />
+        
+        {/* Deadlines for user's assigned patents */}
+        <DeadlinePatents patents={userAssignedPatents} />
+      </div>
+    );
   }
   
+  // Company dashboard or admin dashboard
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">
