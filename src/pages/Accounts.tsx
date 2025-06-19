@@ -20,7 +20,7 @@ const Accounts: React.FC = () => {
     queryFn: fetchPatents,
   });
 
-  const selectedPatent = patents.find(p => p.id === selectedPatentId);
+  const selectedPatent = patents?.find(p => p.id === selectedPatentId);
 
   if (isLoading) return <LoadingState />;
 
@@ -44,7 +44,7 @@ const Accounts: React.FC = () => {
         </CardHeader>
         <CardContent>
           <PatentSearchSelect 
-            patents={patents}
+            patents={patents || []}
             selectedPatentId={selectedPatentId}
             onSelectPatent={setSelectedPatentId}
           />

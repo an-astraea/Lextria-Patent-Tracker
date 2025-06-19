@@ -10,6 +10,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from '@/components/ui/command';
 import {
   Popover,
@@ -24,19 +25,21 @@ interface PatentSearchSelectProps {
 }
 
 const PatentSearchSelect: React.FC<PatentSearchSelectProps> = ({
-  patents,
+  patents = [], // Default to empty array
   selectedPatentId,
   onSelectPatent,
 }) => {
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
-  const selectedPatent = patents.find(p => p.id === selectedPatentId);
+  // Ensure patents is always an array before filtering
+  const safePatents = patents || [];
+  const selectedPatent = safePatents.find(p => p.id === selectedPatentId);
 
-  const filteredPatents = patents.filter(patent =>
-    patent.tracking_id.toLowerCase().includes(searchValue.toLowerCase()) ||
-    patent.patent_title.toLowerCase().includes(searchValue.toLowerCase()) ||
-    patent.client_id.toLowerCase().includes(searchValue.toLowerCase())
+  const filteredPatents = safePatents.filter(patent =>
+    patent.tracking_id?.toLowerCase().includes(searchValue.toLowerCase()) ||
+    patent.patent_title?.toLowerCase().includes(searchValue.toLowerCase()) ||
+    patent.client_id?.toLowerCase().includes(searchValue.toLowerCase())
   );
 
   return (
@@ -69,29 +72,31 @@ const PatentSearchSelect: React.FC<PatentSearchSelectProps> = ({
               value={searchValue}
               onValueChange={setSearchValue}
             />
-            <CommandEmpty>No patent found.</CommandEmpty>
-            <CommandGroup className="max-h-64 overflow-auto">
-              {filteredPatents.map((patent) => (
-                <CommandItem
-                  key={patent.id}
-                  value={patent.id}
-                  onSelect={() => {
-                    onSelectPatent(patent.id);
-                    setOpen(false);
-                  }}
-                  className="flex flex-col items-start py-3"
-                >
-                  <div className="flex items-center gap-2 w-full">
-                    <span className="font-medium text-blue-600">{patent.tracking_id}</span>
-                    <span className="text-gray-500">•</span>
-                    <span className="text-sm text-gray-600">{patent.client_id}</span>
-                  </div>
-                  <div className="text-sm text-gray-700 truncate w-full mt-1">
-                    {patent.patent_title}
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            <CommandList>
+              <CommandEmpty>No patent found.</CommandEmpty>
+              <CommandGroup className="max-h-64 overflow-auto">
+                {filteredPatents.map((patent) => (
+                  <CommandItem
+                    key={patent.id}
+                    value={patent.id}
+                    onSelect={() => {
+                      onSelectPatent(patent.id);
+                      setOpen(false);
+                    }}
+                    className="flex flex-col items-start py-3"
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <span className="font-medium text-blue-600">{patent.tracking_id}</span>
+                      <span className="text-gray-500">•</span>
+                      <span className="text-sm text-gray-600">{patent.client_id}</span>
+                    </div>
+                    <div className="text-sm text-gray-700 truncate w-full mt-1">
+                      {patent.patent_title}
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
           </Command>
         </PopoverContent>
       </Popover>
