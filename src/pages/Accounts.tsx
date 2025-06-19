@@ -15,6 +15,7 @@ const Accounts: React.FC = () => {
     data: patents = [],
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['patents'],
     queryFn: fetchPatents,

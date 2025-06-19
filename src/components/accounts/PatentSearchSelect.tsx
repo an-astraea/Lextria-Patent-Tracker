@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { Patent } from '@/lib/types';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import {
@@ -25,22 +24,13 @@ interface PatentSearchSelectProps {
 }
 
 const PatentSearchSelect: React.FC<PatentSearchSelectProps> = ({
-  patents = [], // Default to empty array
+  patents = [],
   selectedPatentId,
   onSelectPatent,
 }) => {
   const [open, setOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState('');
 
-  // Ensure patents is always an array before filtering
-  const safePatents = patents || [];
-  const selectedPatent = safePatents.find(p => p.id === selectedPatentId);
-
-  const filteredPatents = safePatents.filter(patent =>
-    patent.tracking_id?.toLowerCase().includes(searchValue.toLowerCase()) ||
-    patent.patent_title?.toLowerCase().includes(searchValue.toLowerCase()) ||
-    patent.client_id?.toLowerCase().includes(searchValue.toLowerCase())
-  );
+  const selectedPatent = patents.find(p => p.id === selectedPatentId);
 
   return (
     <div className="space-y-2">
@@ -69,16 +59,14 @@ const PatentSearchSelect: React.FC<PatentSearchSelectProps> = ({
           <Command>
             <CommandInput 
               placeholder="Search by tracking ID, title, or client..." 
-              value={searchValue}
-              onValueChange={setSearchValue}
             />
             <CommandList>
               <CommandEmpty>No patent found.</CommandEmpty>
               <CommandGroup className="max-h-64 overflow-auto">
-                {filteredPatents.map((patent) => (
+                {patents.map((patent) => (
                   <CommandItem
                     key={patent.id}
-                    value={patent.id}
+                    value={`${patent.tracking_id} ${patent.patent_title} ${patent.client_id}`}
                     onSelect={() => {
                       onSelectPatent(patent.id);
                       setOpen(false);

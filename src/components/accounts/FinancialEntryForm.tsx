@@ -2,19 +2,20 @@
 import React, { useState, useEffect } from 'react';
 import { Patent } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { updatePatent } from '@/lib/api/patent-api';
 import { toast } from 'sonner';
-import { Calculator, Save } from 'lucide-react';
+import { Calculator, Save, DollarSign } from 'lucide-react';
 
 interface FinancialEntryFormProps {
   patent: Patent;
 }
 
 const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     professional_fees: patent.professional_fees || 0,
     reimbursement: patent.reimbursement || 0,
@@ -24,32 +25,16 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
     date_of_receipt: patent.date_of_receipt || '',
   });
 
-  const [calculatedAmounts, setCalculatedAmounts] = useState({
-    gst_amount: 0,
-    tds_amount: 0,
-    invoice_amount: 0,
-    expected_to_receive: 0,
-  });
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Calculate GST, TDS, invoice amount, and expected amount
   useEffect(() => {
-    const professionalFees = Number(formData.professional_fees) || 0;
-    const reimbursement = Number(formData.reimbursement) || 0;
-    
-    const gst = professionalFees * 0.18; // 18% GST
-    const tds = professionalFees * 0.10; // 10% TDS
-    const invoiceAmount = professionalFees + gst + reimbursement; // Total invoice amount
-    const expectedToReceive = invoiceAmount - tds; // Amount expected after TDS deduction
-
-    setCalculatedAmounts({
-      gst_amount: gst,
-      tds_amount: tds,
-      invoice_amount: invoiceAmount,
-      expected_to_receive: expectedToReceive,
+    setFormData({
+      professional_fees: patent.professional_fees || 0,
+      reimbursement: patent.reimbursement || 0,
+      invoice_status: patent.invoice_status || 'not_sent',
+      payment_status: patent.payment_status || 'not_sent',
+      payment_received: patent.payment_received || 0,
+      date_of_receipt: patent.date_of_receipt || '',
     });
-  }, [formData.professional_fees, formData.reimbursement]);
+  }, [patent]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -57,6 +42,20 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
       [field]: value
     }));
   };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+    }).format(amount || 0);
+  };
+
+  // Calculate amounts in real-time
+  const gstAmount = Number(formData.professional_fees) * 0.18;
+  const tdsAmount = Number(formData.professional_fees) * 0.10;
+  const invoiceAmount = Number(formData.professional_fees) + gstAmount + Number(formData.reimbursement);
+  const expectedAmount = invoiceAmount - tdsAmount;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,55 +65,50 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
       const updateData = {
         professional_fees: Number(formData.professional_fees),
         reimbursement: Number(formData.reimbursement),
-        gst_amount: calculatedAmounts.gst_amount,
-        tds_amount: calculatedAmounts.tds_amount,
-        payment_amount: calculatedAmounts.invoice_amount,
-        expected_amount: calculatedAmounts.expected_to_receive,
+        gst_amount: gstAmount,
+        tds_amount: tdsAmount,
+        payment_amount: invoiceAmount,
+        expected_amount: expectedAmount,
         invoice_status: formData.invoice_status,
         payment_status: formData.payment_status,
         payment_received: Number(formData.payment_received),
         date_of_receipt: formData.date_of_receipt || null,
+        // Also update the legacy invoice_sent field for compatibility
+        invoice_sent: formData.invoice_status === 'sent',
       };
 
       const result = await updatePatent(patent.id, updateData);
       
       if (result.success) {
         toast.success('Financial information updated successfully');
+        // Trigger a page refresh to update all components
+        window.location.reload();
       } else {
         toast.error(result.message || 'Failed to update financial information');
       }
-    } catch (error: any) {
-      console.error('Error updating financial data:', error);
+    } catch (error) {
+      console.error('Error updating financial information:', error);
       toast.error('An error occurred while updating financial information');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
-
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Calculator className="h-5 w-5" />
-          Financial Information
+          <DollarSign className="h-5 w-5" />
+          Financial Entry
         </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Input Fields */}
+          {/* Financial Amounts */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="professional_fees">Professional Fees (PF) - ₹</Label>
+              <Label>Professional Fees (PF)</Label>
               <Input
-                id="professional_fees"
                 type="number"
                 step="0.01"
                 value={formData.professional_fees}
@@ -122,11 +116,9 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
                 placeholder="Enter professional fees"
               />
             </div>
-
             <div>
-              <Label htmlFor="reimbursement">Reimbursement (Reim) - ₹</Label>
+              <Label>Reimbursement</Label>
               <Input
-                id="reimbursement"
                 type="number"
                 step="0.01"
                 value={formData.reimbursement}
@@ -136,39 +128,42 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
             </div>
           </div>
 
-          {/* Auto-calculated Fields */}
-          <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-            <h4 className="font-medium text-gray-900">Auto-Calculated Amounts</h4>
+          {/* Calculated Amounts Display */}
+          <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+            <h4 className="font-medium flex items-center gap-2">
+              <Calculator className="h-4 w-4" />
+              Calculated Amounts
+            </h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">GST (18%):</span>
-                <span className="font-medium">{formatCurrency(calculatedAmounts.gst_amount)}</span>
+                <span>GST (18%):</span>
+                <span>{formatCurrency(gstAmount)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">TDS (10%):</span>
-                <span className="font-medium text-red-600">{formatCurrency(calculatedAmounts.tds_amount)}</span>
+                <span>TDS (10%):</span>
+                <span className="text-red-600">-{formatCurrency(tdsAmount)}</span>
               </div>
-              <div className="flex justify-between border-t pt-2">
-                <span className="font-medium">Invoice Amount:</span>
-                <span className="font-bold text-blue-600">{formatCurrency(calculatedAmounts.invoice_amount)}</span>
+              <div className="flex justify-between font-medium border-t pt-2">
+                <span>Invoice Amount:</span>
+                <span className="text-blue-600">{formatCurrency(invoiceAmount)}</span>
               </div>
-              <div className="flex justify-between border-t pt-2">
-                <span className="font-medium">Expected to Receive:</span>
-                <span className="font-bold text-green-600">{formatCurrency(calculatedAmounts.expected_to_receive)}</span>
+              <div className="flex justify-between font-medium border-t pt-2">
+                <span>Expected Amount:</span>
+                <span className="text-green-600">{formatCurrency(expectedAmount)}</span>
               </div>
             </div>
           </div>
 
-          {/* Status and Payment Information */}
+          {/* Status Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="invoice_status">Invoice Status</Label>
+              <Label>Invoice Status</Label>
               <Select 
                 value={formData.invoice_status} 
                 onValueChange={(value) => handleInputChange('invoice_status', value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select invoice status" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="not_sent">Not Sent</SelectItem>
@@ -176,15 +171,14 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
                 </SelectContent>
               </Select>
             </div>
-
             <div>
-              <Label htmlFor="payment_status">Payment Status</Label>
+              <Label>Payment Status</Label>
               <Select 
                 value={formData.payment_status} 
                 onValueChange={(value) => handleInputChange('payment_status', value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select payment status" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="not_sent">Not Sent</SelectItem>
@@ -194,23 +188,23 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
+          {/* Payment Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="payment_received">Amount Received - ₹</Label>
+              <Label>Amount Received</Label>
               <Input
-                id="payment_received"
                 type="number"
                 step="0.01"
                 value={formData.payment_received}
                 onChange={(e) => handleInputChange('payment_received', e.target.value)}
-                placeholder="Enter received amount"
+                placeholder="Enter amount received"
               />
             </div>
-
             <div>
-              <Label htmlFor="date_of_receipt">Date of Receipt</Label>
+              <Label>Date of Receipt</Label>
               <Input
-                id="date_of_receipt"
                 type="date"
                 value={formData.date_of_receipt}
                 onChange={(e) => handleInputChange('date_of_receipt', e.target.value)}
@@ -218,13 +212,9 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
             </div>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isSubmitting}
-          >
+          <Button type="submit" disabled={isSubmitting} className="w-full">
             <Save className="h-4 w-4 mr-2" />
-            {isSubmitting ? 'Updating...' : 'Update Financial Information'}
+            {isSubmitting ? 'Saving...' : 'Save Financial Information'}
           </Button>
         </form>
       </CardContent>
