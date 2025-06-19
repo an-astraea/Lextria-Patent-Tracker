@@ -280,6 +280,8 @@ export type Database = {
           cs_review_file_status: number
           current_stage: string | null
           date_of_filing: string | null
+          date_of_receipt: string | null
+          expected_amount: number | null
           fer_completion_status: number
           fer_drafter_assgn: string | null
           fer_drafter_deadline: string | null
@@ -339,6 +341,7 @@ export type Database = {
           inventor_email: string
           inventor_ph_no: string
           invoice_sent: boolean | null
+          invoice_status: string | null
           last_follow_up_date: string | null
           next_reminder_date: string | null
           notes: string | null
@@ -388,6 +391,8 @@ export type Database = {
           cs_review_file_status?: number
           current_stage?: string | null
           date_of_filing?: string | null
+          date_of_receipt?: string | null
+          expected_amount?: number | null
           fer_completion_status?: number
           fer_drafter_assgn?: string | null
           fer_drafter_deadline?: string | null
@@ -447,6 +452,7 @@ export type Database = {
           inventor_email: string
           inventor_ph_no: string
           invoice_sent?: boolean | null
+          invoice_status?: string | null
           last_follow_up_date?: string | null
           next_reminder_date?: string | null
           notes?: string | null
@@ -496,6 +502,8 @@ export type Database = {
           cs_review_file_status?: number
           current_stage?: string | null
           date_of_filing?: string | null
+          date_of_receipt?: string | null
+          expected_amount?: number | null
           fer_completion_status?: number
           fer_drafter_assgn?: string | null
           fer_drafter_deadline?: string | null
@@ -555,6 +563,7 @@ export type Database = {
           inventor_email?: string
           inventor_ph_no?: string
           invoice_sent?: boolean | null
+          invoice_status?: string | null
           last_follow_up_date?: string | null
           next_reminder_date?: string | null
           notes?: string | null

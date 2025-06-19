@@ -27,20 +27,20 @@ const Finance: React.FC = () => {
   const financialData = useMemo(() => {
     if (!patents.length) return null;
 
-    // Calculate totals using new financial structure
+    // Calculate totals using new financial structure with safe property access
     const totalProfessionalFees = patents.reduce((sum, patent) => sum + (patent.professional_fees || 0), 0);
     const totalGst = patents.reduce((sum, patent) => sum + (patent.gst_amount || 0), 0);
     const totalTds = patents.reduce((sum, patent) => sum + (patent.tds_amount || 0), 0);
     const totalReimbursement = patents.reduce((sum, patent) => sum + (patent.reimbursement || 0), 0);
     const totalInvoiceAmount = patents.reduce((sum, patent) => sum + (patent.payment_amount || 0), 0);
-    const totalExpectedAmount = patents.reduce((sum, patent) => sum + (patent.expected_amount || 0), 0);
+    const totalExpectedAmount = patents.reduce((sum, patent) => sum + ((patent as any).expected_amount || 0), 0);
     const totalReceived = patents.reduce((sum, patent) => sum + (patent.payment_received || 0), 0);
     const outstandingAmount = totalExpectedAmount - totalReceived;
     const collectionRate = totalExpectedAmount > 0 ? (totalReceived / totalExpectedAmount) * 100 : 0;
 
     const invoiceStatusBreakdown = {
-      not_sent: patents.filter(p => p.invoice_status === 'not_sent' || !p.invoice_status),
-      sent: patents.filter(p => p.invoice_status === 'sent'),
+      not_sent: patents.filter(p => (p as any).invoice_status === 'not_sent' || !(p as any).invoice_status),
+      sent: patents.filter(p => (p as any).invoice_status === 'sent'),
     };
 
     const paymentStatusBreakdown = {
@@ -51,7 +51,7 @@ const Finance: React.FC = () => {
     };
 
     const overduePayments = patents.filter(p => {
-      if (p.payment_status === 'complete' || p.invoice_status !== 'sent') return false;
+      if (p.payment_status === 'complete' || (p as any).invoice_status !== 'sent') return false;
       // Consider payments overdue if invoice was sent and no payment received after 30 days
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -59,7 +59,7 @@ const Finance: React.FC = () => {
     });
 
     const pendingInvoices = patents.filter(p => 
-      (p.invoice_status === 'not_sent' || !p.invoice_status) && 
+      ((p as any).invoice_status === 'not_sent' || !(p as any).invoice_status) && 
       (p.payment_amount || 0) > 0
     );
 
