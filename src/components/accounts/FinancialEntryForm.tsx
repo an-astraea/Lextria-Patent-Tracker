@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { updatePatent } from '@/lib/api/patent-api';
 import { toast } from 'sonner';
-import { Calculator, Save, DollarSign } from 'lucide-react';
+import { Calculator, Save, DollarSign, CheckCircle } from 'lucide-react';
+import LoadingState from '@/components/common/LoadingState';
 
 interface FinancialEntryFormProps {
   patent: Patent;
@@ -16,6 +17,7 @@ interface FinancialEntryFormProps {
 
 const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [formData, setFormData] = useState({
     professional_fees: patent.professional_fees || 0,
     reimbursement: patent.reimbursement || 0,
@@ -81,8 +83,12 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
       
       if (result.success) {
         toast.success('Financial information updated successfully');
-        // Trigger a page refresh to update all components
-        window.location.reload();
+        setIsUpdating(true);
+        
+        // Show loading for 2 seconds before refresh
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       } else {
         toast.error(result.message || 'Failed to update financial information');
       }
@@ -93,6 +99,22 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
       setIsSubmitting(false);
     }
   };
+
+  // Show loading state after successful update
+  if (isUpdating) {
+    return (
+      <Card>
+        <CardContent className="p-8">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <CheckCircle className="h-12 w-12 text-green-500" />
+            <h3 className="text-lg font-semibold">Update Successful!</h3>
+            <p className="text-gray-600 text-center">Financial information has been updated successfully.</p>
+            <LoadingState size="md" text="Refreshing data..." />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
