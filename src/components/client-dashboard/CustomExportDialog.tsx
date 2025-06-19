@@ -202,10 +202,8 @@ const CustomExportDialog: React.FC<CustomExportDialogProps> = ({ patents }) => {
                       <Checkbox
                         id={`category-${category}`}
                         checked={allSelected}
-                        ref={(el) => {
-                          if (el) el.indeterminate = someSelected;
-                        }}
                         onCheckedChange={() => handleCategoryToggle(category)}
+                        className={someSelected ? 'opacity-50' : ''}
                       />
                       <label 
                         htmlFor={`category-${category}`} 
