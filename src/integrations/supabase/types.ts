@@ -331,6 +331,7 @@ export type Database = {
           form_31: boolean | null
           form_9: boolean | null
           form_9a: boolean | null
+          gst_amount: number | null
           id: string
           idf_received: boolean | null
           idf_sent: boolean | null
@@ -349,6 +350,7 @@ export type Database = {
           payment_status: string | null
           pending_cs_confirmation: boolean | null
           pending_ps_confirmation: boolean | null
+          professional_fees: number | null
           ps_completion_status: number
           ps_confirmed: boolean | null
           ps_drafter_assgn: string | null
@@ -359,7 +361,9 @@ export type Database = {
           ps_filing_status: number
           ps_review_draft_status: number
           ps_review_file_status: number
+          reimbursement: number | null
           stage_updated_at: string | null
+          tds_amount: number | null
           tracking_id: string
           updated_at: string | null
           withdrawn: boolean | null
@@ -435,6 +439,7 @@ export type Database = {
           form_31?: boolean | null
           form_9?: boolean | null
           form_9a?: boolean | null
+          gst_amount?: number | null
           id?: string
           idf_received?: boolean | null
           idf_sent?: boolean | null
@@ -453,6 +458,7 @@ export type Database = {
           payment_status?: string | null
           pending_cs_confirmation?: boolean | null
           pending_ps_confirmation?: boolean | null
+          professional_fees?: number | null
           ps_completion_status?: number
           ps_confirmed?: boolean | null
           ps_drafter_assgn?: string | null
@@ -463,7 +469,9 @@ export type Database = {
           ps_filing_status?: number
           ps_review_draft_status?: number
           ps_review_file_status?: number
+          reimbursement?: number | null
           stage_updated_at?: string | null
+          tds_amount?: number | null
           tracking_id: string
           updated_at?: string | null
           withdrawn?: boolean | null
@@ -539,6 +547,7 @@ export type Database = {
           form_31?: boolean | null
           form_9?: boolean | null
           form_9a?: boolean | null
+          gst_amount?: number | null
           id?: string
           idf_received?: boolean | null
           idf_sent?: boolean | null
@@ -557,6 +566,7 @@ export type Database = {
           payment_status?: string | null
           pending_cs_confirmation?: boolean | null
           pending_ps_confirmation?: boolean | null
+          professional_fees?: number | null
           ps_completion_status?: number
           ps_confirmed?: boolean | null
           ps_drafter_assgn?: string | null
@@ -567,7 +577,9 @@ export type Database = {
           ps_filing_status?: number
           ps_review_draft_status?: number
           ps_review_file_status?: number
+          reimbursement?: number | null
           stage_updated_at?: string | null
+          tds_amount?: number | null
           tracking_id?: string
           updated_at?: string | null
           withdrawn?: boolean | null

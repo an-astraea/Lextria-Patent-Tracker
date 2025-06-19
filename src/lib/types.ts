@@ -1,4 +1,3 @@
-
 export interface Patent {
   id: string;
   tracking_id: string;
@@ -43,6 +42,15 @@ export interface Patent {
   cs_confirmed?: boolean;            // CS confirmed 
   pending_ps_confirmation?: boolean; // Sent PS for confirmation
   ps_confirmed?: boolean;            // PS confirmed
+  // Financial fields - new 4-component structure
+  professional_fees?: number;       // Entered by admin
+  gst_amount?: number;              // Auto-calculated (18% of professional fees)
+  tds_amount?: number;              // Auto-calculated (10% of professional fees)
+  reimbursement?: number;           // Entered by admin
+  payment_amount?: number;          // Auto-calculated total amount
+  payment_received?: number;        // Amount actually received
+  payment_status?: string;          // 'not_sent', 'sent', 'received'
+  invoice_sent?: boolean;           // Whether invoice has been sent
   // Form fields
   form_1?: boolean;
   form_2?: boolean;
@@ -97,10 +105,6 @@ export interface Patent {
   form_09a?: boolean;
   completed?: boolean;
   withdrawn?: boolean;
-  payment_status?: string;
-  payment_amount?: number;
-  payment_received?: number;
-  invoice_sent?: boolean;
   notes?: string;
   idf_sent?: boolean;
   idf_received?: boolean;

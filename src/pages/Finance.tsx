@@ -27,6 +27,11 @@ const Finance: React.FC = () => {
   const financialData = useMemo(() => {
     if (!patents.length) return null;
 
+    // Calculate totals using new financial structure
+    const totalProfessionalFees = patents.reduce((sum, patent) => sum + (patent.professional_fees || 0), 0);
+    const totalGst = patents.reduce((sum, patent) => sum + (patent.gst_amount || 0), 0);
+    const totalTds = patents.reduce((sum, patent) => sum + (patent.tds_amount || 0), 0);
+    const totalReimbursement = patents.reduce((sum, patent) => sum + (patent.reimbursement || 0), 0);
     const totalRevenue = patents.reduce((sum, patent) => sum + (patent.payment_amount || 0), 0);
     const totalReceived = patents.reduce((sum, patent) => sum + (patent.payment_received || 0), 0);
     const outstandingAmount = totalRevenue - totalReceived;
@@ -49,6 +54,10 @@ const Finance: React.FC = () => {
     const pendingInvoices = patents.filter(p => !p.invoice_sent && p.payment_amount > 0);
 
     return {
+      totalProfessionalFees,
+      totalGst,
+      totalTds,
+      totalReimbursement,
       totalRevenue,
       totalReceived,
       outstandingAmount,
@@ -74,10 +83,7 @@ const Finance: React.FC = () => {
   if (!financialData) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <PageHeader 
-          title="Financial Dashboard" 
-          description="Monitor revenue, payments, and financial health of your patent portfolio"
-        />
+        <PageHeader title="Financial Dashboard" />
         <div className="text-center text-gray-500 mt-8">
           No financial data available.
         </div>
@@ -87,10 +93,7 @@ const Finance: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
-      <PageHeader 
-        title="Financial Dashboard" 
-        description="Monitor revenue, payments, and financial health of your patent portfolio"
-      />
+      <PageHeader title="Financial Dashboard" />
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
