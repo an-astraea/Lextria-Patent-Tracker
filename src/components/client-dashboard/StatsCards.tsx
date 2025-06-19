@@ -2,7 +2,7 @@
 import React from 'react';
 import { Patent } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, PieChart, Users, Clock } from 'lucide-react';
+import { FileText, PieChart, Users, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface StatsCardsProps {
   patents: Patent[];
@@ -10,134 +10,150 @@ interface StatsCardsProps {
 
 const StatsCards: React.FC<StatsCardsProps> = ({ patents }) => {
   
-  const getCompletionStats = () => {
-    if (patents.length === 0) return { total: 0, completed: 0, percentage: 0 };
+  const getDetailedStats = () => {
+    if (patents.length === 0) {
+      return {
+        completed: 0,
+        drafting: 0,
+        review: 0,
+        pendingConfirmation: 0,
+        pendingInformation: 0,
+        total: 0
+      };
+    }
     
-    const completedPatents = patents.filter(patent => {
+    let completed = 0;
+    let drafting = 0;
+    let review = 0;
+    let pendingConfirmation = 0;
+    let pendingInformation = 0;
+
+    patents.forEach(patent => {
+      // Check if patent is fully completed
       const psDone = patent.ps_completion_status === 1;
       const csDone = patent.cs_completion_status === 1;
       const ferDone = patent.fer_status === 0 || patent.fer_completion_status === 1;
       
-      return psDone && csDone && ferDone;
+      if (psDone && csDone && ferDone) {
+        completed++;
+        return;
+      }
+
+      // Check for pending confirmation status
+      if (patent.pending_ps_confirmation || patent.pending_cs_confirmation) {
+        pendingConfirmation++;
+        return;
+      }
+
+      // Check for pending information (IDF or CS data)
+      if ((patent.idf_sent && !patent.idf_received) || (patent.cs_data && !patent.cs_data_received)) {
+        pendingInformation++;
+        return;
+      }
+
+      // Check for review status
+      if ((patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0) ||
+          (patent.ps_filing_status === 1 && patent.ps_review_file_status === 0) ||
+          (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0) ||
+          (patent.cs_filing_status === 1 && patent.cs_review_file_status === 0) ||
+          (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0) ||
+          (patent.fer_filing_status === 1 && patent.fer_review_file_status === 0)) {
+        review++;
+        return;
+      }
+
+      // Everything else is considered drafting
+      drafting++;
     });
-    
-    const percentage = Math.round((completedPatents.length / patents.length) * 100);
-    
+
     return {
-      total: patents.length,
-      completed: completedPatents.length,
-      percentage
+      completed,
+      drafting,
+      review,
+      pendingConfirmation,
+      pendingInformation,
+      total: patents.length
     };
   };
 
-  const getStageStats = () => {
-    if (patents.length === 0) {
-      return {
-        psOnly: 0,
-        psAndCs: 0,
-        all: 0,
-        fer: 0
-      };
-    }
-    
-    const psOnly = patents.filter(p => 
-      p.ps_completion_status === 1 && 
-      p.cs_completion_status === 0
-    ).length;
-    
-    const psAndCs = patents.filter(p => 
-      p.ps_completion_status === 1 && 
-      p.cs_completion_status === 1 && 
-      (p.fer_status === 0 || p.fer_completion_status === 0)
-    ).length;
-    
-    const all = patents.filter(p => 
-      p.ps_completion_status === 1 && 
-      p.cs_completion_status === 1 && 
-      (p.fer_status === 0 || p.fer_completion_status === 1)
-    ).length;
-    
-    const fer = patents.filter(p => p.fer_status === 1).length;
-    
-    return { psOnly, psAndCs, all, fer };
-  };
-
-  const getFormCompletionPercentage = (patent: Patent) => {
-    const formFields = [
-      patent.form_1, patent.form_2_ps, patent.form_2_cs, patent.form_3, 
-      patent.form_4, patent.form_5, patent.form_6, patent.form_7, 
-      patent.form_7a, patent.form_8, patent.form_8a, patent.form_9, 
-      patent.form_9a, patent.form_10, patent.form_11, patent.form_12, 
-      patent.form_13, patent.form_14, patent.form_15, patent.form_16, 
-      patent.form_17, patent.form_18, patent.form_18a, patent.form_19, 
-      patent.form_20, patent.form_21, patent.form_22, patent.form_23, 
-      patent.form_24, patent.form_25, patent.form_26, patent.form_27, 
-      patent.form_28, patent.form_29, patent.form_30, patent.form_31
-    ];
-    
-    const totalForms = formFields.length;
-    const completedForms = formFields.filter(form => form === true).length;
-    
-    return totalForms > 0 ? Math.round((completedForms / totalForms) * 100) : 0;
-  };
-
-  const stats = getCompletionStats();
-  const stageStats = getStageStats();
+  const stats = getDetailedStats();
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-          <PieChart className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Completed</CardTitle>
+          <CheckCircle className="h-4 w-4 text-green-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.percentage}%</div>
+          <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
           <p className="text-xs text-muted-foreground mt-1">
-            {stats.completed} of {stats.total} patents completed
+            Fully completed patents
           </p>
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Stage Progress</CardTitle>
-          <FileText className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Drafting</CardTitle>
+          <FileText className="h-4 w-4 text-yellow-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stageStats.psOnly + stageStats.psAndCs + stageStats.all}</div>
+          <div className="text-2xl font-bold text-yellow-600">{stats.drafting}</div>
           <p className="text-xs text-muted-foreground mt-1">
-            PS: {stageStats.psOnly}, CS: {stageStats.psAndCs}, Complete: {stageStats.all}
+            PS/CS drafting in progress
           </p>
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">FER Status</CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Review</CardTitle>
+          <PieChart className="h-4 w-4 text-gray-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stageStats.fer}</div>
+          <div className="text-2xl font-bold text-gray-600">{stats.review}</div>
           <p className="text-xs text-muted-foreground mt-1">
-            Active FER cases
+            Pending admin review
           </p>
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Form Completion</CardTitle>
-          <Clock className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Pending Confirmation</CardTitle>
+          <AlertCircle className="h-4 w-4 text-orange-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
-            {patents.length > 0 
-              ? Math.round(patents.reduce((sum, patent) => sum + getFormCompletionPercentage(patent), 0) / patents.length)
-              : 0}%
-          </div>
+          <div className="text-2xl font-bold text-orange-600">{stats.pendingConfirmation}</div>
           <p className="text-xs text-muted-foreground mt-1">
-            Average form completion rate
+            Awaiting client confirmation
+          </p>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Pending Information</CardTitle>
+          <Clock className="h-4 w-4 text-purple-600" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-purple-600">{stats.pendingInformation}</div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Awaiting IDF/CS data
+          </p>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total</CardTitle>
+          <Users className="h-4 w-4 text-blue-600" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Total patents for client
           </p>
         </CardContent>
       </Card>

@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, User } from 'lucide-react';
+import { ArrowLeft, User, Download } from 'lucide-react';
 import { Patent } from '@/lib/types';
 import { fetchPatents } from '@/lib/api';
 import { toast } from 'sonner';
@@ -10,6 +11,7 @@ import SearchFilters from '@/components/common/SearchFilters';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import * as XLSX from 'xlsx';
 
 interface EnhancedPatent extends Patent {
   tasks: {
@@ -252,10 +254,10 @@ const EmployeeDashboard = () => {
     });
   }, [patents, employeeName]);
 
-  // Search and filter functionality
-  const handleSearch = (query: string) => {
+  // Enhanced search functionality
+  const handleSearch = (query: string, field?: string) => {
     setSearchQuery(query);
-    applyFilters(query, statusFilter, taskTypeFilter);
+    applyFilters(query, statusFilter, taskTypeFilter, field);
   };
 
   const handleStatusFilter = (status: string | null) => {
@@ -268,18 +270,48 @@ const EmployeeDashboard = () => {
     applyFilters(searchQuery, statusFilter, taskType);
   };
 
-  const applyFilters = (query: string, status: string | null, taskType: string | null) => {
+  const applyFilters = (query: string, status: string | null, taskType: string | null, field?: string) => {
     let filtered = [...enhancedPatents];
 
-    // Apply search query
+    // Apply search query with field-specific search
     if (query.trim()) {
       const lowercaseQuery = query.toLowerCase();
-      filtered = filtered.filter(patent =>
-        patent.tracking_id.toLowerCase().includes(lowercaseQuery) ||
-        patent.patent_title.toLowerCase().includes(lowercaseQuery) ||
-        patent.patent_applicant.toLowerCase().includes(lowercaseQuery) ||
-        patent.client_id.toLowerCase().includes(lowercaseQuery)
-      );
+      filtered = filtered.filter(patent => {
+        if (field) {
+          // Field-specific search
+          switch (field) {
+            case 'tracking_id':
+              return patent.tracking_id.toLowerCase().includes(lowercaseQuery);
+            case 'patent_title':
+              return patent.patent_title.toLowerCase().includes(lowercaseQuery);
+            case 'patent_applicant':
+              return patent.patent_applicant.toLowerCase().includes(lowercaseQuery);
+            case 'client_id':
+              return patent.client_id.toLowerCase().includes(lowercaseQuery);
+            case 'application_no':
+              return patent.application_no?.toLowerCase().includes(lowercaseQuery) || false;
+            case 'inventor_name':
+              return patent.inventors?.some(inv => 
+                inv.inventor_name.toLowerCase().includes(lowercaseQuery)
+              ) || false;
+            case 'inventor_email':
+              return patent.inventor_email.toLowerCase().includes(lowercaseQuery);
+            default:
+              return true;
+          }
+        } else {
+          // Global search across all fields
+          return patent.tracking_id.toLowerCase().includes(lowercaseQuery) ||
+                 patent.patent_title.toLowerCase().includes(lowercaseQuery) ||
+                 patent.patent_applicant.toLowerCase().includes(lowercaseQuery) ||
+                 patent.client_id.toLowerCase().includes(lowercaseQuery) ||
+                 patent.application_no?.toLowerCase().includes(lowercaseQuery) ||
+                 patent.inventor_email.toLowerCase().includes(lowercaseQuery) ||
+                 patent.inventors?.some(inv => 
+                   inv.inventor_name.toLowerCase().includes(lowercaseQuery)
+                 );
+        }
+      });
     }
 
     // Apply status filter
@@ -303,6 +335,52 @@ const EmployeeDashboard = () => {
     applyFilters(searchQuery, statusFilter, taskTypeFilter);
   }, [enhancedPatents, searchQuery, statusFilter, taskTypeFilter]);
 
+  // Export to Excel functionality
+  const handleExportToExcel = () => {
+    if (filteredPatents.length === 0) {
+      toast.error('No patents to export');
+      return;
+    }
+
+    const exportData = filteredPatents.map(patent => ({
+      'Tracking ID': patent.tracking_id,
+      'Patent Applicant': patent.patent_applicant,
+      'Client ID': patent.client_id,
+      'Application No': patent.application_no || '',
+      'Date of Filing': patent.date_of_filing ? format(new Date(patent.date_of_filing), 'dd/MM/yyyy') : '',
+      'Patent Title': patent.patent_title,
+      'Applicant Address': patent.applicant_addr,
+      'Inventor Phone No': patent.inventor_ph_no || '',
+      'Inventor Email': patent.inventor_email,
+      'PS Drafter': patent.ps_drafter_assgn || '',
+      'PS Filer': patent.ps_filer_assgn || '',
+      'CS Drafter': patent.cs_drafter_assgn || '',
+      'CS Filer': patent.cs_filer_assgn || '',
+      'FER Drafter': patent.fer_drafter_assgn || '',
+      'FER Filer': patent.fer_filer_assgn || '',
+      'IDF Status': `${patent.idf_sent ? 'Sent' : 'Not Sent'} | ${patent.idf_received ? 'Received' : 'Not Received'}`,
+      'CS Data Status': `${patent.cs_data ? 'Sent' : 'Not Sent'} | ${patent.cs_data_received ? 'Received' : 'Not Received'}`,
+      'PS Drafting Status': patent.ps_drafting_status === 1 ? 'Completed' : 'Pending',
+      'PS Filing Status': patent.ps_filing_status === 1 ? 'Completed' : 'Pending',
+      'CS Drafting Status': patent.cs_drafting_status === 1 ? 'Completed' : 'Pending',
+      'CS Filing Status': patent.cs_filing_status === 1 ? 'Completed' : 'Pending',
+      'FER Status': patent.fer_status === 1 ? 'Active' : 'Inactive',
+      'Inventors': patent.inventors?.map(inv => `${inv.inventor_name} - ${inv.inventor_addr}`).join('; ') || '',
+      'Tasks Assigned': patent.tasks.map(task => task.type).join(', '),
+      'Task Status': patent.tasks.map(task => `${task.type}: ${task.status}`).join('; '),
+      'Deadlines': patent.tasks.filter(task => task.deadline).map(task => 
+        `${task.type}: ${format(new Date(task.deadline!), 'dd/MM/yyyy')}`
+      ).join('; ')
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, `${employeeName}_Patents`);
+    
+    XLSX.writeFile(workbook, `${employeeName}_Patents_Report.xlsx`);
+    toast.success('Patent data exported successfully');
+  };
+
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'Completed': return 'default';
@@ -313,6 +391,16 @@ const EmployeeDashboard = () => {
       default: return 'outline';
     }
   };
+
+  const searchFields = [
+    { value: 'tracking_id', label: 'Tracking ID' },
+    { value: 'patent_title', label: 'Patent Title' },
+    { value: 'patent_applicant', label: 'Patent Applicant' },
+    { value: 'client_id', label: 'Client ID' },
+    { value: 'application_no', label: 'Application No.' },
+    { value: 'inventor_name', label: 'Inventor Name' },
+    { value: 'inventor_email', label: 'Inventor Email' }
+  ];
 
   if (!canViewDashboard) {
     return null;
@@ -388,10 +476,11 @@ const EmployeeDashboard = () => {
         </Card>
       </div>
 
-      {/* Search and Filters */}
+      {/* Enhanced Search and Filters */}
       <SearchFilters
         onSearch={handleSearch}
-        placeholder="Search patents by ID, title, applicant, or client..."
+        placeholder="Search patents by ID, title, applicant, client, inventor..."
+        searchFields={searchFields}
         filters={[
           {
             name: 'Status',
@@ -426,7 +515,13 @@ const EmployeeDashboard = () => {
       {/* Patents Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Assigned Patents ({filteredPatents.length})</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>Assigned Patents ({filteredPatents.length})</CardTitle>
+            <Button variant="outline" size="sm" onClick={handleExportToExcel}>
+              <Download className="mr-2 h-4 w-4" />
+              Export to Excel
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {filteredPatents.length > 0 ? (
