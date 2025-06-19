@@ -32,36 +32,48 @@ const Finance: React.FC = () => {
     const totalGst = patents.reduce((sum, patent) => sum + (patent.gst_amount || 0), 0);
     const totalTds = patents.reduce((sum, patent) => sum + (patent.tds_amount || 0), 0);
     const totalReimbursement = patents.reduce((sum, patent) => sum + (patent.reimbursement || 0), 0);
-    const totalRevenue = patents.reduce((sum, patent) => sum + (patent.payment_amount || 0), 0);
+    const totalInvoiceAmount = patents.reduce((sum, patent) => sum + (patent.payment_amount || 0), 0);
+    const totalExpectedAmount = patents.reduce((sum, patent) => sum + (patent.expected_amount || 0), 0);
     const totalReceived = patents.reduce((sum, patent) => sum + (patent.payment_received || 0), 0);
-    const outstandingAmount = totalRevenue - totalReceived;
-    const collectionRate = totalRevenue > 0 ? (totalReceived / totalRevenue) * 100 : 0;
+    const outstandingAmount = totalExpectedAmount - totalReceived;
+    const collectionRate = totalExpectedAmount > 0 ? (totalReceived / totalExpectedAmount) * 100 : 0;
+
+    const invoiceStatusBreakdown = {
+      not_sent: patents.filter(p => p.invoice_status === 'not_sent' || !p.invoice_status),
+      sent: patents.filter(p => p.invoice_status === 'sent'),
+    };
 
     const paymentStatusBreakdown = {
-      not_sent: patents.filter(p => p.payment_status === 'not_sent'),
-      sent: patents.filter(p => p.payment_status === 'sent'),
-      received: patents.filter(p => p.payment_status === 'received'),
+      not_sent: patents.filter(p => p.payment_status === 'not_sent' || !p.payment_status),
+      pending: patents.filter(p => p.payment_status === 'pending'),
+      partial: patents.filter(p => p.payment_status === 'partial'),
+      complete: patents.filter(p => p.payment_status === 'complete'),
     };
 
     const overduePayments = patents.filter(p => {
-      if (p.payment_status === 'received' || !p.invoice_sent) return false;
+      if (p.payment_status === 'complete' || p.invoice_status !== 'sent') return false;
       // Consider payments overdue if invoice was sent and no payment received after 30 days
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       return new Date(p.updated_at || p.created_at) < thirtyDaysAgo;
     });
 
-    const pendingInvoices = patents.filter(p => !p.invoice_sent && p.payment_amount > 0);
+    const pendingInvoices = patents.filter(p => 
+      (p.invoice_status === 'not_sent' || !p.invoice_status) && 
+      (p.payment_amount || 0) > 0
+    );
 
     return {
       totalProfessionalFees,
       totalGst,
       totalTds,
       totalReimbursement,
-      totalRevenue,
+      totalInvoiceAmount,
+      totalExpectedAmount,
       totalReceived,
       outstandingAmount,
       collectionRate,
+      invoiceStatusBreakdown,
       paymentStatusBreakdown,
       overduePayments,
       pendingInvoices,

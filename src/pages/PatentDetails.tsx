@@ -12,6 +12,7 @@ import { Patent } from '@/lib/types';
 import PatentBasicInfo from '@/components/patent/PatentBasicInfo';
 import InventorsList from '@/components/patent/InventorsList';
 import PatentStatusSection from '@/components/patent/PatentStatusSection';
+import PaymentStatusSection from '@/components/patent/PaymentStatusSection';
 import PatentTimeline from '@/components/patent/PatentTimeline';
 import PatentNotes from '@/components/patent/PatentNotes';
 import AssignmentDetails from '@/components/patent/AssignmentDetails';
@@ -443,9 +444,10 @@ const PatentDetails = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-1/2">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:w-2/3">
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="status">Status</TabsTrigger>
+          <TabsTrigger value="payment">Payment</TabsTrigger>
           <TabsTrigger value="forms">Forms</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
@@ -521,6 +523,14 @@ const PatentDetails = () => {
         
         <TabsContent value="status" className="space-y-6">
           <PatentStatusSection 
+            patent={patent}
+            userRole={user?.role}
+            refreshPatentData={fetchPatentData} 
+          />
+        </TabsContent>
+
+        <TabsContent value="payment" className="space-y-6">
+          <PaymentStatusSection 
             patent={patent}
             userRole={user?.role}
             refreshPatentData={fetchPatentData} 

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, TrendingUp, TrendingDown, Percent, Receipt, Calculator, Banknote, Wallet } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Percent, Receipt, Calculator, Banknote, Wallet, CreditCard } from 'lucide-react';
 
 interface FinancialSummaryCardsProps {
   data: {
@@ -9,7 +9,8 @@ interface FinancialSummaryCardsProps {
     totalGst: number;
     totalTds: number;
     totalReimbursement: number;
-    totalRevenue: number;
+    totalInvoiceAmount: number;
+    totalExpectedAmount: number;
     totalReceived: number;
     outstandingAmount: number;
     collectionRate: number;
@@ -35,7 +36,7 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({ data }) =
       {/* First Row - Financial Components */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Professional Fees</CardTitle>
+          <CardTitle className="text-sm font-medium">Professional Fees (PF)</CardTitle>
           <DollarSign className="h-4 w-4 text-blue-600" />
         </CardHeader>
         <CardContent>
@@ -44,6 +45,21 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({ data }) =
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             Base service fees
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Reimbursement</CardTitle>
+          <Banknote className="h-4 w-4 text-purple-600" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-purple-600">
+            {formatCurrency(data.totalReimbursement)}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Additional expenses
           </p>
         </CardContent>
       </Card>
@@ -78,33 +94,33 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({ data }) =
         </CardContent>
       </Card>
 
+      {/* Second Row - Invoice and Payment Summary */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Reimbursement</CardTitle>
-          <Banknote className="h-4 w-4 text-purple-600" />
+          <CardTitle className="text-sm font-medium">Invoice Amount</CardTitle>
+          <CreditCard className="h-4 w-4 text-indigo-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-purple-600">
-            {formatCurrency(data.totalReimbursement)}
+          <div className="text-2xl font-bold text-indigo-600">
+            {formatCurrency(data.totalInvoiceAmount)}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Additional expenses
+            PF + GST + Reimbursement
           </p>
         </CardContent>
       </Card>
 
-      {/* Second Row - Summary Metrics */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+          <CardTitle className="text-sm font-medium">Expected to Receive</CardTitle>
           <TrendingUp className="h-4 w-4 text-green-600" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-green-600">
-            {formatCurrency(data.totalRevenue)}
+            {formatCurrency(data.totalExpectedAmount)}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Total expected income
+            Invoice amount - TDS
           </p>
         </CardContent>
       </Card>
@@ -139,7 +155,8 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({ data }) =
         </CardContent>
       </Card>
 
-      <Card>
+      {/* Collection Rate Card spanning full width */}
+      <Card className="md:col-span-2 lg:col-span-4">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Collection Rate</CardTitle>
           <Percent className="h-4 w-4 text-indigo-600" />
@@ -149,7 +166,7 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({ data }) =
             {formatPercentage(data.collectionRate)}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Payment success rate
+            Payment success rate ({formatCurrency(data.totalReceived)} of {formatCurrency(data.totalExpectedAmount)})
           </p>
         </CardContent>
       </Card>

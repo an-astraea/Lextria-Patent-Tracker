@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { updatePatent } from '@/lib/api/patent-api';
 import { toast } from 'sonner';
 import { Calculator, Save } from 'lucide-react';
@@ -19,32 +18,36 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
   const [formData, setFormData] = useState({
     professional_fees: patent.professional_fees || 0,
     reimbursement: patent.reimbursement || 0,
+    invoice_status: patent.invoice_status || 'not_sent',
     payment_status: patent.payment_status || 'not_sent',
     payment_received: patent.payment_received || 0,
-    invoice_sent: patent.invoice_sent || false,
+    date_of_receipt: patent.date_of_receipt || '',
   });
 
   const [calculatedAmounts, setCalculatedAmounts] = useState({
     gst_amount: 0,
     tds_amount: 0,
-    total_amount: 0,
+    invoice_amount: 0,
+    expected_to_receive: 0,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calculate GST, TDS, and total amount whenever professional fees or reimbursement change
+  // Calculate GST, TDS, invoice amount, and expected amount
   useEffect(() => {
     const professionalFees = Number(formData.professional_fees) || 0;
     const reimbursement = Number(formData.reimbursement) || 0;
     
     const gst = professionalFees * 0.18; // 18% GST
     const tds = professionalFees * 0.10; // 10% TDS
-    const total = professionalFees + gst + reimbursement - tds;
+    const invoiceAmount = professionalFees + gst + reimbursement; // Total invoice amount
+    const expectedToReceive = invoiceAmount - tds; // Amount expected after TDS deduction
 
     setCalculatedAmounts({
       gst_amount: gst,
       tds_amount: tds,
-      total_amount: total,
+      invoice_amount: invoiceAmount,
+      expected_to_receive: expectedToReceive,
     });
   }, [formData.professional_fees, formData.reimbursement]);
 
@@ -63,9 +66,14 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
       const updateData = {
         professional_fees: Number(formData.professional_fees),
         reimbursement: Number(formData.reimbursement),
+        gst_amount: calculatedAmounts.gst_amount,
+        tds_amount: calculatedAmounts.tds_amount,
+        payment_amount: calculatedAmounts.invoice_amount,
+        expected_amount: calculatedAmounts.expected_to_receive,
+        invoice_status: formData.invoice_status,
         payment_status: formData.payment_status,
         payment_received: Number(formData.payment_received),
-        invoice_sent: formData.invoice_sent,
+        date_of_receipt: formData.date_of_receipt || null,
       };
 
       const result = await updatePatent(patent.id, updateData);
@@ -102,9 +110,9 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Input Fields */}
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="professional_fees">Professional Fees (₹)</Label>
+              <Label htmlFor="professional_fees">Professional Fees (PF) - ₹</Label>
               <Input
                 id="professional_fees"
                 type="number"
@@ -116,7 +124,7 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
             </div>
 
             <div>
-              <Label htmlFor="reimbursement">Reimbursement (₹)</Label>
+              <Label htmlFor="reimbursement">Reimbursement (Reim) - ₹</Label>
               <Input
                 id="reimbursement"
                 type="number"
@@ -131,24 +139,44 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
           {/* Auto-calculated Fields */}
           <div className="bg-gray-50 p-4 rounded-lg space-y-3">
             <h4 className="font-medium text-gray-900">Auto-Calculated Amounts</h4>
-            <div className="grid grid-cols-1 gap-2 text-sm">
+            <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">GST (18%):</span>
                 <span className="font-medium">{formatCurrency(calculatedAmounts.gst_amount)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">TDS (10%):</span>
-                <span className="font-medium text-red-600">-{formatCurrency(calculatedAmounts.tds_amount)}</span>
+                <span className="font-medium text-red-600">{formatCurrency(calculatedAmounts.tds_amount)}</span>
               </div>
               <div className="flex justify-between border-t pt-2">
-                <span className="font-medium">Total Amount:</span>
-                <span className="font-bold text-green-600">{formatCurrency(calculatedAmounts.total_amount)}</span>
+                <span className="font-medium">Invoice Amount:</span>
+                <span className="font-bold text-blue-600">{formatCurrency(calculatedAmounts.invoice_amount)}</span>
+              </div>
+              <div className="flex justify-between border-t pt-2">
+                <span className="font-medium">Expected to Receive:</span>
+                <span className="font-bold text-green-600">{formatCurrency(calculatedAmounts.expected_to_receive)}</span>
               </div>
             </div>
           </div>
 
-          {/* Payment Information */}
-          <div className="space-y-4">
+          {/* Status and Payment Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="invoice_status">Invoice Status</Label>
+              <Select 
+                value={formData.invoice_status} 
+                onValueChange={(value) => handleInputChange('invoice_status', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select invoice status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="not_sent">Not Sent</SelectItem>
+                  <SelectItem value="sent">Sent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div>
               <Label htmlFor="payment_status">Payment Status</Label>
               <Select 
@@ -159,15 +187,16 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
                   <SelectValue placeholder="Select payment status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="not_sent">Invoice Not Sent</SelectItem>
-                  <SelectItem value="sent">Invoice Sent</SelectItem>
-                  <SelectItem value="received">Payment Received</SelectItem>
+                  <SelectItem value="not_sent">Not Sent</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
+                  <SelectItem value="complete">Complete</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label htmlFor="payment_received">Payment Received (₹)</Label>
+              <Label htmlFor="payment_received">Amount Received - ₹</Label>
               <Input
                 id="payment_received"
                 type="number"
@@ -178,13 +207,14 @@ const FinancialEntryForm: React.FC<FinancialEntryFormProps> = ({ patent }) => {
               />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="invoice_sent"
-                checked={formData.invoice_sent}
-                onCheckedChange={(checked) => handleInputChange('invoice_sent', checked)}
+            <div>
+              <Label htmlFor="date_of_receipt">Date of Receipt</Label>
+              <Input
+                id="date_of_receipt"
+                type="date"
+                value={formData.date_of_receipt}
+                onChange={(e) => handleInputChange('date_of_receipt', e.target.value)}
               />
-              <Label htmlFor="invoice_sent">Invoice Sent</Label>
             </div>
           </div>
 

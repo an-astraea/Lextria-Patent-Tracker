@@ -38,19 +38,23 @@ export interface Patent {
   fer_review_file_status?: number;
   fer_completion_status?: number;
   // Status flow fields
-  pending_cs_confirmation?: boolean; // Sent CS for confirmation
-  cs_confirmed?: boolean;            // CS confirmed 
-  pending_ps_confirmation?: boolean; // Sent PS for confirmation
-  ps_confirmed?: boolean;            // PS confirmed
-  // Financial fields - new 4-component structure
-  professional_fees?: number;       // Entered by admin
-  gst_amount?: number;              // Auto-calculated (18% of professional fees)
-  tds_amount?: number;              // Auto-calculated (10% of professional fees)
-  reimbursement?: number;           // Entered by admin
-  payment_amount?: number;          // Auto-calculated total amount
-  payment_received?: number;        // Amount actually received
-  payment_status?: string;          // 'not_sent', 'sent', 'received'
-  invoice_sent?: boolean;           // Whether invoice has been sent
+  pending_cs_confirmation?: boolean;
+  cs_confirmed?: boolean;
+  pending_ps_confirmation?: boolean;
+  ps_confirmed?: boolean;
+  // Financial fields - updated structure matching spreadsheet
+  professional_fees?: number;
+  gst_amount?: number;
+  tds_amount?: number;
+  reimbursement?: number;
+  payment_amount?: number; // Invoice amount (PF + GST + Reimbursement)
+  expected_amount?: number; // Expected to receive (Invoice amount - TDS)
+  payment_received?: number;
+  invoice_status?: string; // 'not_sent', 'sent'
+  payment_status?: string; // 'not_sent', 'pending', 'partial', 'complete'
+  date_of_receipt?: string | null;
+  // Legacy field for backward compatibility
+  invoice_sent?: boolean;
   // Form fields
   form_1?: boolean;
   form_2?: boolean;
@@ -110,9 +114,9 @@ export interface Patent {
   idf_received?: boolean;
   cs_data?: boolean;
   cs_data_received?: boolean;
-  // New reminder and follow-up fields
+  // Reminder and follow-up fields
   follow_up_count?: number;
-  follow_up_status?: string; // Changed from union type to string to match database
+  follow_up_status?: string;
   last_follow_up_date?: string | null;
   next_reminder_date?: string | null;
   stage_updated_at?: string;
@@ -151,14 +155,18 @@ export interface PatentFormData {
   idf_received?: boolean;
   cs_data?: boolean;
   cs_data_received?: boolean;
-  // Add financial fields to PatentFormData
+  // Financial fields matching the new structure
   professional_fees?: number;
   gst_amount?: number;
   tds_amount?: number;
   reimbursement?: number;
   payment_amount?: number;
+  expected_amount?: number;
   payment_received?: number;
+  invoice_status?: string;
   payment_status?: string;
+  date_of_receipt?: string | null;
+  // Legacy field
   invoice_sent?: boolean;
   inventors: { inventor_name: string; inventor_addr: string }[];
 }
@@ -193,7 +201,6 @@ export interface InventorInfo {
   updated_at?: string;
 }
 
-// Add Inventor alias for backward compatibility
 export type Inventor = InventorInfo;
 
 export interface FEREntry {
@@ -212,7 +219,7 @@ export interface FEREntry {
   fer_date?: string | null;
   created_at?: string;
   updated_at?: string;
-  patent?: Patent; // Add this for when the patent is included in a FER response
+  patent?: Patent;
 }
 
 export interface FERHistory {
@@ -224,11 +231,11 @@ export interface FERHistory {
   notes?: string;
   created_at?: string;
   updated_at?: string;
-  tracking_id?: string; // Add this for backward compatibility
-  fer_drafter_assgn?: string; // Add this for backward compatibility
-  fer_drafter_deadline?: string; // Add this for backward compatibility
-  fer_filer_assgn?: string; // Add this for backward compatibility
-  fer_filer_deadline?: string; // Add this for backward compatibility
+  tracking_id?: string;
+  fer_drafter_assgn?: string;
+  fer_drafter_deadline?: string;
+  fer_filer_assgn?: string;
+  fer_filer_deadline?: string;
 }
 
 export interface TimelineItem {
@@ -250,7 +257,6 @@ export interface TimelineEventData {
   employee_name?: string;
 }
 
-// New interfaces for reminder system
 export interface PatentReminder {
   id: string;
   patent_id: string;
