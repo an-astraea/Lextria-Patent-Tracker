@@ -151,6 +151,15 @@ export interface PatentFormData {
   idf_received?: boolean;
   cs_data?: boolean;
   cs_data_received?: boolean;
+  // Add financial fields to PatentFormData
+  professional_fees?: number;
+  gst_amount?: number;
+  tds_amount?: number;
+  reimbursement?: number;
+  payment_amount?: number;
+  payment_received?: number;
+  payment_status?: string;
+  invoice_sent?: boolean;
   inventors: { inventor_name: string; inventor_addr: string }[];
 }
 
