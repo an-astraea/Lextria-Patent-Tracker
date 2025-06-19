@@ -193,10 +193,13 @@ const AddEditPatent = () => {
   const onSubmit = async (data: FormData) => {
     setSubmitting(true);
     try {
-      // Ensure inventors have required fields
+      // Ensure inventors have required fields and map them properly
       const processedInventors = data.inventors?.filter(inv => 
         inv.inventor_name && inv.inventor_addr
-      ) || [];
+      ).map(inv => ({
+        inventor_name: inv.inventor_name as string,
+        inventor_addr: inv.inventor_addr as string
+      })) || [];
 
       if (isEditMode && id) {
         // For updates, create properly typed update data
