@@ -194,20 +194,18 @@ const AddEditPatent = () => {
     setSubmitting(true);
     try {
       // Ensure inventors have required fields
-      const processedData = {
-        ...data,
-        inventors: data.inventors?.map(inv => ({
-          inventor_name: inv.inventor_name || '',
-          inventor_addr: inv.inventor_addr || ''
-        })) || []
-      };
+      const processedInventors = data.inventors?.filter(inv => 
+        inv.inventor_name && inv.inventor_addr
+      ).map(inv => ({
+        inventor_name: inv.inventor_name,
+        inventor_addr: inv.inventor_addr
+      })) || [];
 
       if (isEditMode && id) {
-        // For updates, we can use partial data
+        // For updates, we can use partial data but need proper typing
         const updateData: Partial<PatentFormData> = {
-          ...processedData,
-          // Remove undefined values to avoid issues
-          inventors: processedData.inventors.length > 0 ? processedData.inventors : undefined
+          ...data,
+          inventors: processedInventors.length > 0 ? processedInventors : undefined
         };
         
         const result = await updatePatent(id, updateData);
@@ -219,6 +217,13 @@ const AddEditPatent = () => {
         }
       } else {
         // For creation, ensure all required fields are present
+        if (!data.tracking_id || !data.patent_applicant || !data.client_id || 
+            !data.patent_title || !data.applicant_addr || !data.inventor_ph_no || 
+            !data.inventor_email) {
+          toast.error('Please fill in all required fields');
+          return;
+        }
+
         const createData: PatentFormData = {
           tracking_id: data.tracking_id,
           patent_applicant: data.patent_applicant,
@@ -227,7 +232,7 @@ const AddEditPatent = () => {
           applicant_addr: data.applicant_addr,
           inventor_ph_no: data.inventor_ph_no,
           inventor_email: data.inventor_email,
-          inventors: processedData.inventors,
+          inventors: processedInventors,
           // Optional fields with defaults
           application_no: data.application_no,
           date_of_filing: data.date_of_filing,
