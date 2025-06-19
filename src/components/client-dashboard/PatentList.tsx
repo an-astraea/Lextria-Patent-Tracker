@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import PatentCard from '@/components/PatentCard';
 import EmptyState from '@/components/common/EmptyState';
+import CustomExportDialog from './CustomExportDialog';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -175,6 +176,7 @@ const PatentList: React.FC<PatentListProps> = ({ patents, onExportToExcel }) => 
           <Download className="mr-2 h-4 w-4" />
           Detailed Export
         </Button>
+        <CustomExportDialog patents={patents} />
       </div>
 
       <Tabs defaultValue="all" className="w-full">
