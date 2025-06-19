@@ -55,7 +55,7 @@ const Finance: React.FC = () => {
       // Consider payments overdue if invoice was sent and no payment received after 30 days
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      return new Date(p.updated_at || p.created_at) < thirtyDaysAgo;
+      return new Date(p.updated_at || p.created_at || '') < thirtyDaysAgo;
     });
 
     const pendingInvoices = patents.filter(p => 
@@ -117,7 +117,11 @@ const Finance: React.FC = () => {
 
         <TabsContent value="overview" className="space-y-6">
           <FinancialSummaryCards data={financialData} />
-          <PaymentStatusOverview data={financialData.paymentStatusBreakdown} />
+          <PaymentStatusOverview data={{
+            not_sent: financialData.paymentStatusBreakdown.not_sent,
+            sent: financialData.invoiceStatusBreakdown.sent,
+            received: financialData.paymentStatusBreakdown.complete,
+          }} />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
