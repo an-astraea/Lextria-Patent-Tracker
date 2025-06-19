@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, FileText, Users, CheckSquare, FileSpreadsheet, Upload, Database } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, CheckSquare, FileSpreadsheet, Upload, Database, DollarSign } from 'lucide-react';
 import Sidebar from './Sidebar';
 
 interface AdminSidebarProps {
@@ -28,6 +28,11 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
       label: 'Approvals',
       icon: CheckSquare,
       href: '/approvals',
+    },
+    {
+      label: 'Finance',
+      icon: DollarSign,
+      href: '/finance',
     },
     {
       label: 'Client Dashboard',

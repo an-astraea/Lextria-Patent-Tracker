@@ -20,6 +20,7 @@ import ClientDashboard from '@/pages/ClientDashboard';
 import BulkUpload from '@/pages/BulkUpload';
 import Sheets from '@/pages/Sheets';
 import EmployeeDashboard from '@/pages/EmployeeDashboard';
+import Finance from '@/pages/Finance';
 import NotFound from '@/pages/NotFound';
 
 import './App.css';
@@ -50,6 +51,7 @@ function App() {
               <Route path="/clients" element={<ClientDashboard />} />
               <Route path="/bulk-upload" element={<BulkUpload />} />
               <Route path="/sheets" element={<Sheets />} />
+              <Route path="/finance" element={<Finance />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </MainLayoutWrapper>
