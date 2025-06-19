@@ -193,8 +193,24 @@ const AddEditPatent = () => {
   const onSubmit = async (data: PatentFormData) => {
     setSubmitting(true);
     try {
+      // Ensure inventors have required fields
+      const processedData = {
+        ...data,
+        inventors: data.inventors?.map(inv => ({
+          inventor_name: inv.inventor_name || '',
+          inventor_addr: inv.inventor_addr || ''
+        })) || []
+      };
+
       if (isEditMode && id) {
-        const result = await updatePatent(id, data);
+        // For updates, we can use partial data
+        const updateData: Partial<PatentFormData> = {
+          ...processedData,
+          // Remove undefined values to avoid issues
+          inventors: processedData.inventors.length > 0 ? processedData.inventors : undefined
+        };
+        
+        const result = await updatePatent(id, updateData);
         if (result.success) {
           toast.success(result.message);
           navigate('/patents');
@@ -202,7 +218,45 @@ const AddEditPatent = () => {
           toast.error(result.message);
         }
       } else {
-        const result = await createPatent(data);
+        // For creation, ensure all required fields are present
+        const createData: PatentFormData = {
+          tracking_id: data.tracking_id,
+          patent_applicant: data.patent_applicant,
+          client_id: data.client_id,
+          patent_title: data.patent_title,
+          applicant_addr: data.applicant_addr,
+          inventor_ph_no: data.inventor_ph_no,
+          inventor_email: data.inventor_email,
+          inventors: processedData.inventors,
+          // Optional fields with defaults
+          application_no: data.application_no,
+          date_of_filing: data.date_of_filing,
+          ps_drafter_assgn: data.ps_drafter_assgn,
+          ps_drafter_deadline: data.ps_drafter_deadline,
+          ps_filer_assgn: data.ps_filer_assgn,
+          ps_filer_deadline: data.ps_filer_deadline,
+          cs_drafter_assgn: data.cs_drafter_assgn,
+          cs_drafter_deadline: data.cs_drafter_deadline,
+          cs_filer_assgn: data.cs_filer_assgn,
+          cs_filer_deadline: data.cs_filer_deadline,
+          fer_status: data.fer_status || 0,
+          fer_drafter_assgn: data.fer_drafter_assgn,
+          fer_drafter_deadline: data.fer_drafter_deadline,
+          fer_filer_assgn: data.fer_filer_assgn,
+          fer_filer_deadline: data.fer_filer_deadline,
+          idf_sent: data.idf_sent,
+          idf_received: data.idf_received,
+          cs_data: data.cs_data,
+          cs_data_received: data.cs_data_received,
+          ps_drafting_status: data.ps_drafting_status,
+          ps_filing_status: data.ps_filing_status,
+          cs_drafting_status: data.cs_drafting_status,
+          cs_filing_status: data.cs_filing_status,
+          fer_drafter_status: data.fer_drafter_status,
+          fer_filing_status: data.fer_filing_status,
+        };
+        
+        const result = await createPatent(createData);
         if (result.success) {
           toast.success(result.message);
           navigate('/patents');

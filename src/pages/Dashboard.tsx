@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Patent } from '@/lib/types';
@@ -117,11 +116,10 @@ const Dashboard = () => {
           My Dashboard - {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
         </h1>
         
-        {/* User-specific assignments */}
+        {/* User-specific assignments - removed userName prop */}
         <UserAssignments 
           userAssignedPatents={userAssignedPatents}
           userRole={user.role}
-          userName={user.full_name}
         />
         
         {/* Summary cards for user's work */}
