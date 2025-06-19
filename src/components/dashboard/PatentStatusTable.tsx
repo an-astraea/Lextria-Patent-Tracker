@@ -1,9 +1,7 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import { Patent } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface PatentStatusTableProps {
   patents: Patent[];
@@ -28,10 +26,9 @@ const PatentStatusTable: React.FC<PatentStatusTableProps> = ({ patents }) => {
     return 'Unknown';
   };
 
-  // Count patents by their current state and get patent details
+  // Count patents by their current state
   const getPatentCountByState = () => {
     const stateCount: Record<string, number> = {};
-    const statePatents: Record<string, Patent[]> = {};
     
     // Predefined states in the order we want them to appear
     const stateOrder = [
@@ -49,26 +46,24 @@ const PatentStatusTable: React.FC<PatentStatusTableProps> = ({ patents }) => {
       'Unknown'
     ];
     
-    // Initialize counts and patent arrays
+    // Initialize counts
     stateOrder.forEach(state => {
       stateCount[state] = 0;
-      statePatents[state] = [];
     });
     
-    // Count patents by their current state and store patent details
+    // Count patents by their current state
     patents.forEach(patent => {
       const currentState = getCurrentState(patent);
       stateCount[currentState]++;
-      statePatents[currentState].push(patent);
     });
     
     // Filter out states with zero patents
     const filteredStates = stateOrder.filter(state => stateCount[state] > 0);
     
-    return { filteredStates, stateCount, statePatents };
+    return { filteredStates, stateCount };
   };
 
-  const { filteredStates, stateCount, statePatents } = getPatentCountByState();
+  const { filteredStates, stateCount } = getPatentCountByState();
   const totalPatents = patents.length;
 
   // Function to determine background color based on state
@@ -101,69 +96,41 @@ const PatentStatusTable: React.FC<PatentStatusTableProps> = ({ patents }) => {
     }
   };
 
-  // Function to format patent list for tooltip
-  const formatPatentList = (patentList: Patent[]): string => {
-    if (patentList.length === 0) return 'No patents';
-    
-    return patentList
-      .slice(0, 10) // Show max 10 patents to avoid overly long tooltips
-      .map(patent => `${patent.tracking_id} - ${patent.patent_title}`)
-      .join('\n') + (patentList.length > 10 ? `\n... and ${patentList.length - 10} more` : '');
-  };
-
   return (
-    <TooltipProvider>
-      <Card className="col-span-full">
-        <CardHeader>
-          <CardTitle>Patent Distribution by Processing State</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Processing State</TableHead>
-                <TableHead className="text-right">Patent Count</TableHead>
-                <TableHead className="text-right">Percentage</TableHead>
+    <Card className="col-span-full">
+      <CardHeader>
+        <CardTitle>Patent Distribution by Processing State</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Processing State</TableHead>
+              <TableHead className="text-right">Patent Count</TableHead>
+              <TableHead className="text-right">Percentage</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredStates.map(state => (
+              <TableRow key={state} className={getStateColor(state)}>
+                <TableCell className="font-medium">{state}</TableCell>
+                <TableCell className="text-right">{stateCount[state]}</TableCell>
+                <TableCell className="text-right">
+                  {totalPatents > 0 
+                    ? ((stateCount[state] / totalPatents) * 100).toFixed(1) + '%' 
+                    : '0%'}
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredStates.map(state => (
-                <TableRow key={state} className={getStateColor(state)}>
-                  <TableCell className="font-medium">{state}</TableCell>
-                  <TableCell className="text-right">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-help hover:underline">
-                          {stateCount[state]}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-md">
-                        <div className="text-sm">
-                          <div className="font-semibold mb-2">Patents in {state}:</div>
-                          <div className="whitespace-pre-wrap max-h-60 overflow-y-auto">
-                            {formatPatentList(statePatents[state])}
-                          </div>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {totalPatents > 0 
-                      ? ((stateCount[state] / totalPatents) * 100).toFixed(1) + '%' 
-                      : '0%'}
-                  </TableCell>
-                </TableRow>
-              ))}
-              <TableRow className="font-bold">
-                <TableCell>Total</TableCell>
-                <TableCell className="text-right">{totalPatents}</TableCell>
-                <TableCell className="text-right">100%</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </TooltipProvider>
+            ))}
+            <TableRow className="font-bold">
+              <TableCell>Total</TableCell>
+              <TableCell className="text-right">{totalPatents}</TableCell>
+              <TableCell className="text-right">100%</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 };
 

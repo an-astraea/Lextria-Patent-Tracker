@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Patent } from '@/lib/types';
@@ -40,8 +41,15 @@ const Dashboard = () => {
   // Check if this is the company dashboard route
   const isCompanyDashboard = location.pathname === '/company-dashboard';
   
-  // For personal dashboard (/dashboard), show appropriate content based on user role
+  // For personal dashboard (/dashboard), redirect drafters and filers to their employee dashboard
   // For company dashboard (/company-dashboard), show the company view for all users
+  useEffect(() => {
+    if (!isCompanyDashboard && user && (user.role === 'drafter' || user.role === 'filer')) {
+      window.location.href = `/employee/${encodeURIComponent(user.full_name)}`;
+      return;
+    }
+  }, [user, isCompanyDashboard]);
+  
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -72,7 +80,10 @@ const Dashboard = () => {
       }
     };
 
-    fetchData();
+    // Fetch data for company dashboard (all users) or admin personal dashboard
+    if (isCompanyDashboard || user?.role === 'admin') {
+      fetchData();
+    }
   }, [user?.full_name, user?.role, isCompanyDashboard]);
   
   const refreshPendingApprovals = async () => {
@@ -100,7 +111,8 @@ const Dashboard = () => {
   
   const pendingApprovalCount = pendingApprovals.length;
 
-  if (loading) {
+  // Show loading for company dashboard or admin users
+  if (loading && (isCompanyDashboard || user?.role === 'admin')) {
     return (
       <div className="flex justify-center items-center h-96">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -108,35 +120,11 @@ const Dashboard = () => {
     );
   }
   
-  // Personal dashboard for drafters and filers
-  if (!isCompanyDashboard && (user?.role === 'drafter' || user?.role === 'filer')) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight">
-          My Dashboard - {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-        </h1>
-        
-        {/* User-specific assignments - removed userName prop */}
-        <UserAssignments 
-          userAssignedPatents={userAssignedPatents}
-          userRole={user.role}
-        />
-        
-        {/* Summary cards for user's work */}
-        <SummaryCards 
-          patents={patents} 
-          pendingApprovalCount={0}
-          userAssignedPatents={userAssignedPatents}
-          userRole={user?.role}
-        />
-        
-        {/* Deadlines for user's assigned patents */}
-        <DeadlinePatents patents={userAssignedPatents} />
-      </div>
-    );
+  // Only render the company dashboard for company dashboard route or admin users on personal dashboard
+  if (!isCompanyDashboard && user?.role !== 'admin') {
+    return null; // Component will redirect, so return null
   }
   
-  // Company dashboard or admin dashboard
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">
