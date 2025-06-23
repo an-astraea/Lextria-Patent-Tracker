@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Patent } from '@/lib/types';
@@ -57,10 +56,9 @@ const Dashboard = () => {
         const patentsData = await fetchPatents();
         setPatents(patentsData);
         
-        if (user?.role === 'admin') {
-          const employeeData = await fetchEmployees();
-          setEmployees(employeeData);
-        }
+        // Always fetch employees for the dashboard to filter filers
+        const employeeData = await fetchEmployees();
+        setEmployees(employeeData);
         
         if (user?.role === 'drafter') {
           const drafterAssignments = await fetchDrafterAssignments(user.full_name);
@@ -164,8 +162,8 @@ const Dashboard = () => {
         {/* Patent Status Stats */}
         <PatentStatusStats patents={patents} />
         
-        {/* Employee Patent Table */}
-        <EmployeePatentTable patents={patents} />
+        {/* Employee Patent Table - now with employees prop */}
+        <EmployeePatentTable patents={patents} employees={employees} />
         
         {/* Top Employees */}
         <TopEmployees patents={patents} />

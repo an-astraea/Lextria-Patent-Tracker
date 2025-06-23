@@ -8,7 +8,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Patent } from '@/lib/types';
+import { Patent, Employee } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface EmployeeStats {
@@ -22,12 +22,18 @@ interface EmployeeStats {
 
 interface EmployeePatentTableProps {
   patents: Patent[];
+  employees?: Employee[];
 }
 
-const EmployeePatentTable: React.FC<EmployeePatentTableProps> = ({ patents }) => {
+const EmployeePatentTable: React.FC<EmployeePatentTableProps> = ({ patents, employees = [] }) => {
   // Generate employee stats from patent data, excluding filers
   const getEmployeeStats = (): EmployeeStats[] => {
     const employeeMap = new Map<string, EmployeeStats>();
+    
+    // Create a set of filer names for quick lookup
+    const filerNames = new Set(
+      employees.filter(emp => emp.role === 'filer').map(emp => emp.full_name)
+    );
     
     patents.forEach(patent => {
       // Process only drafters (exclude filers from the stats)
@@ -36,7 +42,7 @@ const EmployeePatentTable: React.FC<EmployeePatentTableProps> = ({ patents }) =>
         patent.cs_drafter_assgn,
         patent.fer_drafter_assgn
       ].filter(Boolean).forEach(employeeName => {
-        if (!employeeName) return;
+        if (!employeeName || filerNames.has(employeeName)) return;
         
         if (!employeeMap.has(employeeName)) {
           employeeMap.set(employeeName, {
