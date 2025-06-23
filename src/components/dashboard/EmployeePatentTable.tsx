@@ -26,27 +26,24 @@ interface EmployeePatentTableProps {
 }
 
 const EmployeePatentTable: React.FC<EmployeePatentTableProps> = ({ patents, employees = [] }) => {
-  // Generate employee stats from patent data, excluding filers
+  // Generate employee stats from patent data, only processing drafter assignments
   const getEmployeeStats = (): EmployeeStats[] => {
     const employeeMap = new Map<string, EmployeeStats>();
     
-    // Create a set of filer names for quick lookup
+    // Create a set of filer names for quick lookup (to exclude them even if they appear in drafter fields)
     const filerNames = new Set(
       employees.filter(emp => emp.role === 'filer').map(emp => emp.full_name)
     );
     
     patents.forEach(patent => {
-      // Process all assignment fields (drafter and filer) but exclude filers from stats
-      const allAssignments = [
+      // Only process drafter assignment fields (ignore all filer assignments)
+      const drafterAssignments = [
         patent.ps_drafter_assgn,
         patent.cs_drafter_assgn,
-        patent.fer_drafter_assgn,
-        patent.ps_filer_assgn,
-        patent.cs_filer_assgn,
-        patent.fer_filer_assgn
+        patent.fer_drafter_assgn
       ].filter(Boolean);
 
-      allAssignments.forEach(employeeName => {
+      drafterAssignments.forEach(employeeName => {
         // Skip if employee name is null/undefined or if they are a filer
         if (!employeeName || filerNames.has(employeeName)) return;
         
@@ -64,15 +61,15 @@ const EmployeePatentTable: React.FC<EmployeePatentTableProps> = ({ patents, empl
         const stats = employeeMap.get(employeeName)!;
         stats.totalAssigned++;
         
-        // Count completed PS drafting tasks (only for drafter assignments)
+        // Count completed PS drafting tasks
         if (patent.ps_drafter_assgn === employeeName && patent.ps_drafting_status === 1) {
           stats.psCompleted++;
         }
-        // Count completed CS drafting tasks (only for drafter assignments)
+        // Count completed CS drafting tasks
         else if (patent.cs_drafter_assgn === employeeName && patent.cs_drafting_status === 1) {
           stats.csCompleted++;
         }
-        // Count completed FER drafting tasks (only for drafter assignments)
+        // Count completed FER drafting tasks
         else if (patent.fer_drafter_assgn === employeeName && patent.fer_drafter_status === 1) {
           stats.ferCompleted++;
         }
