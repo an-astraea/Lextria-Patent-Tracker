@@ -36,12 +36,18 @@ const EmployeePatentTable: React.FC<EmployeePatentTableProps> = ({ patents, empl
     );
     
     patents.forEach(patent => {
-      // Process only drafters (exclude filers from the stats)
-      [
+      // Process all assignment fields (drafter and filer) but exclude filers from stats
+      const allAssignments = [
         patent.ps_drafter_assgn,
         patent.cs_drafter_assgn,
-        patent.fer_drafter_assgn
-      ].filter(Boolean).forEach(employeeName => {
+        patent.fer_drafter_assgn,
+        patent.ps_filer_assgn,
+        patent.cs_filer_assgn,
+        patent.fer_filer_assgn
+      ].filter(Boolean);
+
+      allAssignments.forEach(employeeName => {
+        // Skip if employee name is null/undefined or if they are a filer
         if (!employeeName || filerNames.has(employeeName)) return;
         
         if (!employeeMap.has(employeeName)) {
@@ -58,15 +64,15 @@ const EmployeePatentTable: React.FC<EmployeePatentTableProps> = ({ patents, empl
         const stats = employeeMap.get(employeeName)!;
         stats.totalAssigned++;
         
-        // Count completed PS drafting tasks
+        // Count completed PS drafting tasks (only for drafter assignments)
         if (patent.ps_drafter_assgn === employeeName && patent.ps_drafting_status === 1) {
           stats.psCompleted++;
         }
-        // Count completed CS drafting tasks
+        // Count completed CS drafting tasks (only for drafter assignments)
         else if (patent.cs_drafter_assgn === employeeName && patent.cs_drafting_status === 1) {
           stats.csCompleted++;
         }
-        // Count completed FER drafting tasks
+        // Count completed FER drafting tasks (only for drafter assignments)
         else if (patent.fer_drafter_assgn === employeeName && patent.fer_drafter_status === 1) {
           stats.ferCompleted++;
         }
