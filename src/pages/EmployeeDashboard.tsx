@@ -77,7 +77,7 @@ const EmployeeDashboard = () => {
     fetchEmployeePatents();
   }, [employeeName]);
 
-  // Calculate employee stats
+  // Calculate employee stats - count unique patents by their overall status
   const employeeStats = useMemo(() => {
     if (!employeeName) return { completed: 0, drafting: 0, review: 0, pendingConfirmation: 0, pendingInformation: 0, total: 0 };
 
@@ -86,9 +86,6 @@ const EmployeeDashboard = () => {
     let review = 0;
     let pendingConfirmation = 0;
     let pendingInformation = 0;
-
-    // Create a set to track which patents we've already counted for this employee
-    const countedPatents = new Set<string>();
 
     patents.forEach(patent => {
       // Check if this employee is assigned to this patent in any role
@@ -99,12 +96,9 @@ const EmployeeDashboard = () => {
                         patent.fer_drafter_assgn === employeeName ||
                         patent.fer_filer_assgn === employeeName;
 
-      if (!isAssigned || countedPatents.has(patent.id)) {
-        return; // Skip if employee not assigned or already counted
+      if (!isAssigned) {
+        return; // Skip if employee not assigned
       }
-
-      // Count this patent only once for this employee
-      countedPatents.add(patent.id);
 
       // Determine patent's current status using the same logic as main dashboard
       let patentStatus = '';
@@ -167,7 +161,7 @@ const EmployeeDashboard = () => {
       review,
       pendingConfirmation,
       pendingInformation,
-      total: countedPatents.size
+      total: patents.length
     };
   }, [patents, employeeName]);
 
