@@ -16,13 +16,67 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
   // Define the status types we want to track
   const statusTypes = ['Review', 'Completed', 'Drafting', 'Pending Confirmation', 'Pending Information'];
   
-  // Calculate employee stats based on patents
-  const employeeStats = useMemo(() => {
-    const stats: Record<string, { [key: string]: number }> = {};
+  // Calculate patent status counts based on actual patent status (not employee assignments)
+  const patentStatusCounts = useMemo(() => {
+    const counts = {
+      'Review': 0,
+      'Completed': 0,
+      'Drafting': 0,
+      'Pending Confirmation': 0,
+      'Pending Information': 0,
+      'Total': patents.length
+    };
     
-    // Get all unique employees assigned to any patents
+    patents.forEach(patent => {
+      // Determine patent's current status based on priority
+      let patentStatus = '';
+      
+      // Priority 1: Check for pending confirmation (highest priority)
+      if (patent.pending_ps_confirmation || patent.pending_cs_confirmation) {
+        patentStatus = 'Pending Confirmation';
+      }
+      // Priority 2: Check for pending information
+      else if ((patent.idf_sent && !patent.idf_received) || (patent.cs_data && !patent.cs_data_received)) {
+        patentStatus = 'Pending Information';
+      }
+      // Priority 3: Check for review status
+      else if (
+        (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0) ||
+        (patent.ps_filing_status === 1 && patent.ps_review_file_status === 0) ||
+        (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0) ||
+        (patent.cs_filing_status === 1 && patent.cs_review_file_status === 0) ||
+        (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0) ||
+        (patent.fer_filing_status === 1 && patent.fer_review_file_status === 0)
+      ) {
+        patentStatus = 'Review';
+      }
+      // Priority 4: Check for completed status
+      else if (
+        patent.ps_completion_status === 1 && 
+        patent.cs_completion_status === 1 && 
+        (patent.fer_status === 0 || patent.fer_completion_status === 1)
+      ) {
+        patentStatus = 'Completed';
+      }
+      // Priority 5: Default to drafting (work in progress)
+      else {
+        patentStatus = 'Drafting';
+      }
+      
+      if (patentStatus && counts[patentStatus] !== undefined) {
+        counts[patentStatus]++;
+      }
+    });
+    
+    return counts;
+  }, [patents]);
+  
+  // Calculate employee workload for each status
+  const employeeWorkload = useMemo(() => {
+    const workload: Record<string, Record<string, number>> = {};
+    
+    // Get all unique employees
     const allEmployees = new Set<string>();
-    
     patents.forEach(patent => {
       if (patent.ps_drafter_assgn) allEmployees.add(patent.ps_drafter_assgn);
       if (patent.ps_filer_assgn) allEmployees.add(patent.ps_filer_assgn);
@@ -32,10 +86,10 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
       if (patent.fer_filer_assgn) allEmployees.add(patent.fer_filer_assgn);
     });
     
-    // Initialize stats object with all employees
+    // Initialize workload for each employee
     allEmployees.forEach(employee => {
       if (employee) {
-        stats[employee] = {
+        workload[employee] = {
           'Review': 0,
           'Completed': 0,
           'Drafting': 0,
@@ -46,132 +100,66 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
       }
     });
     
-    // Process each patent and determine its primary status for each employee
+    // Count patents assigned to each employee
     patents.forEach(patent => {
-      // Function to determine patent status for a specific employee and role
-      const getPatentStatusForEmployee = (employeeName: string, role: 'ps_drafter' | 'ps_filer' | 'cs_drafter' | 'cs_filer' | 'fer_drafter' | 'fer_filer') => {
-        // Check if this employee is assigned to this role
-        let isAssigned = false;
-        let currentTask = '';
-        
-        switch (role) {
-          case 'ps_drafter':
-            isAssigned = patent.ps_drafter_assgn === employeeName;
-            currentTask = 'ps_drafting';
-            break;
-          case 'ps_filer':
-            isAssigned = patent.ps_filer_assgn === employeeName && patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 1;
-            currentTask = 'ps_filing';
-            break;
-          case 'cs_drafter':
-            isAssigned = patent.cs_drafter_assgn === employeeName && patent.ps_completion_status === 1;
-            currentTask = 'cs_drafting';
-            break;
-          case 'cs_filer':
-            isAssigned = patent.cs_filer_assgn === employeeName && patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 1;
-            currentTask = 'cs_filing';
-            break;
-          case 'fer_drafter':
-            isAssigned = patent.fer_drafter_assgn === employeeName && patent.fer_status === 1;
-            currentTask = 'fer_drafting';
-            break;
-          case 'fer_filer':
-            isAssigned = patent.fer_filer_assgn === employeeName && patent.fer_status === 1 && patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 1;
-            currentTask = 'fer_filing';
-            break;
-        }
-        
-        if (!isAssigned) return null;
-        
-        // Priority 1: Check for pending confirmation (highest priority)
-        if (patent.pending_ps_confirmation && (role === 'ps_drafter' || role === 'ps_filer')) {
-          return 'Pending Confirmation';
-        }
-        if (patent.pending_cs_confirmation && (role === 'cs_drafter' || role === 'cs_filer')) {
-          return 'Pending Confirmation';
-        }
-        
-        // Priority 2: Check for pending information
-        if (patent.idf_sent && !patent.idf_received && (role === 'ps_drafter' || role === 'ps_filer')) {
-          return 'Pending Information';
-        }
-        if (patent.cs_data && !patent.cs_data_received && (role === 'cs_drafter' || role === 'cs_filer')) {
-          return 'Pending Information';
-        }
-        
-        // Priority 3: Check for review status
-        if (role === 'ps_drafter' && patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0) {
-          return 'Review';
-        }
-        if (role === 'ps_filer' && patent.ps_filing_status === 1 && patent.ps_review_file_status === 0) {
-          return 'Review';
-        }
-        if (role === 'cs_drafter' && patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0) {
-          return 'Review';
-        }
-        if (role === 'cs_filer' && patent.cs_filing_status === 1 && patent.cs_review_file_status === 0) {
-          return 'Review';
-        }
-        if (role === 'fer_drafter' && patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0) {
-          return 'Review';
-        }
-        if (role === 'fer_filer' && patent.fer_filing_status === 1 && patent.fer_review_file_status === 0) {
-          return 'Review';
-        }
-        
-        // Priority 4: Check for completed status
-        if (role === 'ps_drafter' && patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 1) {
-          return 'Completed';
-        }
-        if (role === 'ps_filer' && patent.ps_filing_status === 1 && patent.ps_review_file_status === 1) {
-          return 'Completed';
-        }
-        if (role === 'cs_drafter' && patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 1) {
-          return 'Completed';
-        }
-        if (role === 'cs_filer' && patent.cs_filing_status === 1 && patent.cs_review_file_status === 1) {
-          return 'Completed';
-        }
-        if (role === 'fer_drafter' && patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 1) {
-          return 'Completed';
-        }
-        if (role === 'fer_filer' && patent.fer_filing_status === 1 && patent.fer_review_file_status === 1) {
-          return 'Completed';
-        }
-        
-        // Priority 5: Default to drafting (work in progress)
-        return 'Drafting';
-      };
+      // Determine patent's current status
+      let patentStatus = '';
       
-      // Process each employee and their roles
-      allEmployees.forEach(employeeName => {
-        if (!employeeName) return;
-        
-        const roles: Array<'ps_drafter' | 'ps_filer' | 'cs_drafter' | 'cs_filer' | 'fer_drafter' | 'fer_filer'> = [
-          'ps_drafter', 'ps_filer', 'cs_drafter', 'cs_filer', 'fer_drafter', 'fer_filer'
-        ];
-        
-        // Find the current active status for this employee on this patent
-        let activeStatus: string | null = null;
-        
-        for (const role of roles) {
-          const status = getPatentStatusForEmployee(employeeName, role);
-          if (status) {
-            // Use the first (highest priority) active status found
-            activeStatus = status;
-            break;
-          }
+      if (patent.pending_ps_confirmation || patent.pending_cs_confirmation) {
+        patentStatus = 'Pending Confirmation';
+      } else if ((patent.idf_sent && !patent.idf_received) || (patent.cs_data && !patent.cs_data_received)) {
+        patentStatus = 'Pending Information';
+      } else if (
+        (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0) ||
+        (patent.ps_filing_status === 1 && patent.ps_review_file_status === 0) ||
+        (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0) ||
+        (patent.cs_filing_status === 1 && patent.cs_review_file_status === 0) ||
+        (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0) ||
+        (patent.fer_filing_status === 1 && patent.fer_review_file_status === 0)
+      ) {
+        patentStatus = 'Review';
+      } else if (
+        patent.ps_completion_status === 1 && 
+        patent.cs_completion_status === 1 && 
+        (patent.fer_status === 0 || patent.fer_completion_status === 1)
+      ) {
+        patentStatus = 'Completed';
+      } else {
+        patentStatus = 'Drafting';
+      }
+      
+      // Find which employee is currently responsible for this patent
+      let responsibleEmployee = '';
+      
+      // Determine who's currently working on this patent based on its stage
+      if (patent.ps_completion_status === 0) {
+        if (patent.ps_drafting_status === 0 && patent.ps_drafter_assgn) {
+          responsibleEmployee = patent.ps_drafter_assgn;
+        } else if (patent.ps_drafting_status === 1 && patent.ps_filing_status === 0 && patent.ps_filer_assgn) {
+          responsibleEmployee = patent.ps_filer_assgn;
         }
-        
-        // Count the patent for this employee if they have an active status
-        if (activeStatus && stats[employeeName]) {
-          stats[employeeName][activeStatus]++;
-          stats[employeeName]['Total']++;
+      } else if (patent.cs_completion_status === 0) {
+        if (patent.cs_drafting_status === 0 && patent.cs_drafter_assgn) {
+          responsibleEmployee = patent.cs_drafter_assgn;
+        } else if (patent.cs_drafting_status === 1 && patent.cs_filing_status === 0 && patent.cs_filer_assgn) {
+          responsibleEmployee = patent.cs_filer_assgn;
         }
-      });
+      } else if (patent.fer_status === 1 && patent.fer_completion_status === 0) {
+        if (patent.fer_drafter_status === 0 && patent.fer_drafter_assgn) {
+          responsibleEmployee = patent.fer_drafter_assgn;
+        } else if (patent.fer_drafter_status === 1 && patent.fer_filing_status === 0 && patent.fer_filer_assgn) {
+          responsibleEmployee = patent.fer_filer_assgn;
+        }
+      }
+      
+      // Count this patent for the responsible employee
+      if (responsibleEmployee && workload[responsibleEmployee]) {
+        workload[responsibleEmployee][patentStatus]++;
+        workload[responsibleEmployee]['Total']++;
+      }
     });
     
-    return stats;
+    return workload;
   }, [patents]);
   
   // Function to get the appropriate background color based on status
@@ -187,12 +175,12 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
     }
   };
   
-  // Sort employees by total count in descending order
+  // Sort employees by total workload in descending order
   const sortedEmployees = useMemo(() => {
-    return Object.keys(employeeStats).sort((a, b) => 
-      employeeStats[b]['Total'] - employeeStats[a]['Total']
+    return Object.keys(employeeWorkload).sort((a, b) => 
+      employeeWorkload[b]['Total'] - employeeWorkload[a]['Total']
     );
-  }, [employeeStats]);
+  }, [employeeWorkload]);
   
   // Check if we have any data to show
   const hasData = sortedEmployees.length > 0;
@@ -236,14 +224,11 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
                         key={`${employee}-${status}`} 
                         className="text-center"
                       >
-                        {employeeStats[employee][status]}
+                        {employeeWorkload[employee][status]}
                       </TableCell>
                     ))}
                     <TableCell className="text-center font-bold">
-                      {sortedEmployees.reduce(
-                        (sum, employee) => sum + employeeStats[employee][status], 
-                        0
-                      )}
+                      {patentStatusCounts[status]}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -254,14 +239,11 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
                       key={`${employee}-total`} 
                       className="text-center font-bold"
                     >
-                      {employeeStats[employee]['Total']}
+                      {employeeWorkload[employee]['Total']}
                     </TableCell>
                   ))}
                   <TableCell className="text-center font-bold">
-                    {sortedEmployees.reduce(
-                      (sum, employee) => sum + employeeStats[employee]['Total'], 
-                      0
-                    )}
+                    {patentStatusCounts['Total']}
                   </TableCell>
                 </TableRow>
               </TableBody>
