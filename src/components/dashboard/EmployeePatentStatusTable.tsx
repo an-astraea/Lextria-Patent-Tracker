@@ -46,7 +46,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
     return getStatusCounts(patents);
   }, [patents]);
   
-  // Calculate employee workload for each status with corrected completion logic
+  // Calculate employee workload with corrected stage-based allocation
   const employeeWorkload = useMemo(() => {
     const workload: Record<string, Record<PatentStatus, number>> = {};
     
@@ -85,62 +85,41 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
       }
     });
     
-    // Count patents assigned to each employee based on current status and completion logic
+    // Count patents assigned to each employee based on stage groupings
     patents.forEach(patent => {
       const patentStatus = determinePatentStatus(patent);
       
-      // Determine which employee is currently responsible OR gets credit for completion
+      // PS stages: all stages up to and including ps_completed go to PS drafter
+      const psStages: PatentStatus[] = [
+        'ps_drafting', 
+        'ps_drafting_approval', 
+        'ps_filing', 
+        'ps_filing_approval', 
+        'ps_completed'
+      ];
+      
+      // CS stages: all stages from cs_data_sent onwards go to CS drafter
+      const csStages: PatentStatus[] = [
+        'cs_data_sent',
+        'cs_data_received',
+        'cs_drafting',
+        'cs_drafting_approval',
+        'cs_filing',
+        'cs_filing_approval',
+        'cs_completed',
+        'completed'
+      ];
+      
       let responsibleEmployee = '';
       
-      switch (patentStatus) {
-        case 'idf_sent':
-        case 'idf_received':
-          // Admin responsibility - no specific employee assignment yet
-          break;
-        case 'ps_drafting':
-          responsibleEmployee = patent.ps_drafter_assgn || '';
-          break;
-        case 'ps_drafting_approval':
-          // Admin reviews PS drafts - no employee assignment for counting
-          break;
-        case 'ps_filing':
-          responsibleEmployee = patent.ps_filer_assgn || '';
-          break;
-        case 'ps_filing_approval':
-          // Admin reviews PS filing - no employee assignment for counting
-          break;
-        case 'ps_completed':
-          // Credit goes to PS drafter for completing the PS section
-          responsibleEmployee = patent.ps_drafter_assgn || '';
-          break;
-        case 'cs_data_sent':
-        case 'cs_data_received':
-          // Admin responsibility for CS data management
-          break;
-        case 'cs_drafting':
-          responsibleEmployee = patent.cs_drafter_assgn || '';
-          break;
-        case 'cs_drafting_approval':
-          // Admin reviews CS drafts - no employee assignment for counting
-          break;
-        case 'cs_filing':
-          responsibleEmployee = patent.cs_filer_assgn || '';
-          break;
-        case 'cs_filing_approval':
-          // Admin reviews CS filing - no employee assignment for counting
-          break;
-        case 'cs_completed':
-          // Credit goes to CS drafter for completing the CS section
-          responsibleEmployee = patent.cs_drafter_assgn || '';
-          break;
-        case 'completed':
-          // Credit goes to CS drafter for overall completion
-          responsibleEmployee = patent.cs_drafter_assgn || '';
-          break;
-        case 'withdrawn':
-          // Final state - no specific employee responsibility
-          break;
+      if (psStages.includes(patentStatus)) {
+        // PS stages go to PS drafter
+        responsibleEmployee = patent.ps_drafter_assgn || '';
+      } else if (csStages.includes(patentStatus)) {
+        // CS stages go to CS drafter
+        responsibleEmployee = patent.cs_drafter_assgn || '';
       }
+      // Admin stages (idf_sent, idf_received, withdrawn) don't get assigned to specific employees
       
       // Count this patent for the responsible employee
       if (responsibleEmployee && workload[responsibleEmployee]) {
@@ -181,7 +160,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
       <CardHeader className="py-3 bg-blue-200">
         <CardTitle className="text-center text-lg font-bold">MAIN DASHBOARD - PATENT STATUS BY EMPLOYEE</CardTitle>
         <p className="text-center text-sm text-muted-foreground">
-          Linear Workflow: Each patent counted once in its current status (Total Patents: {patents.length}, Status Total: {totalFromStatus})
+          Stage-based Allocation: PS stages → PS drafter, CS stages → CS drafter (Total Patents: {patents.length}, Status Total: {totalFromStatus})
         </p>
       </CardHeader>
       <CardContent className="p-0">
