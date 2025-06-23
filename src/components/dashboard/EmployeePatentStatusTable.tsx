@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Patent } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { determinePatentStatus, PatentStatus, STATUS_LABELS, getStatusCounts } from '@/lib/utils/status-utils';
+import { determinePatentStatus, PatentStatus, STATUS_LABELS, getStatusCounts, STATUS_COLORS } from '@/lib/utils/status-utils';
 
 interface EmployeePatentStatusTableProps {
   patents: Patent[];
@@ -34,12 +34,19 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
     'withdrawn'
   ];
 
+  // Custom labels for display
+  const DISPLAY_LABELS: Record<PatentStatus, string> = {
+    ...STATUS_LABELS,
+    'ps_completed': 'PS Completed',
+    'cs_completed': 'CS Completed'
+  };
+
   // Calculate overall status counts using the corrected logic
   const statusCounts = useMemo(() => {
     return getStatusCounts(patents);
   }, [patents]);
   
-  // Calculate employee workload for each status
+  // Calculate employee workload for each status with corrected completion logic
   const employeeWorkload = useMemo(() => {
     const workload: Record<string, Record<PatentStatus, number>> = {};
     
@@ -78,11 +85,11 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
       }
     });
     
-    // Count patents assigned to each employee based on current status
+    // Count patents assigned to each employee based on current status and completion logic
     patents.forEach(patent => {
       const patentStatus = determinePatentStatus(patent);
       
-      // Determine which employee is currently responsible based on patent status
+      // Determine which employee is currently responsible OR gets credit for completion
       let responsibleEmployee = '';
       
       switch (patentStatus) {
@@ -94,15 +101,18 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
           responsibleEmployee = patent.ps_drafter_assgn || '';
           break;
         case 'ps_drafting_approval':
-          // Admin reviews PS drafts - no employee assignment
+          // Admin reviews PS drafts - no employee assignment for counting
           break;
         case 'ps_filing':
           responsibleEmployee = patent.ps_filer_assgn || '';
           break;
         case 'ps_filing_approval':
-          // Admin reviews PS filing - no employee assignment
+          // Admin reviews PS filing - no employee assignment for counting
           break;
         case 'ps_completed':
+          // Credit goes to PS drafter for completing the PS section
+          responsibleEmployee = patent.ps_drafter_assgn || '';
+          break;
         case 'cs_data_sent':
         case 'cs_data_received':
           // Admin responsibility for CS data management
@@ -111,18 +121,24 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
           responsibleEmployee = patent.cs_drafter_assgn || '';
           break;
         case 'cs_drafting_approval':
-          // Admin reviews CS drafts - no employee assignment
+          // Admin reviews CS drafts - no employee assignment for counting
           break;
         case 'cs_filing':
           responsibleEmployee = patent.cs_filer_assgn || '';
           break;
         case 'cs_filing_approval':
-          // Admin reviews CS filing - no employee assignment
+          // Admin reviews CS filing - no employee assignment for counting
           break;
         case 'cs_completed':
+          // Credit goes to CS drafter for completing the CS section
+          responsibleEmployee = patent.cs_drafter_assgn || '';
+          break;
         case 'completed':
+          // Credit goes to CS drafter for overall completion
+          responsibleEmployee = patent.cs_drafter_assgn || '';
+          break;
         case 'withdrawn':
-          // Final states - no specific employee responsibility
+          // Final state - no specific employee responsibility
           break;
       }
       
@@ -134,29 +150,6 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
     
     return workload;
   }, [patents]);
-  
-  // Function to get background color based on status
-  const getStatusColor = (status: PatentStatus) => {
-    switch (status) {
-      case 'idf_sent': return 'bg-gray-100';
-      case 'idf_received': return 'bg-blue-50';
-      case 'ps_drafting': return 'bg-blue-100';
-      case 'ps_drafting_approval': return 'bg-blue-200';
-      case 'ps_filing': return 'bg-blue-300';
-      case 'ps_filing_approval': return 'bg-blue-400';
-      case 'ps_completed': return 'bg-blue-500 text-white';
-      case 'cs_data_sent': return 'bg-indigo-100';
-      case 'cs_data_received': return 'bg-indigo-200';
-      case 'cs_drafting': return 'bg-indigo-300';
-      case 'cs_drafting_approval': return 'bg-indigo-400';
-      case 'cs_filing': return 'bg-indigo-500 text-white';
-      case 'cs_filing_approval': return 'bg-indigo-600 text-white';
-      case 'cs_completed': return 'bg-indigo-700 text-white';
-      case 'completed': return 'bg-green-500 text-white';
-      case 'withdrawn': return 'bg-red-500 text-white';
-      default: return 'bg-gray-50';
-    }
-  };
   
   // Sort employees by total workload
   const sortedEmployees = useMemo(() => {
@@ -204,7 +197,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
                     <TableHead key={employee} className="text-center font-bold min-w-[120px]">
                       <Button 
                         variant="ghost" 
-                        className="p-0 h-auto font-bold text-foreground hover:text-primary text-xs"
+                        className="p-0 h-auto font-bold text-foreground text-xs"
                         onClick={() => handleEmployeeClick(employee)}
                       >
                         {employee}
@@ -216,14 +209,16 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
               </TableHeader>
               <TableBody>
                 {visibleStatuses.map(status => (
-                  <TableRow key={status} className={getStatusColor(status)}>
+                  <TableRow key={status} className={STATUS_COLORS[status]}>
                     <TableCell className="font-bold sticky left-0 bg-inherit z-10">
                       <div className="min-w-[180px]">
                         <div className="font-semibold capitalize">
-                          {status.replace(/_/g, ' ')}
+                          {status === 'ps_completed' ? 'PS Completed' : 
+                           status === 'cs_completed' ? 'CS Completed' :
+                           status.replace(/_/g, ' ')}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          {STATUS_LABELS[status]}
+                          {DISPLAY_LABELS[status]}
                         </div>
                       </div>
                     </TableCell>
