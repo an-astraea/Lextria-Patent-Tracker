@@ -1,236 +1,350 @@
-
-import React from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Patent, Employee } from '@/lib/types';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Patent } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 interface EmployeePatentStatusTableProps {
   patents: Patent[];
-  employees?: Employee[];
 }
 
-const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ 
-  patents, 
-  employees = [] 
-}) => {
-  // Create a set of filer names to exclude them
-  const filerNames = new Set(
-    employees.filter(emp => emp.role === 'filer').map(emp => emp.full_name)
-  );
-
-  // Get unique employee names from drafter assignments only (exclude filers)
-  const employeeNames = new Set<string>();
+const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ patents }) => {
+  const navigate = useNavigate();
   
-  patents.forEach(patent => {
-    // Only process drafter assignment fields
-    [patent.ps_drafter_assgn, patent.cs_drafter_assgn, patent.fer_drafter_assgn]
-      .filter(Boolean)
-      .forEach(name => {
-        if (name && !filerNames.has(name)) {
-          employeeNames.add(name);
-        }
-      });
-  });
-
-  const employeeArray = Array.from(employeeNames).sort();
-
-  if (employeeArray.length === 0) {
-    return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Employee Patent Status</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-4 text-muted-foreground">
-            No drafter assignments found
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Calculate status counts for each employee (only drafter work)
-  const getEmployeeStatusCounts = (employeeName: string) => {
-    let review = 0;
-    let completed = 0;
-    let drafting = 0;
-    let pendingConfirmation = 0;
-    let pendingInformation = 0;
-
+  // Define the status types we want to track
+  const statusTypes = ['Review', 'Completed', 'Drafting', 'Pending Confirmation', 'Pending Information'];
+  
+  // Calculate employee stats based on patents
+  const employeeStats = useMemo(() => {
+    const stats: Record<string, { [key: string]: number }> = {};
+    
+    // Initialize with all employees who are assigned to any patents
+    const allEmployees = new Set<string>();
+    
     patents.forEach(patent => {
-      // Only count work where this employee is assigned as a drafter
-      let isAssignedAsDrafter = false;
-      
-      // Check PS drafter assignment
-      if (patent.ps_drafter_assgn === employeeName) {
-        isAssignedAsDrafter = true;
-        if (patent.ps_drafting_status === 1) {
-          completed++;
-        } else if (patent.ps_drafting_status === 0) {
-          drafting++;
-        }
-      }
-      
-      // Check CS drafter assignment
-      if (patent.cs_drafter_assgn === employeeName) {
-        isAssignedAsDrafter = true;
-        if (patent.cs_drafting_status === 1) {
-          completed++;
-        } else if (patent.cs_drafting_status === 0) {
-          drafting++;
-        }
-      }
-      
-      // Check FER drafter assignment
-      if (patent.fer_drafter_assgn === employeeName) {
-        isAssignedAsDrafter = true;
-        if (patent.fer_drafter_status === 1) {
-          completed++;
-        } else if (patent.fer_drafter_status === 0) {
-          drafting++;
-        }
-      }
-
-      // Count other statuses only if assigned as drafter
-      if (isAssignedAsDrafter) {
-        if (patent.pending_ps_confirmation || patent.pending_cs_confirmation) {
-          pendingConfirmation++;
-        }
-        
-        // Add other status logic as needed
-        review++; // This might need more specific logic based on your requirements
+      // Add all assigned employees to the set
+      if (patent.ps_drafter_assgn) allEmployees.add(patent.ps_drafter_assgn);
+      if (patent.ps_filer_assgn) allEmployees.add(patent.ps_filer_assgn);
+      if (patent.cs_drafter_assgn) allEmployees.add(patent.cs_drafter_assgn);
+      if (patent.cs_filer_assgn) allEmployees.add(patent.cs_filer_assgn);
+      if (patent.fer_drafter_assgn) allEmployees.add(patent.fer_drafter_assgn);
+      if (patent.fer_filer_assgn) allEmployees.add(patent.fer_filer_assgn);
+    });
+    
+    // Initialize stats object with all employees
+    allEmployees.forEach(employee => {
+      if (employee) {
+        stats[employee] = {
+          'Review': 0,
+          'Completed': 0,
+          'Drafting': 0,
+          'Pending Confirmation': 0,
+          'Pending Information': 0,
+          'Total': 0
+        };
       }
     });
+    
+    // Count patents for each employee by status
+    patents.forEach(patent => {
+      // Process PS Drafter tasks
+      if (patent.ps_drafter_assgn) {
+        // Review - when submitted for review
+        if (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0) {
+          stats[patent.ps_drafter_assgn]['Review']++;
+          stats[patent.ps_drafter_assgn]['Total']++;
+        } 
+        // Completed - when approved
+        else if (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 1) {
+          stats[patent.ps_drafter_assgn]['Completed']++;
+          stats[patent.ps_drafter_assgn]['Total']++;
+        }
+        // Drafting - in progress
+        else if (patent.ps_drafting_status === 0) {
+          stats[patent.ps_drafter_assgn]['Drafting']++;
+          stats[patent.ps_drafter_assgn]['Total']++;
+        }
+        
+        // Pending for IDF state
+        if (!patent.idf_received && patent.idf_sent) {
+          stats[patent.ps_drafter_assgn]['Pending Information']++;
+          // Avoid double counting in the total
+          if (stats[patent.ps_drafter_assgn]['Drafting'] > 0) {
+            stats[patent.ps_drafter_assgn]['Drafting']--;
+          }
+        }
+        
+        // Pending Confirmation (new category for PS confirmation)
+        if (patent.pending_ps_confirmation) {
+          stats[patent.ps_drafter_assgn]['Pending Confirmation']++;
+          // Avoid double counting in the total
+          if (stats[patent.ps_drafter_assgn]['Pending Information'] > 0) {
+            stats[patent.ps_drafter_assgn]['Pending Information']--;
+          } else if (stats[patent.ps_drafter_assgn]['Drafting'] > 0) {
+            stats[patent.ps_drafter_assgn]['Drafting']--;
+          }
+        }
+      }
+      
+      // Process PS Filer tasks (only if drafting is completed)
+      if (patent.ps_filer_assgn && patent.ps_drafting_status === 1) {
+        // Review - when submitted for review
+        if (patent.ps_filing_status === 1 && patent.ps_review_file_status === 0) {
+          stats[patent.ps_filer_assgn]['Review']++;
+          stats[patent.ps_filer_assgn]['Total']++;
+        } 
+        // Completed - when approved
+        else if (patent.ps_filing_status === 1 && patent.ps_review_file_status === 1) {
+          stats[patent.ps_filer_assgn]['Completed']++;
+          stats[patent.ps_filer_assgn]['Total']++;
+        }
+        // Drafting - in progress
+        else if (patent.ps_filing_status === 0) {
+          stats[patent.ps_filer_assgn]['Drafting']++;
+          stats[patent.ps_filer_assgn]['Total']++;
+        }
+        
+        // Pending for IDF state
+        if (!patent.idf_received && patent.idf_sent) {
+          stats[patent.ps_filer_assgn]['Pending Information']++;
+          // Avoid double counting in the total
+          if (stats[patent.ps_filer_assgn]['Drafting'] > 0) {
+            stats[patent.ps_filer_assgn]['Drafting']--;
+          }
+        }
+        
+        // Pending Confirmation for PS filer
+        if (patent.pending_ps_confirmation) {
+          stats[patent.ps_filer_assgn]['Pending Confirmation']++;
+          // Avoid double counting in the total
+          if (stats[patent.ps_filer_assgn]['Pending Information'] > 0) {
+            stats[patent.ps_filer_assgn]['Pending Information']--;
+          } else if (stats[patent.ps_filer_assgn]['Drafting'] > 0) {
+            stats[patent.ps_filer_assgn]['Drafting']--;
+          }
+        }
+      }
+      
+      // Process CS Drafter tasks (only after PS is complete)
+      if (patent.cs_drafter_assgn && patent.ps_filing_status === 1) {
+        // Review - when submitted for review
+        if (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0) {
+          stats[patent.cs_drafter_assgn]['Review']++;
+          stats[patent.cs_drafter_assgn]['Total']++;
+        } 
+        // Completed - when approved
+        else if (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 1) {
+          stats[patent.cs_drafter_assgn]['Completed']++;
+          stats[patent.cs_drafter_assgn]['Total']++;
+        }
+        // Drafting - in progress
+        else if (patent.cs_drafting_status === 0) {
+          stats[patent.cs_drafter_assgn]['Drafting']++;
+          stats[patent.cs_drafter_assgn]['Total']++;
+        }
+        
+        // Pending for IDF state
+        if (!patent.idf_received && patent.idf_sent) {
+          stats[patent.cs_drafter_assgn]['Pending Information']++;
+          // Avoid double counting in the total
+          if (stats[patent.cs_drafter_assgn]['Drafting'] > 0) {
+            stats[patent.cs_drafter_assgn]['Drafting']--;
+          }
+        }
+        
+        // Pending Confirmation for CS drafter
+        if (patent.pending_cs_confirmation) {
+          stats[patent.cs_drafter_assgn]['Pending Confirmation']++;
+          // Avoid double counting in the total
+          if (stats[patent.cs_drafter_assgn]['Pending Information'] > 0) {
+            stats[patent.cs_drafter_assgn]['Pending Information']--;
+          } else if (stats[patent.cs_drafter_assgn]['Drafting'] > 0) {
+            stats[patent.cs_drafter_assgn]['Drafting']--;
+          }
+        }
+      }
+      
+      // Process CS Filer tasks (only if CS drafting is completed)
+      if (patent.cs_filer_assgn && patent.cs_drafting_status === 1) {
+        // Review - when submitted for review
+        if (patent.cs_filing_status === 1 && patent.cs_review_file_status === 0) {
+          stats[patent.cs_filer_assgn]['Review']++;
+          stats[patent.cs_filer_assgn]['Total']++;
+        } 
+        // Completed - when approved
+        else if (patent.cs_filing_status === 1 && patent.cs_review_file_status === 1) {
+          stats[patent.cs_filer_assgn]['Completed']++;
+          stats[patent.cs_filer_assgn]['Total']++;
+        }
+        // Drafting - in progress
+        else if (patent.cs_filing_status === 0) {
+          stats[patent.cs_filer_assgn]['Drafting']++;
+          stats[patent.cs_filer_assgn]['Total']++;
+        }
+        
+        // Pending for IDF state
+        if (!patent.idf_received && patent.idf_sent) {
+          stats[patent.cs_filer_assgn]['Pending Information']++;
+          // Avoid double counting in the total
+          if (stats[patent.cs_filer_assgn]['Drafting'] > 0) {
+            stats[patent.cs_filer_assgn]['Drafting']--;
+          }
+        }
+        
+        // Pending Confirmation for CS filer
+        if (patent.pending_cs_confirmation) {
+          stats[patent.cs_filer_assgn]['Pending Confirmation']++;
+          // Avoid double counting in the total
+          if (stats[patent.cs_filer_assgn]['Pending Information'] > 0) {
+            stats[patent.cs_filer_assgn]['Pending Information']--;
+          } else if (stats[patent.cs_filer_assgn]['Drafting'] > 0) {
+            stats[patent.cs_filer_assgn]['Drafting']--;
+          }
+        }
+      }
+      
+      // Process FER tasks
+      if (patent.fer_status === 1) {
+        // FER Drafter
+        if (patent.fer_drafter_assgn) {
+          // Review - when submitted for review
+          if (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0) {
+            stats[patent.fer_drafter_assgn]['Review']++;
+            stats[patent.fer_drafter_assgn]['Total']++;
+          } 
+          // Completed - when approved
+          else if (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 1) {
+            stats[patent.fer_drafter_assgn]['Completed']++;
+            stats[patent.fer_drafter_assgn]['Total']++;
+          }
+          // Drafting - in progress
+          else if (patent.fer_drafter_status === 0) {
+            stats[patent.fer_drafter_assgn]['Drafting']++;
+            stats[patent.fer_drafter_assgn]['Total']++;
+          }
+        }
+        
+        // FER Filer (only if FER drafting is completed)
+        if (patent.fer_filer_assgn && patent.fer_drafter_status === 1) {
+          // Review - when submitted for review
+          if (patent.fer_filing_status === 1 && patent.fer_review_file_status === 0) {
+            stats[patent.fer_filer_assgn]['Review']++;
+            stats[patent.fer_filer_assgn]['Total']++;
+          } 
+          // Completed - when approved
+          else if (patent.fer_filing_status === 1 && patent.fer_review_file_status === 1) {
+            stats[patent.fer_filer_assgn]['Completed']++;
+            stats[patent.fer_filer_assgn]['Total']++;
+          }
+          // Drafting - in progress
+          else if (patent.fer_filing_status === 0) {
+            stats[patent.fer_filer_assgn]['Drafting']++;
+            stats[patent.fer_filer_assgn]['Total']++;
+          }
+        }
+      }
+    });
+    
+    return stats;
+  }, [patents]);
+  
+  // Function to get the appropriate background color based on status
+  const getBackgroundColor = (status: string) => {
+    switch (status) {
+      case 'Review': return 'bg-gray-300 text-black';  // Grey
+      case 'Completed': return 'bg-green-500 text-white';  // Green
+      case 'Drafting': return 'bg-yellow-400 text-black';  // Yellow
+      case 'Pending Confirmation': return 'bg-orange-300 text-black';  // Orange for pending confirmation
+      case 'Pending Information': return 'bg-purple-300 text-black';  // Purple for pending info
+      case 'Total': return 'bg-white text-black';  // White with black text for Total
+      default: return '';
+    }
+  };
+  
+  // Sort employees by total count in descending order
+  const sortedEmployees = useMemo(() => {
+    return Object.keys(employeeStats).sort((a, b) => 
+      employeeStats[b]['Total'] - employeeStats[a]['Total']
+    );
+  }, [employeeStats]);
+  
+  // Check if we have any data to show
+  const hasData = sortedEmployees.length > 0;
 
-    return {
-      review,
-      completed,
-      drafting,
-      pendingConfirmation,
-      pendingInformation,
-      total: review + completed + drafting + pendingConfirmation + pendingInformation
-    };
+  const handleEmployeeClick = (employeeName: string) => {
+    navigate(`/employee/${encodeURIComponent(employeeName)}`);
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Employee Patent Status (Drafters Only)</CardTitle>
+    <Card className="col-span-full">
+      <CardHeader className="py-3 bg-blue-200">
+        <CardTitle className="text-center text-lg font-bold">MAIN DASHBOARD</CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
-        <div className="w-full overflow-auto max-h-[60vh]">
-          <Table>
-            <TableHeader className="sticky top-0 bg-background z-10">
-              <TableRow>
-                <TableHead className="min-w-[120px]">Status</TableHead>
-                {employeeArray.map(name => (
-                  <TableHead key={name} className="text-center min-w-[100px]">
-                    {name}
-                  </TableHead>
+      <CardContent>
+        {hasData ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="font-bold">Status</TableHead>
+                  {sortedEmployees.map(employee => (
+                    <TableHead key={employee} className="text-center font-bold">
+                      <Button 
+                        variant="ghost" 
+                        className="p-0 h-auto font-bold text-foreground hover:text-primary"
+                        onClick={() => handleEmployeeClick(employee)}
+                      >
+                        {employee}
+                      </Button>
+                    </TableHead>
+                  ))}
+                  <TableHead className="text-center font-bold">TOTAL</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {statusTypes.map(status => (
+                  <TableRow key={status} className={getBackgroundColor(status)}>
+                    <TableCell className="font-bold">{status}</TableCell>
+                    {sortedEmployees.map(employee => (
+                      <TableCell 
+                        key={`${employee}-${status}`} 
+                        className="text-center"
+                      >
+                        {employeeStats[employee][status]}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-center font-bold">
+                      {sortedEmployees.reduce(
+                        (sum, employee) => sum + employeeStats[employee][status], 
+                        0
+                      )}
+                    </TableCell>
+                  </TableRow>
                 ))}
-                <TableHead className="text-center min-w-[80px] font-bold">TOTAL</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow className="bg-blue-50">
-                <TableCell className="font-medium">Review</TableCell>
-                {employeeArray.map(name => {
-                  const counts = getEmployeeStatusCounts(name);
-                  return (
-                    <TableCell key={name} className="text-center">
-                      {counts.review}
+                <TableRow className={getBackgroundColor('Total')}>
+                  <TableCell className="font-bold">TOTAL</TableCell>
+                  {sortedEmployees.map(employee => (
+                    <TableCell 
+                      key={`${employee}-total`} 
+                      className="text-center font-bold"
+                    >
+                      {employeeStats[employee]['Total']}
                     </TableCell>
-                  );
-                })}
-                <TableCell className="text-center font-bold">
-                  {employeeArray.reduce((sum, name) => sum + getEmployeeStatusCounts(name).review, 0)}
-                </TableCell>
-              </TableRow>
-              
-              <TableRow className="bg-green-50">
-                <TableCell className="font-medium">Completed</TableCell>
-                {employeeArray.map(name => {
-                  const counts = getEmployeeStatusCounts(name);
-                  return (
-                    <TableCell key={name} className="text-center">
-                      {counts.completed}
-                    </TableCell>
-                  );
-                })}
-                <TableCell className="text-center font-bold">
-                  {employeeArray.reduce((sum, name) => sum + getEmployeeStatusCounts(name).completed, 0)}
-                </TableCell>
-              </TableRow>
-              
-              <TableRow className="bg-yellow-50">
-                <TableCell className="font-medium">Drafting</TableCell>
-                {employeeArray.map(name => {
-                  const counts = getEmployeeStatusCounts(name);
-                  return (
-                    <TableCell key={name} className="text-center">
-                      {counts.drafting}
-                    </TableCell>
-                  );
-                })}
-                <TableCell className="text-center font-bold">
-                  {employeeArray.reduce((sum, name) => sum + getEmployeeStatusCounts(name).drafting, 0)}
-                </TableCell>
-              </TableRow>
-              
-              <TableRow className="bg-orange-50">
-                <TableCell className="font-medium">Pending Confirmation</TableCell>
-                {employeeArray.map(name => {
-                  const counts = getEmployeeStatusCounts(name);
-                  return (
-                    <TableCell key={name} className="text-center">
-                      {counts.pendingConfirmation}
-                    </TableCell>
-                  );
-                })}
-                <TableCell className="text-center font-bold">
-                  {employeeArray.reduce((sum, name) => sum + getEmployeeStatusCounts(name).pendingConfirmation, 0)}
-                </TableCell>
-              </TableRow>
-              
-              <TableRow className="bg-purple-50">
-                <TableCell className="font-medium">Pending Information</TableCell>
-                {employeeArray.map(name => {
-                  const counts = getEmployeeStatusCounts(name);
-                  return (
-                    <TableCell key={name} className="text-center">
-                      {counts.pendingInformation}
-                    </TableCell>
-                  );
-                })}
-                <TableCell className="text-center font-bold">
-                  {employeeArray.reduce((sum, name) => sum + getEmployeeStatusCounts(name).pendingInformation, 0)}
-                </TableCell>
-              </TableRow>
-              
-              <TableRow className="bg-gray-100 font-bold">
-                <TableCell className="font-bold">TOTAL</TableCell>
-                {employeeArray.map(name => {
-                  const counts = getEmployeeStatusCounts(name);
-                  return (
-                    <TableCell key={name} className="text-center font-bold">
-                      {counts.total}
-                    </TableCell>
-                  );
-                })}
-                <TableCell className="text-center font-bold">
-                  {employeeArray.reduce((sum, name) => sum + getEmployeeStatusCounts(name).total, 0)}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
+                  ))}
+                  <TableCell className="text-center font-bold">
+                    {sortedEmployees.reduce(
+                      (sum, employee) => sum + employeeStats[employee]['Total'], 
+                      0
+                    )}
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <p className="text-center text-muted-foreground py-6">No patent data available</p>
+        )}
       </CardContent>
     </Card>
   );
