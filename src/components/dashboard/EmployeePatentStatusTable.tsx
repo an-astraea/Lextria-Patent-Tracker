@@ -5,7 +5,7 @@ import { Patent } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { employeeApi } from '@/lib/api/employee-api';
+import { fetchEmployees } from '@/lib/api/employee-api';
 
 interface EmployeePatentStatusTableProps {
   patents: Patent[];
@@ -17,7 +17,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
   // Fetch employees to filter out filers
   const { data: employees = [] } = useQuery({
     queryKey: ['employees'],
-    queryFn: employeeApi.getEmployees
+    queryFn: fetchEmployees
   });
   
   // Create a set of filer names for quick lookup
