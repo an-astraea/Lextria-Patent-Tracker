@@ -251,17 +251,6 @@ const BulkUpload: React.FC = () => {
     }
   };
 
-  const resetUploadStates = () => {
-    setSelectedFile(null);
-    setParsedData([]);
-    setValidationErrors([]);
-    setValidationComplete(false);
-    setShowConfirmDialog(false);
-    setIsValidating(false);
-    setUploadProgress(0);
-    setShowResults(false);
-  };
-
   return (
     <MainLayout>
       <div className="p-6">
