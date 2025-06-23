@@ -4,8 +4,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Patent } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { fetchEmployees } from '@/lib/api/employee-api';
 
 interface EmployeePatentStatusTableProps {
   patents: Patent[];
@@ -14,19 +12,6 @@ interface EmployeePatentStatusTableProps {
 const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ patents }) => {
   const navigate = useNavigate();
   
-  // Fetch employees to filter out filers
-  const { data: employees = [] } = useQuery({
-    queryKey: ['employees'],
-    queryFn: fetchEmployees
-  });
-  
-  // Create a set of filer names for quick lookup
-  const filerNames = useMemo(() => {
-    return new Set(
-      employees.filter(emp => emp.role === 'filer').map(emp => emp.full_name)
-    );
-  }, [employees]);
-  
   // Define the status types we want to track
   const statusTypes = ['Review', 'Completed', 'Drafting', 'Pending Confirmation', 'Pending Information'];
   
@@ -34,20 +19,20 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
   const employeeStats = useMemo(() => {
     const stats: Record<string, { [key: string]: number }> = {};
     
-    // Initialize with all employees who are assigned to any patents (excluding filers)
+    // Initialize with all employees who are assigned to any patents
     const allEmployees = new Set<string>();
     
     patents.forEach(patent => {
-      // Add all assigned employees to the set, but exclude filers
-      if (patent.ps_drafter_assgn && !filerNames.has(patent.ps_drafter_assgn)) allEmployees.add(patent.ps_drafter_assgn);
-      if (patent.ps_filer_assgn && !filerNames.has(patent.ps_filer_assgn)) allEmployees.add(patent.ps_filer_assgn);
-      if (patent.cs_drafter_assgn && !filerNames.has(patent.cs_drafter_assgn)) allEmployees.add(patent.cs_drafter_assgn);
-      if (patent.cs_filer_assgn && !filerNames.has(patent.cs_filer_assgn)) allEmployees.add(patent.cs_filer_assgn);
-      if (patent.fer_drafter_assgn && !filerNames.has(patent.fer_drafter_assgn)) allEmployees.add(patent.fer_drafter_assgn);
-      if (patent.fer_filer_assgn && !filerNames.has(patent.fer_filer_assgn)) allEmployees.add(patent.fer_filer_assgn);
+      // Add all assigned employees to the set
+      if (patent.ps_drafter_assgn) allEmployees.add(patent.ps_drafter_assgn);
+      if (patent.ps_filer_assgn) allEmployees.add(patent.ps_filer_assgn);
+      if (patent.cs_drafter_assgn) allEmployees.add(patent.cs_drafter_assgn);
+      if (patent.cs_filer_assgn) allEmployees.add(patent.cs_filer_assgn);
+      if (patent.fer_drafter_assgn) allEmployees.add(patent.fer_drafter_assgn);
+      if (patent.fer_filer_assgn) allEmployees.add(patent.fer_filer_assgn);
     });
     
-    // Initialize stats object with all employees (excluding filers)
+    // Initialize stats object with all employees
     allEmployees.forEach(employee => {
       if (employee) {
         stats[employee] = {
@@ -61,10 +46,10 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
       }
     });
     
-    // Count patents for each employee by status (excluding filers)
+    // Count patents for each employee by status
     patents.forEach(patent => {
       // Process PS Drafter tasks
-      if (patent.ps_drafter_assgn && !filerNames.has(patent.ps_drafter_assgn)) {
+      if (patent.ps_drafter_assgn) {
         // Review - when submitted for review
         if (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0) {
           stats[patent.ps_drafter_assgn]['Review']++;
@@ -102,8 +87,8 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
         }
       }
       
-      // Process PS Filer tasks (only if drafting is completed and not a filer)
-      if (patent.ps_filer_assgn && !filerNames.has(patent.ps_filer_assgn) && patent.ps_drafting_status === 1) {
+      // Process PS Filer tasks (only if drafting is completed)
+      if (patent.ps_filer_assgn && patent.ps_drafting_status === 1) {
         // Review - when submitted for review
         if (patent.ps_filing_status === 1 && patent.ps_review_file_status === 0) {
           stats[patent.ps_filer_assgn]['Review']++;
@@ -141,8 +126,8 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
         }
       }
       
-      // Process CS Drafter tasks (only after PS is complete and not a filer)
-      if (patent.cs_drafter_assgn && !filerNames.has(patent.cs_drafter_assgn) && patent.ps_filing_status === 1) {
+      // Process CS Drafter tasks (only after PS is complete)
+      if (patent.cs_drafter_assgn && patent.ps_filing_status === 1) {
         // Review - when submitted for review
         if (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0) {
           stats[patent.cs_drafter_assgn]['Review']++;
@@ -180,8 +165,8 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
         }
       }
       
-      // Process CS Filer tasks (only if CS drafting is completed and not a filer)
-      if (patent.cs_filer_assgn && !filerNames.has(patent.cs_filer_assgn) && patent.cs_drafting_status === 1) {
+      // Process CS Filer tasks (only if CS drafting is completed)
+      if (patent.cs_filer_assgn && patent.cs_drafting_status === 1) {
         // Review - when submitted for review
         if (patent.cs_filing_status === 1 && patent.cs_review_file_status === 0) {
           stats[patent.cs_filer_assgn]['Review']++;
@@ -219,10 +204,10 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
         }
       }
       
-      // Process FER tasks (excluding filers)
+      // Process FER tasks
       if (patent.fer_status === 1) {
         // FER Drafter
-        if (patent.fer_drafter_assgn && !filerNames.has(patent.fer_drafter_assgn)) {
+        if (patent.fer_drafter_assgn) {
           // Review - when submitted for review
           if (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0) {
             stats[patent.fer_drafter_assgn]['Review']++;
@@ -240,8 +225,8 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
           }
         }
         
-        // FER Filer (only if FER drafting is completed and not a filer)
-        if (patent.fer_filer_assgn && !filerNames.has(patent.fer_filer_assgn) && patent.fer_drafter_status === 1) {
+        // FER Filer (only if FER drafting is completed)
+        if (patent.fer_filer_assgn && patent.fer_drafter_status === 1) {
           // Review - when submitted for review
           if (patent.fer_filing_status === 1 && patent.fer_review_file_status === 0) {
             stats[patent.fer_filer_assgn]['Review']++;
@@ -262,7 +247,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
     });
     
     return stats;
-  }, [patents, filerNames]);
+  }, [patents]);
   
   // Function to get the appropriate background color based on status
   const getBackgroundColor = (status: string) => {

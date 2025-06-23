@@ -8,7 +8,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Patent, Employee } from '@/lib/types';
+import { Patent } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface EmployeeStats {
@@ -22,30 +22,24 @@ interface EmployeeStats {
 
 interface EmployeePatentTableProps {
   patents: Patent[];
-  employees?: Employee[];
 }
 
-const EmployeePatentTable: React.FC<EmployeePatentTableProps> = ({ patents, employees = [] }) => {
-  // Generate employee stats from patent data, only processing drafter assignments
+const EmployeePatentTable: React.FC<EmployeePatentTableProps> = ({ patents }) => {
+  // Generate employee stats from patent data
   const getEmployeeStats = (): EmployeeStats[] => {
     const employeeMap = new Map<string, EmployeeStats>();
     
-    // Create a set of filer names for quick lookup (to exclude them even if they appear in drafter fields)
-    const filerNames = new Set(
-      employees.filter(emp => emp.role === 'filer').map(emp => emp.full_name)
-    );
-    
     patents.forEach(patent => {
-      // Only process drafter assignment fields (ignore all filer assignments)
-      const drafterAssignments = [
+      // Process all employees assigned to any role in the patent
+      [
         patent.ps_drafter_assgn,
+        patent.ps_filer_assgn,
         patent.cs_drafter_assgn,
-        patent.fer_drafter_assgn
-      ].filter(Boolean);
-
-      drafterAssignments.forEach(employeeName => {
-        // Skip if employee name is null/undefined or if they are a filer
-        if (!employeeName || filerNames.has(employeeName)) return;
+        patent.cs_filer_assgn,
+        patent.fer_drafter_assgn,
+        patent.fer_filer_assgn
+      ].filter(Boolean).forEach(employeeName => {
+        if (!employeeName) return;
         
         if (!employeeMap.has(employeeName)) {
           employeeMap.set(employeeName, {
@@ -61,16 +55,22 @@ const EmployeePatentTable: React.FC<EmployeePatentTableProps> = ({ patents, empl
         const stats = employeeMap.get(employeeName)!;
         stats.totalAssigned++;
         
-        // Count completed PS drafting tasks
+        // Count completed PS drafting/filing tasks
         if (patent.ps_drafter_assgn === employeeName && patent.ps_drafting_status === 1) {
           stats.psCompleted++;
+        } else if (patent.ps_filer_assgn === employeeName && patent.ps_filing_status === 1) {
+          stats.psCompleted++;
         }
-        // Count completed CS drafting tasks
+        // Count completed CS drafting/filing tasks
         else if (patent.cs_drafter_assgn === employeeName && patent.cs_drafting_status === 1) {
           stats.csCompleted++;
+        } else if (patent.cs_filer_assgn === employeeName && patent.cs_filing_status === 1) {
+          stats.csCompleted++;
         }
-        // Count completed FER drafting tasks
+        // Count completed FER drafting/filing tasks
         else if (patent.fer_drafter_assgn === employeeName && patent.fer_drafter_status === 1) {
+          stats.ferCompleted++;
+        } else if (patent.fer_filer_assgn === employeeName && patent.fer_filing_status === 1) {
           stats.ferCompleted++;
         }
         // If none of the above, count as in progress

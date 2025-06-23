@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
-import { bulkUploadPatents, BulkUploadResult } from '@/lib/api/bulk-upload-api';
+import { bulkUploadPatents } from '@/lib/api/bulk-upload-api';
 import { PatentFormData } from '@/lib/types';
 import PageHeader from '@/components/common/PageHeader';
 import { Badge } from '@/components/ui/badge';
@@ -71,17 +71,13 @@ const BulkUpload: React.FC = () => {
       const results = await bulkUploadPatents(sampleData);
       
       setUploadProgress(100);
-      setUploadResults({
-        success: results.successCount,
-        failed: results.errorCount,
-        errors: results.errors.map(err => `Row ${err.row}: ${err.message}`)
-      });
+      setUploadResults(results);
       setShowResults(true);
       
-      if (results.successCount > 0) {
+      if (results.success > 0) {
         toast({
           title: "Sample Patent Uploaded",
-          description: `${results.successCount} sample patent(s) uploaded successfully.`,
+          description: `${results.success} sample patent(s) uploaded successfully.`,
         });
       } else {
         toast({
@@ -216,17 +212,13 @@ const BulkUpload: React.FC = () => {
       const results = await bulkUploadPatents(parsedData);
       
       setUploadProgress(100);
-      setUploadResults({
-        success: results.successCount,
-        failed: results.errorCount,
-        errors: results.errors.map(err => `Row ${err.row}: ${err.message}`)
-      });
+      setUploadResults(results);
       setShowResults(true);
       
-      if (results.successCount > 0) {
+      if (results.success > 0) {
         toast({
           title: "Upload Successful",
-          description: `${results.successCount} patents uploaded successfully. ${results.errorCount} failed.`,
+          description: `${results.success} patents uploaded successfully. ${results.failed} failed.`,
         });
       } else {
         toast({
