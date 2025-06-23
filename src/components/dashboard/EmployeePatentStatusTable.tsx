@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Patent } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { determinePatentStatus, PatentStatus, STATUS_LABELS } from '@/lib/utils/status-utils';
+import { determinePatentStatus, PatentStatus, STATUS_LABELS, getStatusCounts } from '@/lib/utils/status-utils';
 
 interface EmployeePatentStatusTableProps {
   patents: Patent[];
@@ -34,40 +34,16 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
     'withdrawn'
   ];
 
-  // Calculate overall status counts
+  // Calculate overall status counts using the corrected logic
   const statusCounts = useMemo(() => {
-    const counts: Record<PatentStatus, number> = {
-      'idf_sent': 0,
-      'idf_received': 0,
-      'ps_drafting': 0,
-      'ps_drafting_approval': 0,
-      'ps_filing': 0,
-      'ps_filing_approval': 0,
-      'ps_completed': 0,
-      'cs_data_sent': 0,
-      'cs_data_received': 0,
-      'cs_drafting': 0,
-      'cs_drafting_approval': 0,
-      'cs_filing': 0,
-      'cs_filing_approval': 0,
-      'cs_completed': 0,
-      'completed': 0,
-      'withdrawn': 0
-    };
-
-    patents.forEach(patent => {
-      const status = determinePatentStatus(patent);
-      counts[status]++;
-    });
-
-    return counts;
+    return getStatusCounts(patents);
   }, [patents]);
   
   // Calculate employee workload for each status
   const employeeWorkload = useMemo(() => {
     const workload: Record<string, Record<PatentStatus, number>> = {};
     
-    // Get all unique employees
+    // Get all unique employees from all assignment fields
     const allEmployees = new Set<string>();
     patents.forEach(patent => {
       if (patent.ps_drafter_assgn) allEmployees.add(patent.ps_drafter_assgn);
@@ -102,7 +78,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
       }
     });
     
-    // Count patents assigned to each employee (each patent counted only once per employee)
+    // Count patents assigned to each employee based on current status
     patents.forEach(patent => {
       const patentStatus = determinePatentStatus(patent);
       
@@ -112,19 +88,19 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
       switch (patentStatus) {
         case 'idf_sent':
         case 'idf_received':
-          // Admin responsibility, not assigned to specific employee yet
+          // Admin responsibility - no specific employee assignment yet
           break;
         case 'ps_drafting':
           responsibleEmployee = patent.ps_drafter_assgn || '';
           break;
         case 'ps_drafting_approval':
-          // Admin reviews PS drafts
+          // Admin reviews PS drafts - no employee assignment
           break;
         case 'ps_filing':
           responsibleEmployee = patent.ps_filer_assgn || '';
           break;
         case 'ps_filing_approval':
-          // Admin reviews PS filing
+          // Admin reviews PS filing - no employee assignment
           break;
         case 'ps_completed':
         case 'cs_data_sent':
@@ -135,18 +111,18 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
           responsibleEmployee = patent.cs_drafter_assgn || '';
           break;
         case 'cs_drafting_approval':
-          // Admin reviews CS drafts
+          // Admin reviews CS drafts - no employee assignment
           break;
         case 'cs_filing':
           responsibleEmployee = patent.cs_filer_assgn || '';
           break;
         case 'cs_filing_approval':
-          // Admin reviews CS filing
+          // Admin reviews CS filing - no employee assignment
           break;
         case 'cs_completed':
         case 'completed':
         case 'withdrawn':
-          // Final states, no specific employee responsibility
+          // Final states - no specific employee responsibility
           break;
       }
       
@@ -204,12 +180,15 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
     sortedEmployees.some(emp => employeeWorkload[emp][status] > 0)
   );
 
+  // Validation: Check if total counts match
+  const totalFromStatus = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+  
   return (
     <Card className="col-span-full">
       <CardHeader className="py-3 bg-blue-200">
         <CardTitle className="text-center text-lg font-bold">MAIN DASHBOARD - PATENT STATUS BY EMPLOYEE</CardTitle>
         <p className="text-center text-sm text-muted-foreground">
-          Linear Workflow: Each patent counted once in its current status
+          Linear Workflow: Each patent counted once in its current status (Total Patents: {patents.length}, Status Total: {totalFromStatus})
         </p>
       </CardHeader>
       <CardContent className="p-0">

@@ -59,61 +59,62 @@ export const STATUS_COLORS: Record<PatentStatus, string> = {
 
 /**
  * Determines the current status of a patent based on its fields
- * Using priority-based logic to ensure each patent has exactly one status
+ * Uses strict priority-based logic to ensure each patent has exactly one status
+ * Priority order: latest status in workflow takes precedence
  */
 export function determinePatentStatus(patent: Patent): PatentStatus {
   // Highest priority: Terminal states
   if (patent.withdrawn) return 'withdrawn';
+  
+  // Check for overall completion - this should be the highest non-withdrawn state
   if (patent.completed) return 'completed';
   
-  // CS section completion
+  // CS section states (in reverse priority order - latest first)
   if (patent.cs_completion_status === 1) return 'cs_completed';
   
-  // CS filing approval pending
-  if (patent.cs_filing_status === 1 && patent.cs_review_file_status === 1) {
-    return 'cs_filing_approval';
+  // CS filing states
+  if (patent.cs_filing_status === 1) {
+    if (patent.cs_review_file_status === 1) {
+      return 'cs_filing_approval';
+    }
+    return 'cs_filing';
   }
   
-  // CS filing in progress
-  if (patent.cs_filing_status === 1) return 'cs_filing';
-  
-  // CS drafting approval pending
-  if (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 1) {
-    return 'cs_drafting_approval';
+  // CS drafting states
+  if (patent.cs_drafting_status === 1) {
+    if (patent.cs_review_draft_status === 1) {
+      return 'cs_drafting_approval';
+    }
+    return 'cs_drafting';
   }
   
-  // CS drafting in progress
-  if (patent.cs_drafting_status === 1) return 'cs_drafting';
-  
-  // CS data received from client
+  // CS data states
   if (patent.cs_data_received) return 'cs_data_received';
-  
-  // CS data sent to client
   if (patent.cs_data) return 'cs_data_sent';
   
-  // PS section completion
+  // PS section states (in reverse priority order - latest first)
   if (patent.ps_completion_status === 1) return 'ps_completed';
   
-  // PS filing approval pending
-  if (patent.ps_filing_status === 1 && patent.ps_review_file_status === 1) {
-    return 'ps_filing_approval';
+  // PS filing states
+  if (patent.ps_filing_status === 1) {
+    if (patent.ps_review_file_status === 1) {
+      return 'ps_filing_approval';
+    }
+    return 'ps_filing';
   }
   
-  // PS filing in progress
-  if (patent.ps_filing_status === 1) return 'ps_filing';
-  
-  // PS drafting approval pending
-  if (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 1) {
-    return 'ps_drafting_approval';
+  // PS drafting states
+  if (patent.ps_drafting_status === 1) {
+    if (patent.ps_review_draft_status === 1) {
+      return 'ps_drafting_approval';
+    }
+    return 'ps_drafting';
   }
   
-  // PS drafting in progress
-  if (patent.ps_drafting_status === 1) return 'ps_drafting';
-  
-  // IDF received, ready for PS drafting
+  // Early workflow states
   if (patent.idf_received) return 'idf_received';
   
-  // Default: IDF sent, waiting for IDF to be received
+  // Default: Initial state
   return 'idf_sent';
 }
 
@@ -144,6 +145,12 @@ export function getStatusCounts(patents: Patent[]): Record<PatentStatus, number>
     const status = determinePatentStatus(patent);
     counts[status]++;
   });
+
+  // Validate that total counts match
+  const totalCounted = Object.values(counts).reduce((sum, count) => sum + count, 0);
+  if (totalCounted !== patents.length) {
+    console.warn(`Status counting mismatch: ${totalCounted} counted vs ${patents.length} patents`);
+  }
 
   return counts;
 }
