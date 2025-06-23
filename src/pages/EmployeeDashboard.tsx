@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
+import { determinePatentStatus, PatentStatus } from '@/lib/utils/status-utils';
 
 interface EnhancedPatent extends Patent {
   tasks: {
@@ -100,54 +101,33 @@ const EmployeeDashboard = () => {
         return; // Skip if employee not assigned
       }
 
-      // Determine patent's current status using the same logic as main dashboard
-      let patentStatus = '';
+      // Use the new status determination utility
+      const currentStatus = determinePatentStatus(patent);
       
-      // Priority 1: Check for pending confirmation (highest priority)
-      if (patent.pending_ps_confirmation || patent.pending_cs_confirmation) {
-        patentStatus = 'Pending Confirmation';
-      }
-      // Priority 2: Check for pending information
-      else if ((patent.idf_sent && !patent.idf_received) || (patent.cs_data && !patent.cs_data_received)) {
-        patentStatus = 'Pending Information';
-      }
-      // Priority 3: Check for review status
-      else if (
-        (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0) ||
-        (patent.ps_filing_status === 1 && patent.ps_review_file_status === 0) ||
-        (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0) ||
-        (patent.cs_filing_status === 1 && patent.cs_review_file_status === 0) ||
-        (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0) ||
-        (patent.fer_filing_status === 1 && patent.fer_review_file_status === 0)
-      ) {
-        patentStatus = 'Review';
-      }
-      // Priority 4: Check for completed status
-      else if (
-        patent.ps_completion_status === 1 && 
-        patent.cs_completion_status === 1 && 
-        (patent.fer_status === 0 || patent.fer_completion_status === 1)
-      ) {
-        patentStatus = 'Completed';
-      }
-      // Priority 5: Default to drafting (work in progress)
-      else {
-        patentStatus = 'Drafting';
-      }
-
-      // Count based on determined status
-      switch (patentStatus) {
-        case 'Completed':
+      // Map statuses to employee dashboard categories
+      switch (currentStatus) {
+        case 'completed':
           completed++;
           break;
-        case 'Review':
+        case 'ps_drafting_approval':
+        case 'ps_filing_approval':
+        case 'cs_drafting_approval':
+        case 'cs_filing_approval':
           review++;
           break;
-        case 'Pending Confirmation':
-          pendingConfirmation++;
+        case 'cs_data_sent':
+          if (patent.pending_cs_confirmation) {
+            pendingConfirmation++;
+          } else {
+            pendingInformation++;
+          }
           break;
-        case 'Pending Information':
-          pendingInformation++;
+        case 'idf_sent':
+          if (patent.pending_ps_confirmation) {
+            pendingConfirmation++;
+          } else {
+            pendingInformation++;
+          }
           break;
         default:
           drafting++;
@@ -169,65 +149,84 @@ const EmployeeDashboard = () => {
   const enhancedPatents = useMemo(() => {
     return patents.map(patent => {
       const tasks = [];
+      const currentStatus = determinePatentStatus(patent);
       
       if (patent.ps_drafter_assgn === employeeName) {
+        let status = 'Drafting';
+        if (currentStatus === 'ps_drafting_approval') status = 'Review';
+        else if (['ps_completed', 'cs_data_sent', 'cs_data_received', 'cs_drafting', 'cs_drafting_approval', 'cs_filing', 'cs_filing_approval', 'cs_completed', 'completed'].includes(currentStatus)) status = 'Completed';
+        else if (currentStatus === 'idf_sent' && patent.pending_ps_confirmation) status = 'Pending Confirmation';
+        else if (currentStatus === 'idf_sent' && !patent.idf_received) status = 'Pending Information';
+        
         tasks.push({
           type: 'PS Drafter',
-          status: patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 1 ? 'Completed' :
-                  patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0 ? 'Review' :
-                  patent.pending_ps_confirmation ? 'Pending Confirmation' :
-                  !patent.idf_received && patent.idf_sent ? 'Pending Information' : 'Drafting',
+          status,
           deadline: patent.ps_drafter_deadline
         });
       }
 
       if (patent.ps_filer_assgn === employeeName) {
+        let status = 'Drafting';
+        if (currentStatus === 'ps_filing_approval') status = 'Review';
+        else if (['ps_completed', 'cs_data_sent', 'cs_data_received', 'cs_drafting', 'cs_drafting_approval', 'cs_filing', 'cs_filing_approval', 'cs_completed', 'completed'].includes(currentStatus)) status = 'Completed';
+        else if (currentStatus === 'idf_sent' && patent.pending_ps_confirmation) status = 'Pending Confirmation';
+        else if (currentStatus === 'idf_sent' && !patent.idf_received) status = 'Pending Information';
+        
         tasks.push({
           type: 'PS Filer',
-          status: patent.ps_filing_status === 1 && patent.ps_review_file_status === 1 ? 'Completed' :
-                  patent.ps_filing_status === 1 && patent.ps_review_file_status === 0 ? 'Review' :
-                  patent.pending_ps_confirmation ? 'Pending Confirmation' :
-                  !patent.idf_received && patent.idf_sent ? 'Pending Information' : 'Drafting',
+          status,
           deadline: patent.ps_filer_deadline
         });
       }
 
       if (patent.cs_drafter_assgn === employeeName) {
+        let status = 'Drafting';
+        if (currentStatus === 'cs_drafting_approval') status = 'Review';
+        else if (['cs_completed', 'completed'].includes(currentStatus)) status = 'Completed';
+        else if (currentStatus === 'cs_data_sent' && patent.pending_cs_confirmation) status = 'Pending Confirmation';
+        else if (currentStatus === 'cs_data_sent' && !patent.cs_data_received) status = 'Pending Information';
+        
         tasks.push({
           type: 'CS Drafter',
-          status: patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 1 ? 'Completed' :
-                  patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0 ? 'Review' :
-                  patent.pending_cs_confirmation ? 'Pending Confirmation' :
-                  !patent.idf_received && patent.idf_sent ? 'Pending Information' : 'Drafting',
+          status,
           deadline: patent.cs_drafter_deadline
         });
       }
 
       if (patent.cs_filer_assgn === employeeName) {
+        let status = 'Drafting';
+        if (currentStatus === 'cs_filing_approval') status = 'Review';
+        else if (['cs_completed', 'completed'].includes(currentStatus)) status = 'Completed';
+        else if (currentStatus === 'cs_data_sent' && patent.pending_cs_confirmation) status = 'Pending Confirmation';
+        else if (currentStatus === 'cs_data_sent' && !patent.cs_data_received) status = 'Pending Information';
+        
         tasks.push({
           type: 'CS Filer',
-          status: patent.cs_filing_status === 1 && patent.cs_review_file_status === 1 ? 'Completed' :
-                  patent.cs_filing_status === 1 && patent.cs_review_file_status === 0 ? 'Review' :
-                  patent.pending_cs_confirmation ? 'Pending Confirmation' :
-                  !patent.idf_received && patent.idf_sent ? 'Pending Information' : 'Drafting',
+          status,
           deadline: patent.cs_filer_deadline
         });
       }
 
       if (patent.fer_drafter_assgn === employeeName) {
+        let status = 'Drafting';
+        if (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 1) status = 'Completed';
+        else if (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0) status = 'Review';
+        
         tasks.push({
           type: 'FER Drafter',
-          status: patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 1 ? 'Completed' :
-                  patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0 ? 'Review' : 'Drafting',
+          status,
           deadline: patent.fer_drafter_deadline
         });
       }
 
       if (patent.fer_filer_assgn === employeeName) {
+        let status = 'Drafting';
+        if (patent.fer_filing_status === 1 && patent.fer_review_file_status === 1) status = 'Completed';
+        else if (patent.fer_filing_status === 1 && patent.fer_review_file_status === 0) status = 'Review';
+        
         tasks.push({
           type: 'FER Filer',
-          status: patent.fer_filing_status === 1 && patent.fer_review_file_status === 1 ? 'Completed' :
-                  patent.fer_filing_status === 1 && patent.fer_review_file_status === 0 ? 'Review' : 'Drafting',
+          status,
           deadline: patent.fer_filer_deadline
         });
       }

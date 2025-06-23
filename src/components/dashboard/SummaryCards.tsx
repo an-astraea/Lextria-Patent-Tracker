@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Patent } from '@/lib/types';
 import { FileText, FileCheck, Clock, AlertTriangle } from 'lucide-react';
+import { getCompletionStats } from '@/lib/utils/status-utils';
 
 interface SummaryCardsProps {
   patents: Patent[];
@@ -17,14 +18,7 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({
   userAssignedPatents = [], 
   userRole = '' 
 }) => {
-  const totalPatents = patents.length;
-  const completedPatents = patents.filter(p => 
-    p.ps_completion_status === 1 && 
-    p.cs_completion_status === 1 && 
-    (p.fer_status === 0 || p.fer_completion_status === 1)
-  ).length;
-  
-  const inProgressPatents = totalPatents - completedPatents;
+  const stats = getCompletionStats(patents);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -34,7 +28,7 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({
           <FileText className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{totalPatents}</div>
+          <div className="text-2xl font-bold">{stats.total}</div>
           <p className="text-xs text-muted-foreground">
             Patents in the system
           </p>
@@ -47,9 +41,9 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({
           <FileCheck className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{completedPatents}</div>
+          <div className="text-2xl font-bold">{stats.completed}</div>
           <p className="text-xs text-muted-foreground">
-            {totalPatents ? ((completedPatents / totalPatents) * 100).toFixed(0) : 0}% completion rate
+            {stats.total ? ((stats.completed / stats.total) * 100).toFixed(0) : 0}% completion rate
           </p>
         </CardContent>
       </Card>
@@ -60,7 +54,7 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({
           <Clock className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{inProgressPatents}</div>
+          <div className="text-2xl font-bold">{stats.inProgress}</div>
           <p className="text-xs text-muted-foreground">
             Patents currently active
           </p>
@@ -74,7 +68,7 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingApprovalCount}</div>
+            <div className="text-2xl font-bold">{stats.pendingApproval}</div>
             <p className="text-xs text-muted-foreground">
               Items waiting for review
             </p>
