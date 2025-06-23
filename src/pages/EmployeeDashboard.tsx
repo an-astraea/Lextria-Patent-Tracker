@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -88,88 +87,77 @@ const EmployeeDashboard = () => {
     let pendingConfirmation = 0;
     let pendingInformation = 0;
 
+    // Create a set to track which patents we've already counted for this employee
+    const countedPatents = new Set<string>();
+
     patents.forEach(patent => {
-      // PS Drafter tasks
-      if (patent.ps_drafter_assgn === employeeName) {
-        if (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 1) {
-          completed++;
-        } else if (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0) {
-          review++;
-        } else if (patent.pending_ps_confirmation) {
-          pendingConfirmation++;
-        } else if (!patent.idf_received && patent.idf_sent) {
-          pendingInformation++;
-        } else {
-          drafting++;
-        }
+      // Check if this employee is assigned to this patent in any role
+      const isAssigned = patent.ps_drafter_assgn === employeeName ||
+                        patent.ps_filer_assgn === employeeName ||
+                        patent.cs_drafter_assgn === employeeName ||
+                        patent.cs_filer_assgn === employeeName ||
+                        patent.fer_drafter_assgn === employeeName ||
+                        patent.fer_filer_assgn === employeeName;
+
+      if (!isAssigned || countedPatents.has(patent.id)) {
+        return; // Skip if employee not assigned or already counted
       }
 
-      // PS Filer tasks
-      if (patent.ps_filer_assgn === employeeName && patent.ps_drafting_status === 1) {
-        if (patent.ps_filing_status === 1 && patent.ps_review_file_status === 1) {
-          completed++;
-        } else if (patent.ps_filing_status === 1 && patent.ps_review_file_status === 0) {
-          review++;
-        } else if (patent.pending_ps_confirmation) {
-          pendingConfirmation++;
-        } else if (!patent.idf_received && patent.idf_sent) {
-          pendingInformation++;
-        } else {
-          drafting++;
-        }
+      // Count this patent only once for this employee
+      countedPatents.add(patent.id);
+
+      // Determine patent's current status using the same logic as main dashboard
+      let patentStatus = '';
+      
+      // Priority 1: Check for pending confirmation (highest priority)
+      if (patent.pending_ps_confirmation || patent.pending_cs_confirmation) {
+        patentStatus = 'Pending Confirmation';
+      }
+      // Priority 2: Check for pending information
+      else if ((patent.idf_sent && !patent.idf_received) || (patent.cs_data && !patent.cs_data_received)) {
+        patentStatus = 'Pending Information';
+      }
+      // Priority 3: Check for review status
+      else if (
+        (patent.ps_drafting_status === 1 && patent.ps_review_draft_status === 0) ||
+        (patent.ps_filing_status === 1 && patent.ps_review_file_status === 0) ||
+        (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0) ||
+        (patent.cs_filing_status === 1 && patent.cs_review_file_status === 0) ||
+        (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0) ||
+        (patent.fer_filing_status === 1 && patent.fer_review_file_status === 0)
+      ) {
+        patentStatus = 'Review';
+      }
+      // Priority 4: Check for completed status
+      else if (
+        patent.ps_completion_status === 1 && 
+        patent.cs_completion_status === 1 && 
+        (patent.fer_status === 0 || patent.fer_completion_status === 1)
+      ) {
+        patentStatus = 'Completed';
+      }
+      // Priority 5: Default to drafting (work in progress)
+      else {
+        patentStatus = 'Drafting';
       }
 
-      // CS Drafter tasks
-      if (patent.cs_drafter_assgn === employeeName && patent.ps_filing_status === 1) {
-        if (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 1) {
+      // Count based on determined status
+      switch (patentStatus) {
+        case 'Completed':
           completed++;
-        } else if (patent.cs_drafting_status === 1 && patent.cs_review_draft_status === 0) {
+          break;
+        case 'Review':
           review++;
-        } else if (patent.pending_cs_confirmation) {
+          break;
+        case 'Pending Confirmation':
           pendingConfirmation++;
-        } else if (!patent.idf_received && patent.idf_sent) {
+          break;
+        case 'Pending Information':
           pendingInformation++;
-        } else {
+          break;
+        default:
           drafting++;
-        }
-      }
-
-      // CS Filer tasks
-      if (patent.cs_filer_assgn === employeeName && patent.cs_drafting_status === 1) {
-        if (patent.cs_filing_status === 1 && patent.cs_review_file_status === 1) {
-          completed++;
-        } else if (patent.cs_filing_status === 1 && patent.cs_review_file_status === 0) {
-          review++;
-        } else if (patent.pending_cs_confirmation) {
-          pendingConfirmation++;
-        } else if (!patent.idf_received && patent.idf_sent) {
-          pendingInformation++;
-        } else {
-          drafting++;
-        }
-      }
-
-      // FER tasks
-      if (patent.fer_status === 1) {
-        if (patent.fer_drafter_assgn === employeeName) {
-          if (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 1) {
-            completed++;
-          } else if (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 0) {
-            review++;
-          } else {
-            drafting++;
-          }
-        }
-
-        if (patent.fer_filer_assgn === employeeName && patent.fer_drafter_status === 1) {
-          if (patent.fer_filing_status === 1 && patent.fer_review_file_status === 1) {
-            completed++;
-          } else if (patent.fer_filing_status === 1 && patent.fer_review_file_status === 0) {
-            review++;
-          } else {
-            drafting++;
-          }
-        }
+          break;
       }
     });
 
@@ -179,7 +167,7 @@ const EmployeeDashboard = () => {
       review,
       pendingConfirmation,
       pendingInformation,
-      total: patents.length
+      total: countedPatents.size
     };
   }, [patents, employeeName]);
 
