@@ -112,15 +112,15 @@ const PendingReviewCard: React.FC<PendingReviewCardProps> = ({ patent, onApprove
                       size="sm" 
                       variant="outline"
                       onClick={() => onReject(patent, review.type)}
-                      className="text-red-500 hover:bg-red-50"
+                      className="text-red-500 hover:bg-red-50 hover:text-red-600 border-red-200"
                     >
                       <X className="h-4 w-4 mr-1" />
                       Reject
                     </Button>
                     <Button 
                       size="sm" 
-                      variant="ghost"
                       onClick={() => onApprove(patent, review.type)}
+                      className="bg-green-500 hover:bg-green-600 text-white"
                     >
                       <Check className="h-4 w-4 mr-1" />
                       Approve
