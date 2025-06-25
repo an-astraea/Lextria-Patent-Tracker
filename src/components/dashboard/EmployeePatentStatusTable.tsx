@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -335,11 +334,14 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
                             {status === 'ps_completed' ? 'PS Completed' : 
                              status === 'cs_completed' ? 'CS Completed' :
                              status === 'ps_drafting' ? 'PS Drafted' :
+                             status === 'cs_drafting' ? 'CS Drafted' :
                              status.replace(/_/g, ' ')}
                           </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {DISPLAY_LABELS[status]}
-                          </div>
+                          {status !== 'ps_drafting' && status !== 'cs_drafting' && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {DISPLAY_LABELS[status]}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       {sortedEmployees.map(employee => (
