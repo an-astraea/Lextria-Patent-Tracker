@@ -6,6 +6,7 @@ import { Patent } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { determinePatentStatus, PatentStatus, STATUS_LABELS, getStatusCounts, STATUS_COLORS } from '@/lib/utils/status-utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface EmployeePatentStatusTableProps {
   patents: Patent[];
@@ -44,6 +45,31 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
   // Calculate overall status counts using the corrected logic
   const statusCounts = useMemo(() => {
     return getStatusCounts(patents);
+  }, [patents]);
+
+  // Calculate sub-status counts for completed statuses
+  const subStatusCounts = useMemo(() => {
+    const psCompletedSubs: Record<string, number> = {};
+    const csCompletedSubs: Record<string, number> = {};
+    const completedSubs: Record<string, number> = {};
+
+    patents.forEach(patent => {
+      const status = determinePatentStatus(patent);
+      
+      if (['ps_filing', 'ps_filing_approval', 'ps_completed'].includes(status)) {
+        psCompletedSubs[status] = (psCompletedSubs[status] || 0) + 1;
+      }
+      
+      if (['cs_filing', 'cs_filing_approval', 'cs_completed'].includes(status)) {
+        csCompletedSubs[status] = (csCompletedSubs[status] || 0) + 1;
+      }
+      
+      if (status === 'completed') {
+        completedSubs[status] = (completedSubs[status] || 0) + 1;
+      }
+    });
+
+    return { psCompletedSubs, csCompletedSubs, completedSubs };
   }, [patents]);
   
   // Calculate employee workload with detailed stage-based allocation
@@ -138,7 +164,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
           
         case 'cs_completed':
         case 'completed':
-          // CS completed and overall completed go to CS drafter
+          // CS completed and overall completed go to CS drafter (last working drafter gets credit)
           responsibleEmployee = patent.cs_drafter_assgn || '';
           countStatus = 'cs_completed';
           break;
@@ -181,90 +207,134 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
 
   // Validation: Check if total counts match
   const totalFromStatus = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+
+  // Helper function to format sub-status counts for tooltips
+  const formatSubCounts = (subCounts: Record<string, number>) => {
+    return Object.entries(subCounts)
+      .map(([status, count]) => `${status.replace(/_/g, ' ')}: ${count}`)
+      .join('\n');
+  };
+
+  // Check if a status should have a tooltip
+  const shouldShowTooltip = (status: PatentStatus) => {
+    return ['ps_completed', 'cs_completed', 'completed'].includes(status);
+  };
+
+  // Get tooltip content for a status
+  const getTooltipContent = (status: PatentStatus) => {
+    switch (status) {
+      case 'ps_completed':
+        return formatSubCounts(subStatusCounts.psCompletedSubs);
+      case 'cs_completed':
+        return formatSubCounts(subStatusCounts.csCompletedSubs);
+      case 'completed':
+        return formatSubCounts(subStatusCounts.completedSubs);
+      default:
+        return '';
+    }
+  };
   
   return (
-    <Card className="col-span-full">
-      <CardHeader className="py-3 bg-blue-200">
-        <CardTitle className="text-center text-lg font-bold">MAIN DASHBOARD - PATENT STATUS BY EMPLOYEE</CardTitle>
-        <p className="text-center text-sm text-muted-foreground">
-          Detailed Allocation: IDF→PS drafter, PS filing→PS filer, CS data→CS drafter, CS filing→CS filer (Total Patents: {patents.length}, Status Total: {totalFromStatus})
-        </p>
-      </CardHeader>
-      <CardContent className="p-0">
-        {hasData ? (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="font-bold sticky left-0 bg-background z-10 min-w-[200px]">
-                    Status
-                  </TableHead>
-                  {sortedEmployees.map(employee => (
-                    <TableHead key={employee} className="text-center font-bold min-w-[120px]">
-                      <Button 
-                        variant="ghost" 
-                        className="p-0 h-auto font-bold text-foreground text-xs"
-                        onClick={() => handleEmployeeClick(employee)}
-                      >
-                        {employee}
-                      </Button>
+    <TooltipProvider>
+      <Card className="col-span-full">
+        <CardHeader className="py-3 bg-blue-200">
+          <CardTitle className="text-center text-lg font-bold">MAIN DASHBOARD - PATENT STATUS BY EMPLOYEE</CardTitle>
+          <p className="text-center text-sm text-muted-foreground">
+            Detailed Allocation: IDF→PS drafter, PS filing→PS filer, CS data→CS drafter, CS filing→CS filer, Last working drafter gets credit for completed (Total Patents: {patents.length}, Status Total: {totalFromStatus})
+          </p>
+        </CardHeader>
+        <CardContent className="p-0">
+          {hasData ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="font-bold sticky left-0 bg-background z-10 min-w-[200px]">
+                      Status
                     </TableHead>
+                    {sortedEmployees.map(employee => (
+                      <TableHead key={employee} className="text-center font-bold min-w-[120px]">
+                        <Button 
+                          variant="ghost" 
+                          className="p-0 h-auto font-bold text-foreground text-xs"
+                          onClick={() => handleEmployeeClick(employee)}
+                        >
+                          {employee}
+                        </Button>
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-center font-bold min-w-[80px]">TOTAL</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visibleStatuses.map(status => (
+                    <TableRow key={status} className={STATUS_COLORS[status]}>
+                      <TableCell className="font-bold sticky left-0 bg-inherit z-10">
+                        <div className="min-w-[180px]">
+                          <div className="font-semibold capitalize">
+                            {status === 'ps_completed' ? 'PS Completed' : 
+                             status === 'cs_completed' ? 'CS Completed' :
+                             status === 'ps_drafting' ? 'PS Drafted' :
+                             status.replace(/_/g, ' ')}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {DISPLAY_LABELS[status]}
+                          </div>
+                        </div>
+                      </TableCell>
+                      {sortedEmployees.map(employee => (
+                        <TableCell 
+                          key={`${employee}-${status}`} 
+                          className="text-center font-medium"
+                        >
+                          {employeeWorkload[employee][status] || 0}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-center font-bold">
+                        {shouldShowTooltip(status) ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help underline decoration-dotted">
+                                {statusCounts[status]}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="whitespace-pre-line">
+                                {getTooltipContent(status) || 'No sub-statuses'}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          statusCounts[status]
+                        )}
+                      </TableCell>
+                    </TableRow>
                   ))}
-                  <TableHead className="text-center font-bold min-w-[80px]">TOTAL</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleStatuses.map(status => (
-                  <TableRow key={status} className={STATUS_COLORS[status]}>
-                    <TableCell className="font-bold sticky left-0 bg-inherit z-10">
-                      <div className="min-w-[180px]">
-                        <div className="font-semibold capitalize">
-                          {status === 'ps_completed' ? 'PS Completed' : 
-                           status === 'cs_completed' ? 'CS Completed' :
-                           status.replace(/_/g, ' ')}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {DISPLAY_LABELS[status]}
-                        </div>
-                      </div>
+                  <TableRow className="bg-gray-100 font-bold border-t-2">
+                    <TableCell className="font-bold sticky left-0 bg-gray-100 z-10">
+                      TOTAL ASSIGNED
                     </TableCell>
                     {sortedEmployees.map(employee => (
                       <TableCell 
-                        key={`${employee}-${status}`} 
-                        className="text-center font-medium"
+                        key={`${employee}-total`} 
+                        className="text-center font-bold"
                       >
-                        {employeeWorkload[employee][status] || 0}
+                        {allStatuses.reduce((sum, status) => sum + employeeWorkload[employee][status], 0)}
                       </TableCell>
                     ))}
                     <TableCell className="text-center font-bold">
-                      {statusCounts[status]}
+                      {patents.length}
                     </TableCell>
                   </TableRow>
-                ))}
-                <TableRow className="bg-gray-100 font-bold border-t-2">
-                  <TableCell className="font-bold sticky left-0 bg-gray-100 z-10">
-                    TOTAL ASSIGNED
-                  </TableCell>
-                  {sortedEmployees.map(employee => (
-                    <TableCell 
-                      key={`${employee}-total`} 
-                      className="text-center font-bold"
-                    >
-                      {allStatuses.reduce((sum, status) => sum + employeeWorkload[employee][status], 0)}
-                    </TableCell>
-                  ))}
-                  <TableCell className="text-center font-bold">
-                    {patents.length}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <p className="text-center text-muted-foreground py-6">No patent data available</p>
-        )}
-      </CardContent>
-    </Card>
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-6">No patent data available</p>
+          )}
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 };
 

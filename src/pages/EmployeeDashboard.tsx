@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,12 +13,14 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
 import { determinePatentStatus, PatentStatus } from '@/lib/utils/status-utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface EnhancedPatent extends Patent {
   tasks: {
     type: string;
     status: string;
     deadline?: string;
+    responsibleFor: PatentStatus;
   }[];
 }
 
@@ -78,135 +81,217 @@ const EmployeeDashboard = () => {
     fetchEmployeePatents();
   }, [employeeName]);
 
-  // Calculate employee stats - count unique patents by their overall status
+  // Calculate employee stats using the new allocation logic
   const employeeStats = useMemo(() => {
-    if (!employeeName) return { completed: 0, drafting: 0, review: 0, pendingConfirmation: 0, pendingInformation: 0, total: 0 };
+    if (!employeeName) return { 
+      psCompleted: 0, 
+      csCompleted: 0, 
+      completed: 0, 
+      drafting: 0, 
+      review: 0, 
+      total: 0,
+      psCompletedSubCounts: {},
+      csCompletedSubCounts: {},
+      completedSubCounts: {}
+    };
 
+    let psCompleted = 0;
+    let csCompleted = 0;
     let completed = 0;
     let drafting = 0;
     let review = 0;
-    let pendingConfirmation = 0;
-    let pendingInformation = 0;
+
+    // Track sub-status counts for tooltips
+    const psCompletedSubCounts: Record<string, number> = {};
+    const csCompletedSubCounts: Record<string, number> = {};
+    const completedSubCounts: Record<string, number> = {};
 
     patents.forEach(patent => {
-      // Check if this employee is assigned to this patent in any role
-      const isAssigned = patent.ps_drafter_assgn === employeeName ||
-                        patent.ps_filer_assgn === employeeName ||
-                        patent.cs_drafter_assgn === employeeName ||
-                        patent.cs_filer_assgn === employeeName ||
-                        patent.fer_drafter_assgn === employeeName ||
-                        patent.fer_filer_assgn === employeeName;
+      const currentStatus = determinePatentStatus(patent);
+      let responsibleEmployee = '';
+      let countCategory = '';
 
-      if (!isAssigned) {
-        return; // Skip if employee not assigned
+      // Determine responsible employee and count category using the same logic as the main dashboard
+      switch (currentStatus) {
+        case 'idf_sent':
+        case 'idf_received':
+        case 'ps_drafting':
+        case 'ps_drafting_approval':
+          responsibleEmployee = patent.ps_drafter_assgn || '';
+          countCategory = 'drafting';
+          break;
+          
+        case 'ps_filing':
+        case 'ps_filing_approval':
+          responsibleEmployee = patent.ps_filer_assgn || '';
+          countCategory = 'psCompleted';
+          psCompletedSubCounts[currentStatus] = (psCompletedSubCounts[currentStatus] || 0) + 1;
+          break;
+          
+        case 'ps_completed':
+          responsibleEmployee = patent.ps_drafter_assgn || '';
+          countCategory = 'psCompleted';
+          psCompletedSubCounts[currentStatus] = (psCompletedSubCounts[currentStatus] || 0) + 1;
+          break;
+          
+        case 'cs_data_sent':
+        case 'cs_data_received':
+        case 'cs_drafting':
+        case 'cs_drafting_approval':
+          responsibleEmployee = patent.cs_drafter_assgn || '';
+          countCategory = 'drafting';
+          break;
+          
+        case 'cs_filing':
+        case 'cs_filing_approval':
+          responsibleEmployee = patent.cs_filer_assgn || '';
+          countCategory = 'csCompleted';
+          csCompletedSubCounts[currentStatus] = (csCompletedSubCounts[currentStatus] || 0) + 1;
+          break;
+          
+        case 'cs_completed':
+          responsibleEmployee = patent.cs_drafter_assgn || '';
+          countCategory = 'csCompleted';
+          csCompletedSubCounts[currentStatus] = (csCompletedSubCounts[currentStatus] || 0) + 1;
+          break;
+          
+        case 'completed':
+          responsibleEmployee = patent.cs_drafter_assgn || '';
+          countCategory = 'completed';
+          completedSubCounts[currentStatus] = (completedSubCounts[currentStatus] || 0) + 1;
+          break;
       }
 
-      // Use the new status determination utility
-      const currentStatus = determinePatentStatus(patent);
-      
-      // Map statuses to employee dashboard categories
-      switch (currentStatus) {
-        case 'completed':
-          completed++;
-          break;
-        case 'ps_drafting_approval':
-        case 'ps_filing_approval':
-        case 'cs_drafting_approval':
-        case 'cs_filing_approval':
-          review++;
-          break;
-        case 'cs_data_sent':
-          if (patent.pending_cs_confirmation) {
-            pendingConfirmation++;
-          } else {
-            pendingInformation++;
-          }
-          break;
-        case 'idf_sent':
-          if (patent.pending_ps_confirmation) {
-            pendingConfirmation++;
-          } else {
-            pendingInformation++;
-          }
-          break;
-        default:
-          drafting++;
-          break;
+      // Count for this employee
+      if (responsibleEmployee === employeeName) {
+        switch (countCategory) {
+          case 'psCompleted':
+            psCompleted++;
+            break;
+          case 'csCompleted':
+            csCompleted++;
+            break;
+          case 'completed':
+            completed++;
+            break;
+          case 'drafting':
+            drafting++;
+            break;
+          case 'review':
+            review++;
+            break;
+        }
       }
     });
 
     return {
+      psCompleted,
+      csCompleted,
       completed,
       drafting,
       review,
-      pendingConfirmation,
-      pendingInformation,
-      total: patents.length
+      total: patents.length,
+      psCompletedSubCounts,
+      csCompletedSubCounts,
+      completedSubCounts
     };
   }, [patents, employeeName]);
 
-  // Enhanced patent data with task details
+  // Enhanced patent data with task details using new logic
   const enhancedPatents = useMemo(() => {
     return patents.map(patent => {
       const tasks = [];
       const currentStatus = determinePatentStatus(patent);
       
-      if (patent.ps_drafter_assgn === employeeName) {
-        let status = 'Drafting';
-        if (currentStatus === 'ps_drafting_approval') status = 'Review';
-        else if (['ps_completed', 'cs_data_sent', 'cs_data_received', 'cs_drafting', 'cs_drafting_approval', 'cs_filing', 'cs_filing_approval', 'cs_completed', 'completed'].includes(currentStatus)) status = 'Completed';
-        else if (currentStatus === 'idf_sent' && patent.pending_ps_confirmation) status = 'Pending Confirmation';
-        else if (currentStatus === 'idf_sent' && !patent.idf_received) status = 'Pending Information';
-        
-        tasks.push({
-          type: 'PS Drafter',
-          status,
-          deadline: patent.ps_drafter_deadline
-        });
+      // Determine tasks and responsible employee using the new allocation logic
+      switch (currentStatus) {
+        case 'idf_sent':
+        case 'idf_received':
+        case 'ps_drafting':
+        case 'ps_drafting_approval':
+          if (patent.ps_drafter_assgn === employeeName) {
+            tasks.push({
+              type: 'PS Drafter',
+              status: currentStatus === 'ps_drafting_approval' ? 'Review' : 'Drafting',
+              deadline: patent.ps_drafter_deadline,
+              responsibleFor: currentStatus
+            });
+          }
+          break;
+          
+        case 'ps_filing':
+        case 'ps_filing_approval':
+          if (patent.ps_filer_assgn === employeeName) {
+            tasks.push({
+              type: 'PS Filer',
+              status: currentStatus === 'ps_filing_approval' ? 'Review' : 'Filing',
+              deadline: patent.ps_filer_deadline,
+              responsibleFor: currentStatus
+            });
+          }
+          break;
+          
+        case 'ps_completed':
+          if (patent.ps_drafter_assgn === employeeName) {
+            tasks.push({
+              type: 'PS Drafter',
+              status: 'PS Completed',
+              deadline: patent.ps_drafter_deadline,
+              responsibleFor: currentStatus
+            });
+          }
+          break;
+          
+        case 'cs_data_sent':
+        case 'cs_data_received':
+        case 'cs_drafting':
+        case 'cs_drafting_approval':
+          if (patent.cs_drafter_assgn === employeeName) {
+            tasks.push({
+              type: 'CS Drafter',
+              status: currentStatus === 'cs_drafting_approval' ? 'Review' : 'Drafting',
+              deadline: patent.cs_drafter_deadline,
+              responsibleFor: currentStatus
+            });
+          }
+          break;
+          
+        case 'cs_filing':
+        case 'cs_filing_approval':
+          if (patent.cs_filer_assgn === employeeName) {
+            tasks.push({
+              type: 'CS Filer',
+              status: currentStatus === 'cs_filing_approval' ? 'Review' : 'Filing',
+              deadline: patent.cs_filer_deadline,
+              responsibleFor: currentStatus
+            });
+          }
+          break;
+          
+        case 'cs_completed':
+          if (patent.cs_drafter_assgn === employeeName) {
+            tasks.push({
+              type: 'CS Drafter',
+              status: 'CS Completed',
+              deadline: patent.cs_drafter_deadline,
+              responsibleFor: currentStatus
+            });
+          }
+          break;
+          
+        case 'completed':
+          if (patent.cs_drafter_assgn === employeeName) {
+            tasks.push({
+              type: 'CS Drafter',
+              status: 'Completed',
+              deadline: patent.cs_drafter_deadline,
+              responsibleFor: currentStatus
+            });
+          }
+          break;
       }
 
-      if (patent.ps_filer_assgn === employeeName) {
-        let status = 'Drafting';
-        if (currentStatus === 'ps_filing_approval') status = 'Review';
-        else if (['ps_completed', 'cs_data_sent', 'cs_data_received', 'cs_drafting', 'cs_drafting_approval', 'cs_filing', 'cs_filing_approval', 'cs_completed', 'completed'].includes(currentStatus)) status = 'Completed';
-        else if (currentStatus === 'idf_sent' && patent.pending_ps_confirmation) status = 'Pending Confirmation';
-        else if (currentStatus === 'idf_sent' && !patent.idf_received) status = 'Pending Information';
-        
-        tasks.push({
-          type: 'PS Filer',
-          status,
-          deadline: patent.ps_filer_deadline
-        });
-      }
-
-      if (patent.cs_drafter_assgn === employeeName) {
-        let status = 'Drafting';
-        if (currentStatus === 'cs_drafting_approval') status = 'Review';
-        else if (['cs_completed', 'completed'].includes(currentStatus)) status = 'Completed';
-        else if (currentStatus === 'cs_data_sent' && patent.pending_cs_confirmation) status = 'Pending Confirmation';
-        else if (currentStatus === 'cs_data_sent' && !patent.cs_data_received) status = 'Pending Information';
-        
-        tasks.push({
-          type: 'CS Drafter',
-          status,
-          deadline: patent.cs_drafter_deadline
-        });
-      }
-
-      if (patent.cs_filer_assgn === employeeName) {
-        let status = 'Drafting';
-        if (currentStatus === 'cs_filing_approval') status = 'Review';
-        else if (['cs_completed', 'completed'].includes(currentStatus)) status = 'Completed';
-        else if (currentStatus === 'cs_data_sent' && patent.pending_cs_confirmation) status = 'Pending Confirmation';
-        else if (currentStatus === 'cs_data_sent' && !patent.cs_data_received) status = 'Pending Information';
-        
-        tasks.push({
-          type: 'CS Filer',
-          status,
-          deadline: patent.cs_filer_deadline
-        });
-      }
-
+      // Add FER tasks if applicable
       if (patent.fer_drafter_assgn === employeeName) {
         let status = 'Drafting';
         if (patent.fer_drafter_status === 1 && patent.fer_review_draft_status === 1) status = 'Completed';
@@ -215,7 +300,8 @@ const EmployeeDashboard = () => {
         tasks.push({
           type: 'FER Drafter',
           status,
-          deadline: patent.fer_drafter_deadline
+          deadline: patent.fer_drafter_deadline,
+          responsibleFor: 'fer_drafting' as PatentStatus
         });
       }
 
@@ -227,7 +313,8 @@ const EmployeeDashboard = () => {
         tasks.push({
           type: 'FER Filer',
           status,
-          deadline: patent.fer_filer_deadline
+          deadline: patent.fer_filer_deadline,
+          responsibleFor: 'fer_filing' as PatentStatus
         });
       }
 
@@ -339,14 +426,7 @@ const EmployeeDashboard = () => {
       'CS Filer': patent.cs_filer_assgn || '',
       'FER Drafter': patent.fer_drafter_assgn || '',
       'FER Filer': patent.fer_filer_assgn || '',
-      'IDF Status': `${patent.idf_sent ? 'Sent' : 'Not Sent'} | ${patent.idf_received ? 'Received' : 'Not Received'}`,
-      'CS Data Status': `${patent.cs_data ? 'Sent' : 'Not Sent'} | ${patent.cs_data_received ? 'Received' : 'Not Received'}`,
-      'PS Drafting Status': patent.ps_drafting_status === 1 ? 'Completed' : 'Pending',
-      'PS Filing Status': patent.ps_filing_status === 1 ? 'Completed' : 'Pending',
-      'CS Drafting Status': patent.cs_drafting_status === 1 ? 'Completed' : 'Pending',
-      'CS Filing Status': patent.cs_filing_status === 1 ? 'Completed' : 'Pending',
-      'FER Status': patent.fer_status === 1 ? 'Active' : 'Inactive',
-      'Inventors': patent.inventors?.map(inv => `${inv.inventor_name} - ${inv.inventor_addr}`).join('; ') || '',
+      'Current Status': determinePatentStatus(patent),
       'Tasks Assigned': patent.tasks.map(task => task.type).join(', '),
       'Task Status': patent.tasks.map(task => `${task.type}: ${task.status}`).join('; '),
       'Deadlines': patent.tasks.filter(task => task.deadline).map(task => 
@@ -364,11 +444,14 @@ const EmployeeDashboard = () => {
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'Completed': return 'default';
+      case 'Completed': 
+      case 'PS Completed':
+      case 'CS Completed':
+        return 'success';
       case 'Review': return 'secondary';
-      case 'Drafting': return 'outline';
-      case 'Pending Confirmation': return 'outline';
-      case 'Pending Information': return 'outline';
+      case 'Drafting': 
+      case 'Filing':
+        return 'outline';
       default: return 'outline';
     }
   };
@@ -383,6 +466,13 @@ const EmployeeDashboard = () => {
     { value: 'inventor_email', label: 'Inventor Email' }
   ];
 
+  // Helper function to format sub-status counts for tooltips
+  const formatSubCounts = (subCounts: Record<string, number>) => {
+    return Object.entries(subCounts)
+      .map(([status, count]) => `${status.replace(/_/g, ' ')}: ${count}`)
+      .join('\n');
+  };
+
   if (!canViewDashboard) {
     return null;
   }
@@ -396,184 +486,219 @@ const EmployeeDashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        {/* Only show back button for admin users */}
-        {isAdmin && (
-          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        )}
-        <div className="flex items-center gap-3">
-          <User className="h-6 w-6" />
-          <div>
-            <h1 className="text-2xl font-bold">
-              {isOwnDashboard ? 'My Dashboard' : employeeName}
-            </h1>
-            <p className="text-muted-foreground">
-              {isOwnDashboard ? 'Personal Dashboard' : 'Employee Dashboard'}
-            </p>
+    <TooltipProvider>
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          {/* Only show back button for admin users */}
+          {isAdmin && (
+            <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
+          <div className="flex items-center gap-3">
+            <User className="h-6 w-6" />
+            <div>
+              <h1 className="text-2xl font-bold">
+                {isOwnDashboard ? 'My Dashboard' : employeeName}
+              </h1>
+              <p className="text-muted-foreground">
+                {isOwnDashboard ? 'Personal Dashboard' : 'Employee Dashboard'}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">{employeeStats.completed}</div>
-            <div className="text-sm text-muted-foreground">Completed</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-600">{employeeStats.drafting}</div>
-            <div className="text-sm text-muted-foreground">Drafting</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-gray-600">{employeeStats.review}</div>
-            <div className="text-sm text-muted-foreground">Review</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-orange-600">{employeeStats.pendingConfirmation}</div>
-            <div className="text-sm text-muted-foreground">Pending Confirmation</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-purple-600">{employeeStats.pendingInformation}</div>
-            <div className="text-sm text-muted-foreground">Pending Information</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{employeeStats.total}</div>
-            <div className="text-sm text-muted-foreground">Total</div>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Summary Stats with Tooltips */}
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-help">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-blue-600">{employeeStats.psCompleted}</div>
+                  <div className="text-sm text-muted-foreground">PS Completed</div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="whitespace-pre-line">
+                {formatSubCounts(employeeStats.psCompletedSubCounts) || 'No sub-statuses'}
+              </div>
+            </TooltipContent>
+          </Tooltip>
 
-      {/* Enhanced Search and Filters */}
-      <SearchFilters
-        onSearch={handleSearch}
-        placeholder="Search patents by ID, title, applicant, client, inventor..."
-        searchFields={searchFields}
-        filters={[
-          {
-            name: 'Status',
-            options: [
-              { value: null, label: 'All Statuses' },
-              { value: 'Completed', label: 'Completed' },
-              { value: 'Drafting', label: 'Drafting' },
-              { value: 'Review', label: 'Review' },
-              { value: 'Pending Confirmation', label: 'Pending Confirmation' },
-              { value: 'Pending Information', label: 'Pending Information' }
-            ],
-            onFilter: handleStatusFilter,
-            activeFilter: statusFilter
-          },
-          {
-            name: 'Task Type',
-            options: [
-              { value: null, label: 'All Tasks' },
-              { value: 'PS Drafter', label: 'PS Drafter' },
-              { value: 'PS Filer', label: 'PS Filer' },
-              { value: 'CS Drafter', label: 'CS Drafter' },
-              { value: 'CS Filer', label: 'CS Filer' },
-              { value: 'FER Drafter', label: 'FER Drafter' },
-              { value: 'FER Filer', label: 'FER Filer' }
-            ],
-            onFilter: handleTaskTypeFilter,
-            activeFilter: taskTypeFilter
-          }
-        ]}
-      />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-help">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-indigo-600">{employeeStats.csCompleted}</div>
+                  <div className="text-sm text-muted-foreground">CS Completed</div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="whitespace-pre-line">
+                {formatSubCounts(employeeStats.csCompletedSubCounts) || 'No sub-statuses'}
+              </div>
+            </TooltipContent>
+          </Tooltip>
 
-      {/* Patents Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Assigned Patents ({filteredPatents.length})</CardTitle>
-            <Button variant="outline" size="sm" onClick={handleExportToExcel}>
-              <Download className="mr-2 h-4 w-4" />
-              Export to Excel
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {filteredPatents.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Patent ID</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Tasks</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Deadline</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPatents.map((patent) => (
-                    <TableRow key={patent.id}>
-                      <TableCell className="font-medium">{patent.tracking_id}</TableCell>
-                      <TableCell className="max-w-xs truncate">{patent.patent_title}</TableCell>
-                      <TableCell>{patent.client_id}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {patent.tasks.map((task, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {task.type}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {patent.tasks.map((task, index) => (
-                            <Badge key={index} variant={getStatusBadgeVariant(task.status)} className="text-xs">
-                              {task.status}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {patent.tasks
-                          .filter(task => task.deadline)
-                          .map((task, index) => (
-                            <div key={index} className="text-xs">
-                              {format(new Date(task.deadline!), 'MMM dd, yyyy')}
-                            </div>
-                          ))
-                        }
-                        {patent.tasks.every(task => !task.deadline) && (
-                          <span className="text-muted-foreground text-xs">No deadline</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="sm" onClick={() => navigate(`/patents/${patent.id}`)}>
-                          View
-                        </Button>
-                      </TableCell>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-help">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-green-600">{employeeStats.completed}</div>
+                  <div className="text-sm text-muted-foreground">Completed</div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="whitespace-pre-line">
+                {formatSubCounts(employeeStats.completedSubCounts) || 'No sub-statuses'}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-yellow-600">{employeeStats.drafting}</div>
+              <div className="text-sm text-muted-foreground">Drafting</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-gray-600">{employeeStats.review}</div>
+              <div className="text-sm text-muted-foreground">Review</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-purple-600">{employeeStats.total}</div>
+              <div className="text-sm text-muted-foreground">Total Assigned</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Enhanced Search and Filters */}
+        <SearchFilters
+          onSearch={handleSearch}
+          placeholder="Search patents by ID, title, applicant, client, inventor..."
+          searchFields={searchFields}
+          filters={[
+            {
+              name: 'Status',
+              options: [
+                { value: null, label: 'All Statuses' },
+                { value: 'Completed', label: 'Completed' },
+                { value: 'PS Completed', label: 'PS Completed' },
+                { value: 'CS Completed', label: 'CS Completed' },
+                { value: 'Drafting', label: 'Drafting' },
+                { value: 'Filing', label: 'Filing' },
+                { value: 'Review', label: 'Review' }
+              ],
+              onFilter: handleStatusFilter,
+              activeFilter: statusFilter
+            },
+            {
+              name: 'Task Type',
+              options: [
+                { value: null, label: 'All Tasks' },
+                { value: 'PS Drafter', label: 'PS Drafter' },
+                { value: 'PS Filer', label: 'PS Filer' },
+                { value: 'CS Drafter', label: 'CS Drafter' },
+                { value: 'CS Filer', label: 'CS Filer' },
+                { value: 'FER Drafter', label: 'FER Drafter' },
+                { value: 'FER Filer', label: 'FER Filer' }
+              ],
+              onFilter: handleTaskTypeFilter,
+              activeFilter: taskTypeFilter
+            }
+          ]}
+        />
+
+        {/* Patents Table */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Assigned Patents ({filteredPatents.length})</CardTitle>
+              <Button variant="outline" size="sm" onClick={handleExportToExcel}>
+                <Download className="mr-2 h-4 w-4" />
+                Export to Excel
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {filteredPatents.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Patent ID</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Tasks</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Deadline</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No patents found matching the criteria</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPatents.map((patent) => (
+                      <TableRow key={patent.id}>
+                        <TableCell className="font-medium">{patent.tracking_id}</TableCell>
+                        <TableCell className="max-w-xs truncate">{patent.patent_title}</TableCell>
+                        <TableCell>{patent.client_id}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {patent.tasks.map((task, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {task.type}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {patent.tasks.map((task, index) => (
+                              <Badge key={index} variant={getStatusBadgeVariant(task.status)} className="text-xs">
+                                {task.status}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {patent.tasks
+                            .filter(task => task.deadline)
+                            .map((task, index) => (
+                              <div key={index} className="text-xs">
+                                {format(new Date(task.deadline!), 'MMM dd, yyyy')}
+                              </div>
+                            ))
+                          }
+                          {patent.tasks.every(task => !task.deadline) && (
+                            <span className="text-muted-foreground text-xs">No deadline</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="outline" size="sm" onClick={() => navigate(`/patents/${patent.id}`)}>
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No patents found matching the criteria</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </TooltipProvider>
   );
 };
 
