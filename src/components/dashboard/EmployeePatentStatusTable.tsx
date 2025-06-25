@@ -185,14 +185,14 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
           break;
           
         case 'cs_completed':
-          // CS completed goes to CS drafter (last working drafter gets credit)
+          // CS completed goes to CS drafter
           responsibleEmployee = patent.cs_drafter_assgn || '';
           break;
           
         case 'completed':
-          // Overall completed goes to CS drafter (last working drafter gets credit)
+          // FIXED: Completed patents go to CS drafter and count under 'completed'
           responsibleEmployee = patent.cs_drafter_assgn || '';
-          countStatus = 'cs_completed';
+          countStatus = 'completed';
           break;
           
         case 'withdrawn':
@@ -266,7 +266,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
         <CardHeader className="py-3 bg-blue-200">
           <CardTitle className="text-center text-lg font-bold">MAIN DASHBOARD - PATENT STATUS BY EMPLOYEE</CardTitle>
           <p className="text-center text-sm text-muted-foreground">
-            Detailed Allocation: IDF→PS drafter, PS filing→PS filer, CS data→CS drafter, CS filing→CS filer, Last working drafter gets credit for completed (Total Patents: {patents.length}, Status Total: {totalFromStatus})
+            Detailed Allocation: IDF→PS drafter, PS filing→PS filer, CS data→CS drafter, CS filing→CS filer, Completed→CS drafter (Total Patents: {patents.length}, Status Total: {totalFromStatus})
           </p>
         </CardHeader>
         <CardContent className="p-0">

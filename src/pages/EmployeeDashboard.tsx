@@ -163,7 +163,7 @@ const EmployeeDashboard = () => {
           break;
           
         case 'completed':
-          // Completed patents go to CS drafter (last working drafter gets credit)
+          // FIXED: Completed patents go to CS drafter (last working drafter gets credit)
           responsibleEmployee = patent.cs_drafter_assgn || '';
           countCategory = 'completed';
           if (responsibleEmployee === employeeName) {
