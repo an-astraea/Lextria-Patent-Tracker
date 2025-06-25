@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -81,7 +80,7 @@ const EmployeeDashboard = () => {
     fetchEmployeePatents();
   }, [employeeName]);
 
-  // Calculate employee stats using the new allocation logic
+  // Calculate employee stats using the new allocation logic with proper CS stage breakdown
   const employeeStats = useMemo(() => {
     if (!employeeName) return { 
       psCompleted: 0, 
@@ -125,13 +124,17 @@ const EmployeeDashboard = () => {
         case 'ps_filing_approval':
           responsibleEmployee = patent.ps_filer_assgn || '';
           countCategory = 'psCompleted';
-          psCompletedSubCounts[currentStatus] = (psCompletedSubCounts[currentStatus] || 0) + 1;
+          if (responsibleEmployee === employeeName) {
+            psCompletedSubCounts[currentStatus] = (psCompletedSubCounts[currentStatus] || 0) + 1;
+          }
           break;
           
         case 'ps_completed':
           responsibleEmployee = patent.ps_drafter_assgn || '';
           countCategory = 'psCompleted';
-          psCompletedSubCounts[currentStatus] = (psCompletedSubCounts[currentStatus] || 0) + 1;
+          if (responsibleEmployee === employeeName) {
+            psCompletedSubCounts[currentStatus] = (psCompletedSubCounts[currentStatus] || 0) + 1;
+          }
           break;
           
         case 'cs_data_sent':
@@ -146,19 +149,47 @@ const EmployeeDashboard = () => {
         case 'cs_filing_approval':
           responsibleEmployee = patent.cs_filer_assgn || '';
           countCategory = 'csCompleted';
-          csCompletedSubCounts[currentStatus] = (csCompletedSubCounts[currentStatus] || 0) + 1;
+          if (responsibleEmployee === employeeName) {
+            csCompletedSubCounts[currentStatus] = (csCompletedSubCounts[currentStatus] || 0) + 1;
+          }
           break;
           
         case 'cs_completed':
           responsibleEmployee = patent.cs_drafter_assgn || '';
           countCategory = 'csCompleted';
-          csCompletedSubCounts[currentStatus] = (csCompletedSubCounts[currentStatus] || 0) + 1;
+          if (responsibleEmployee === employeeName) {
+            csCompletedSubCounts[currentStatus] = (csCompletedSubCounts[currentStatus] || 0) + 1;
+          }
           break;
           
         case 'completed':
+          // Completed patents go to CS drafter (last working drafter gets credit)
           responsibleEmployee = patent.cs_drafter_assgn || '';
           countCategory = 'completed';
-          completedSubCounts[currentStatus] = (completedSubCounts[currentStatus] || 0) + 1;
+          if (responsibleEmployee === employeeName) {
+            // For completed patents, determine what CS stage they were in before completion
+            let csStage = 'cs_completed'; // default
+            
+            if (patent.cs_filing_status === 1) {
+              if (patent.cs_review_file_status === 1) {
+                csStage = 'cs_filing_approval';
+              } else {
+                csStage = 'cs_filing';
+              }
+            } else if (patent.cs_drafting_status === 1) {
+              if (patent.cs_review_draft_status === 1) {
+                csStage = 'cs_drafting_approval';
+              } else {
+                csStage = 'cs_drafting';
+              }
+            } else if (patent.cs_data_received) {
+              csStage = 'cs_data_received';
+            } else if (patent.cs_data) {
+              csStage = 'cs_data_sent';
+            }
+            
+            completedSubCounts[csStage] = (completedSubCounts[csStage] || 0) + 1;
+          }
           break;
       }
 
@@ -280,6 +311,7 @@ const EmployeeDashboard = () => {
           break;
           
         case 'completed':
+          // Completed patents show for CS drafter (last working drafter gets credit)
           if (patent.cs_drafter_assgn === employeeName) {
             tasks.push({
               type: 'CS Drafter',

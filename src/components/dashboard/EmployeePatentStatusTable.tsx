@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -47,7 +46,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
     return getStatusCounts(patents);
   }, [patents]);
 
-  // Calculate sub-status counts for completed statuses
+  // Calculate sub-status counts for completed statuses with proper CS stage breakdown
   const subStatusCounts = useMemo(() => {
     const psCompletedSubs: Record<string, number> = {};
     const csCompletedSubs: Record<string, number> = {};
@@ -64,8 +63,31 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
         csCompletedSubs[status] = (csCompletedSubs[status] || 0) + 1;
       }
       
+      // For completed patents, determine what CS stage they were in before completion
       if (status === 'completed') {
-        completedSubs[status] = (completedSubs[status] || 0) + 1;
+        // Check the actual CS stage fields to determine what stage this patent was in
+        let csStage = 'cs_completed'; // default
+        
+        // Determine the CS stage based on CS section status fields
+        if (patent.cs_filing_status === 1) {
+          if (patent.cs_review_file_status === 1) {
+            csStage = 'cs_filing_approval';
+          } else {
+            csStage = 'cs_filing';
+          }
+        } else if (patent.cs_drafting_status === 1) {
+          if (patent.cs_review_draft_status === 1) {
+            csStage = 'cs_drafting_approval';
+          } else {
+            csStage = 'cs_drafting';
+          }
+        } else if (patent.cs_data_received) {
+          csStage = 'cs_data_received';
+        } else if (patent.cs_data) {
+          csStage = 'cs_data_sent';
+        }
+        
+        completedSubs[csStage] = (completedSubs[csStage] || 0) + 1;
       }
     });
 
@@ -163,8 +185,12 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
           break;
           
         case 'cs_completed':
+          // CS completed goes to CS drafter (last working drafter gets credit)
+          responsibleEmployee = patent.cs_drafter_assgn || '';
+          break;
+          
         case 'completed':
-          // CS completed and overall completed go to CS drafter (last working drafter gets credit)
+          // Overall completed goes to CS drafter (last working drafter gets credit)
           responsibleEmployee = patent.cs_drafter_assgn || '';
           countStatus = 'cs_completed';
           break;
