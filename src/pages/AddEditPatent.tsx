@@ -26,6 +26,7 @@ import {
   deleteFEREntry,
   updatePatentForms
 } from '@/lib/api';
+import { updateInventor, addInventor, deleteInventor } from '@/lib/api/inventors-api';
 import { Patent, PatentFormData, Employee, FEREntry } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -60,6 +61,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { FormRequirementsList } from '@/components/FormRequirementsList';
 
+interface InventorWithId {
+  id?: string;
+  inventor_name: string;
+  inventor_addr: string;
+}
+
 const AddEditPatent = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -79,6 +86,7 @@ const AddEditPatent = () => {
   
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
+  const [originalInventors, setOriginalInventors] = useState<InventorWithId[]>([]);
   const [formData, setFormData] = useState<PatentFormData>({
     tracking_id: '',
     patent_applicant: '',
@@ -154,6 +162,17 @@ const AddEditPatent = () => {
           setLoading(true);
           const patent = await fetchPatentById(id);
           if (patent) {
+            // Store original inventors with IDs for comparison
+            const inventorsWithIds = patent.inventors && patent.inventors.length > 0
+              ? patent.inventors.map(inv => ({ 
+                  id: inv.id, 
+                  inventor_name: inv.inventor_name, 
+                  inventor_addr: inv.inventor_addr 
+                }))
+              : [{ inventor_name: '', inventor_addr: '' }];
+            
+            setOriginalInventors(inventorsWithIds);
+            
             setFormData({
               tracking_id: patent.tracking_id,
               patent_applicant: patent.patent_applicant,
@@ -177,15 +196,14 @@ const AddEditPatent = () => {
               fer_drafter_deadline: patent.fer_drafter_deadline ? patent.fer_drafter_deadline.split('T')[0] : '',
               fer_filer_assgn: patent.fer_filer_assgn || '',
               fer_filer_deadline: patent.fer_filer_deadline ? patent.fer_filer_deadline.split('T')[0] : '',
-              inventors: patent.inventors && patent.inventors.length > 0
-                ? patent.inventors.map(inv => ({ inventor_name: inv.inventor_name, inventor_addr: inv.inventor_addr }))
-                : [{ inventor_name: '', inventor_addr: '' }],
+              inventors: inventorsWithIds.map(inv => ({ inventor_name: inv.inventor_name, inventor_addr: inv.inventor_addr })),
               idf_sent: patent.idf_sent || false,
               idf_received: patent.idf_received || false,
               cs_data: patent.cs_data || false,
               cs_data_received: patent.cs_data_received || false
             });
             
+            // ... keep existing code (form values initialization)
             const initialFormValues: Record<string, boolean> = {};
             Object.keys(patent).forEach(key => {
               if ((key.startsWith('form_') || key.startsWith('form_0')) && typeof patent[key as keyof Patent] === 'boolean') {
@@ -242,6 +260,90 @@ const AddEditPatent = () => {
       setFormData(prev => ({ ...prev, inventors: updatedInventors }));
     } else {
       toast.error('At least one inventor is required');
+    }
+  };
+  
+  // Helper function to handle inventor updates
+  const handleInventorUpdates = async () => {
+    if (!isEditMode || !id) return;
+    
+    console.log('Handling inventor updates...');
+    console.log('Original inventors:', originalInventors);
+    console.log('Current inventors:', formData.inventors);
+    
+    try {
+      // Create a map of original inventors by their content for easy lookup
+      const originalInventorMap = new Map();
+      originalInventors.forEach((inv, index) => {
+        if (inv.id) {
+          originalInventorMap.set(`${inv.inventor_name}-${inv.inventor_addr}`, { ...inv, originalIndex: index });
+        }
+      });
+      
+      // Track which original inventors are still present
+      const updatedOriginalIds = new Set();
+      
+      // Process each current inventor
+      for (let i = 0; i < formData.inventors.length; i++) {
+        const currentInventor = formData.inventors[i];
+        const inventorKey = `${currentInventor.inventor_name}-${currentInventor.inventor_addr}`;
+        
+        // Check if this inventor existed in original data
+        const originalInventor = originalInventorMap.get(inventorKey);
+        
+        if (originalInventor) {
+          // This inventor already exists, mark as still present
+          updatedOriginalIds.add(originalInventor.id);
+          console.log(`Inventor "${currentInventor.inventor_name}" already exists, skipping...`);
+        } else {
+          // Check if this might be an update to an existing inventor by position
+          const originalByPosition = originalInventors[i];
+          if (originalByPosition && originalByPosition.id && 
+              (originalByPosition.inventor_name !== currentInventor.inventor_name || 
+               originalByPosition.inventor_addr !== currentInventor.inventor_addr)) {
+            // This is an update to existing inventor
+            console.log(`Updating inventor ${originalByPosition.id} from "${originalByPosition.inventor_name}" to "${currentInventor.inventor_name}"`);
+            const result = await updateInventor(originalByPosition.id, currentInventor, id);
+            if (result.success) {
+              updatedOriginalIds.add(originalByPosition.id);
+              console.log(`Successfully updated inventor: ${currentInventor.inventor_name}`);
+            } else {
+              console.error(`Failed to update inventor: ${result.message}`);
+            }
+          } else {
+            // This is a new inventor
+            console.log(`Adding new inventor: ${currentInventor.inventor_name}`);
+            const result = await addInventor({
+              tracking_id: formData.tracking_id,
+              inventor_name: currentInventor.inventor_name,
+              inventor_addr: currentInventor.inventor_addr
+            }, id);
+            if (result.success) {
+              console.log(`Successfully added new inventor: ${currentInventor.inventor_name}`);
+            } else {
+              console.error(`Failed to add inventor: ${result.message}`);
+            }
+          }
+        }
+      }
+      
+      // Delete inventors that are no longer present
+      for (const originalInventor of originalInventors) {
+        if (originalInventor.id && !updatedOriginalIds.has(originalInventor.id)) {
+          console.log(`Deleting removed inventor: ${originalInventor.inventor_name}`);
+          const result = await deleteInventor(originalInventor.id, id);
+          if (result.success) {
+            console.log(`Successfully deleted inventor: ${originalInventor.inventor_name}`);
+          } else {
+            console.error(`Failed to delete inventor: ${result.message}`);
+          }
+        }
+      }
+      
+      console.log('Inventor updates completed');
+    } catch (error) {
+      console.error('Error handling inventor updates:', error);
+      toast.error('Some inventor updates failed. Please check and try again.');
     }
   };
   
@@ -395,6 +497,7 @@ const AddEditPatent = () => {
       const cleanedFormData = cleanFormData(formData);
       
       if (isEditMode && id) {
+        console.log('Updating patent in edit mode...');
         const success = await updatePatent(id, cleanedFormData);
         
         if (success && Object.keys(formValues).length > 0) {
@@ -402,10 +505,15 @@ const AddEditPatent = () => {
         }
         
         if (success) {
-          toast.success('Patent updated successfully');
+          console.log('Patent updated successfully, now handling inventors...');
+          // Handle inventor updates after successful patent update
+          await handleInventorUpdates();
+          
+          toast.success('Patent and inventors updated successfully');
           navigate('/patents');
         }
       } else {
+        console.log('Creating new patent...');
         const newPatent = await createPatent(cleanedFormData);
         if (newPatent) {
           for (const inventor of formData.inventors) {
