@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -6,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { determinePatentStatus, PatentStatus, STATUS_LABELS, getStatusCounts, STATUS_COLORS } from '@/lib/utils/status-utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { fetchEmployees } from '@/lib/api/employee-api';
 
 interface EmployeePatentStatusTableProps {
   patents: Patent[];
@@ -13,6 +15,26 @@ interface EmployeePatentStatusTableProps {
 
 const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ patents }) => {
   const navigate = useNavigate();
+  const [employees, setEmployees] = React.useState<any[]>([]);
+  
+  // Fetch employees to get their roles
+  React.useEffect(() => {
+    const loadEmployees = async () => {
+      try {
+        const employeeData = await fetchEmployees();
+        setEmployees(employeeData);
+      } catch (error) {
+        console.error('Error fetching employees:', error);
+      }
+    };
+    loadEmployees();
+  }, []);
+  
+  // Helper function to check if an employee is a filer
+  const isEmployeeFiler = (employeeName: string): boolean => {
+    const employee = employees.find(emp => emp.full_name === employeeName);
+    return employee?.role === 'filer';
+  };
   
   // All 16 statuses in workflow order
   const allStatuses: PatentStatus[] = [
@@ -94,22 +116,25 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
     return { psCompletedSubs, csCompletedSubs, completedSubs };
   }, [patents]);
   
-  // Calculate employee workload with detailed stage-based allocation
+  // Calculate employee workload with detailed stage-based allocation, excluding filers
   const employeeWorkload = useMemo(() => {
     const workload: Record<string, Record<PatentStatus, number>> = {};
     
-    // Get all unique employees from all assignment fields
+    // Get all unique employees from all assignment fields, excluding filers
     const allEmployees = new Set<string>();
     patents.forEach(patent => {
-      if (patent.ps_drafter_assgn) allEmployees.add(patent.ps_drafter_assgn);
-      if (patent.ps_filer_assgn) allEmployees.add(patent.ps_filer_assgn);
-      if (patent.cs_drafter_assgn) allEmployees.add(patent.cs_drafter_assgn);
-      if (patent.cs_filer_assgn) allEmployees.add(patent.cs_filer_assgn);
-      if (patent.fer_drafter_assgn) allEmployees.add(patent.fer_drafter_assgn);
-      if (patent.fer_filer_assgn) allEmployees.add(patent.fer_filer_assgn);
+      [
+        patent.ps_drafter_assgn,
+        patent.cs_drafter_assgn,
+        patent.fer_drafter_assgn
+      ].filter(Boolean).forEach(employeeName => {
+        if (employeeName && !isEmployeeFiler(employeeName)) {
+          allEmployees.add(employeeName);
+        }
+      });
     });
     
-    // Initialize workload for each employee
+    // Initialize workload for each non-filer employee
     allEmployees.forEach(employee => {
       if (employee) {
         workload[employee] = {
@@ -133,7 +158,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
       }
     });
     
-    // Count patents assigned to each employee based on detailed stage allocation
+    // Count patents assigned to each employee based on detailed stage allocation, excluding filers
     patents.forEach(patent => {
       const patentStatus = determinePatentStatus(patent);
       
@@ -143,55 +168,64 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
       switch (patentStatus) {
         case 'idf_sent':
         case 'idf_received':
-          // IDF stages go to PS drafter
+          // IDF stages go to PS drafter (only if not a filer)
           responsibleEmployee = patent.ps_drafter_assgn || '';
+          if (isEmployeeFiler(responsibleEmployee)) responsibleEmployee = '';
           break;
           
         case 'ps_drafting':
         case 'ps_drafting_approval':
-          // PS drafting stages go to PS drafter
+          // PS drafting stages go to PS drafter (only if not a filer)
           responsibleEmployee = patent.ps_drafter_assgn || '';
+          if (isEmployeeFiler(responsibleEmployee)) responsibleEmployee = '';
           break;
           
         case 'ps_filing':
         case 'ps_filing_approval':
-          // PS filing stages go to PS filer but count under ps_completed
-          responsibleEmployee = patent.ps_filer_assgn || '';
+          // PS filing stages - don't show filers, show as PS drafter's responsibility
+          responsibleEmployee = patent.ps_drafter_assgn || '';
+          if (isEmployeeFiler(responsibleEmployee)) responsibleEmployee = '';
           countStatus = 'ps_completed';
           break;
           
         case 'ps_completed':
-          // PS completed goes to PS drafter
+          // PS completed goes to PS drafter (only if not a filer)
           responsibleEmployee = patent.ps_drafter_assgn || '';
+          if (isEmployeeFiler(responsibleEmployee)) responsibleEmployee = '';
           break;
           
         case 'cs_data_sent':
         case 'cs_data_received':
-          // CS data stages go to CS drafter
+          // CS data stages go to CS drafter (only if not a filer)
           responsibleEmployee = patent.cs_drafter_assgn || '';
+          if (isEmployeeFiler(responsibleEmployee)) responsibleEmployee = '';
           break;
           
         case 'cs_drafting':
         case 'cs_drafting_approval':
-          // CS drafting stages go to CS drafter
+          // CS drafting stages go to CS drafter (only if not a filer)
           responsibleEmployee = patent.cs_drafter_assgn || '';
+          if (isEmployeeFiler(responsibleEmployee)) responsibleEmployee = '';
           break;
           
         case 'cs_filing':
         case 'cs_filing_approval':
-          // CS filing stages go to CS filer but count under cs_completed
-          responsibleEmployee = patent.cs_filer_assgn || '';
+          // CS filing stages - don't show filers, show as CS drafter's responsibility
+          responsibleEmployee = patent.cs_drafter_assgn || '';
+          if (isEmployeeFiler(responsibleEmployee)) responsibleEmployee = '';
           countStatus = 'cs_completed';
           break;
           
         case 'cs_completed':
-          // CS completed goes to CS drafter
+          // CS completed goes to CS drafter (only if not a filer)
           responsibleEmployee = patent.cs_drafter_assgn || '';
+          if (isEmployeeFiler(responsibleEmployee)) responsibleEmployee = '';
           break;
           
         case 'completed':
-          // FIXED: Completed patents go to CS drafter and count under 'completed'
+          // Completed patents go to CS drafter (only if not a filer)
           responsibleEmployee = patent.cs_drafter_assgn || '';
+          if (isEmployeeFiler(responsibleEmployee)) responsibleEmployee = '';
           countStatus = 'completed';
           break;
           
@@ -207,7 +241,7 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
     });
     
     return workload;
-  }, [patents]);
+  }, [patents, employees]);
   
   // Sort employees by total workload
   const sortedEmployees = useMemo(() => {
@@ -264,9 +298,9 @@ const EmployeePatentStatusTable: React.FC<EmployeePatentStatusTableProps> = ({ p
     <TooltipProvider>
       <Card className="col-span-full">
         <CardHeader className="py-3 bg-blue-200">
-          <CardTitle className="text-center text-lg font-bold">MAIN DASHBOARD - PATENT STATUS BY EMPLOYEE</CardTitle>
+          <CardTitle className="text-center text-lg font-bold">MAIN DASHBOARD - PATENT STATUS BY EMPLOYEE (DRAFTERS ONLY)</CardTitle>
           <p className="text-center text-sm text-muted-foreground">
-            Detailed Allocation: IDF→PS drafter, PS filing→PS filer, CS data→CS drafter, CS filing→CS filer, Completed→CS drafter (Total Patents: {patents.length}, Status Total: {totalFromStatus})
+            Detailed Allocation: IDF→PS drafter, PS filing→PS drafter, CS data→CS drafter, CS filing→CS drafter, Completed→CS drafter (Total Patents: {patents.length}, Status Total: {totalFromStatus})
           </p>
         </CardHeader>
         <CardContent className="p-0">

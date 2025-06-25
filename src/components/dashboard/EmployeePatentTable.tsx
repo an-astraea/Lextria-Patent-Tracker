@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/table';
 import { Patent } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { fetchEmployees } from '@/lib/api/employee-api';
 
 interface EmployeeStats {
   name: string;
@@ -25,21 +26,39 @@ interface EmployeePatentTableProps {
 }
 
 const EmployeePatentTable: React.FC<EmployeePatentTableProps> = ({ patents }) => {
-  // Generate employee stats from patent data
+  const [employees, setEmployees] = React.useState<any[]>([]);
+  
+  // Fetch employees to get their roles
+  React.useEffect(() => {
+    const loadEmployees = async () => {
+      try {
+        const employeeData = await fetchEmployees();
+        setEmployees(employeeData);
+      } catch (error) {
+        console.error('Error fetching employees:', error);
+      }
+    };
+    loadEmployees();
+  }, []);
+  
+  // Helper function to check if an employee is a filer
+  const isEmployeeFiler = (employeeName: string): boolean => {
+    const employee = employees.find(emp => emp.full_name === employeeName);
+    return employee?.role === 'filer';
+  };
+
+  // Generate employee stats from patent data, excluding filers
   const getEmployeeStats = (): EmployeeStats[] => {
     const employeeMap = new Map<string, EmployeeStats>();
     
     patents.forEach(patent => {
-      // Process all employees assigned to any role in the patent
+      // Process only non-filer employees assigned to any role in the patent
       [
         patent.ps_drafter_assgn,
-        patent.ps_filer_assgn,
         patent.cs_drafter_assgn,
-        patent.cs_filer_assgn,
-        patent.fer_drafter_assgn,
-        patent.fer_filer_assgn
+        patent.fer_drafter_assgn
       ].filter(Boolean).forEach(employeeName => {
-        if (!employeeName) return;
+        if (!employeeName || isEmployeeFiler(employeeName)) return;
         
         if (!employeeMap.has(employeeName)) {
           employeeMap.set(employeeName, {
@@ -55,22 +74,16 @@ const EmployeePatentTable: React.FC<EmployeePatentTableProps> = ({ patents }) =>
         const stats = employeeMap.get(employeeName)!;
         stats.totalAssigned++;
         
-        // Count completed PS drafting/filing tasks
+        // Count completed PS drafting tasks (exclude filers)
         if (patent.ps_drafter_assgn === employeeName && patent.ps_drafting_status === 1) {
           stats.psCompleted++;
-        } else if (patent.ps_filer_assgn === employeeName && patent.ps_filing_status === 1) {
-          stats.psCompleted++;
         }
-        // Count completed CS drafting/filing tasks
+        // Count completed CS drafting tasks (exclude filers)
         else if (patent.cs_drafter_assgn === employeeName && patent.cs_drafting_status === 1) {
           stats.csCompleted++;
-        } else if (patent.cs_filer_assgn === employeeName && patent.cs_filing_status === 1) {
-          stats.csCompleted++;
         }
-        // Count completed FER drafting/filing tasks
+        // Count completed FER drafting tasks (exclude filers)
         else if (patent.fer_drafter_assgn === employeeName && patent.fer_drafter_status === 1) {
-          stats.ferCompleted++;
-        } else if (patent.fer_filer_assgn === employeeName && patent.fer_filing_status === 1) {
           stats.ferCompleted++;
         }
         // If none of the above, count as in progress
@@ -94,7 +107,7 @@ const EmployeePatentTable: React.FC<EmployeePatentTableProps> = ({ patents }) =>
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Employee Performance ({employeeStats.length})</CardTitle>
+        <CardTitle>Employee Performance - Drafters Only ({employeeStats.length})</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <div className="w-full overflow-auto max-h-[60vh]">

@@ -3,19 +3,42 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Patent } from '@/lib/types';
 import { Users } from 'lucide-react';
+import { fetchEmployees } from '@/lib/api/employee-api';
 
 interface TopEmployeesProps {
   patents: Patent[];
 }
 
 const TopEmployees: React.FC<TopEmployeesProps> = ({ patents }) => {
+  const [employees, setEmployees] = React.useState<any[]>([]);
+  
+  // Fetch employees to get their roles
+  React.useEffect(() => {
+    const loadEmployees = async () => {
+      try {
+        const employeeData = await fetchEmployees();
+        setEmployees(employeeData);
+      } catch (error) {
+        console.error('Error fetching employees:', error);
+      }
+    };
+    loadEmployees();
+  }, []);
+  
+  // Helper function to check if an employee is a filer
+  const isEmployeeFiler = (employeeName: string): boolean => {
+    const employee = employees.find(emp => emp.full_name === employeeName);
+    return employee?.role === 'filer';
+  };
+  
   const getEmployeeStatistics = () => {
     if (!patents.length) return null;
 
     const employeeStats = new Map();
     
     patents.forEach(patent => {
-      if (patent.ps_drafter_assgn) {
+      // Only include PS drafter if not a filer
+      if (patent.ps_drafter_assgn && !isEmployeeFiler(patent.ps_drafter_assgn)) {
         const key = patent.ps_drafter_assgn;
         if (!employeeStats.has(key)) {
           employeeStats.set(key, { 
@@ -34,26 +57,10 @@ const TopEmployees: React.FC<TopEmployeesProps> = ({ patents }) => {
         }
       }
       
-      if (patent.ps_filer_assgn) {
-        const key = patent.ps_filer_assgn;
-        if (!employeeStats.has(key)) {
-          employeeStats.set(key, { 
-            drafting: 0, 
-            filing: 0, 
-            completed: 0,
-            inProgress: 0 
-          });
-        }
-        employeeStats.get(key).filing += 1;
-        
-        if (patent.ps_filing_status === 1) {
-          employeeStats.get(key).completed += 1;
-        } else {
-          employeeStats.get(key).inProgress += 1;
-        }
-      }
+      // Skip PS filer as they are filers
       
-      if (patent.cs_drafter_assgn) {
+      // Only include CS drafter if not a filer
+      if (patent.cs_drafter_assgn && !isEmployeeFiler(patent.cs_drafter_assgn)) {
         const key = patent.cs_drafter_assgn;
         if (!employeeStats.has(key)) {
           employeeStats.set(key, { 
@@ -72,26 +79,10 @@ const TopEmployees: React.FC<TopEmployeesProps> = ({ patents }) => {
         }
       }
       
-      if (patent.cs_filer_assgn) {
-        const key = patent.cs_filer_assgn;
-        if (!employeeStats.has(key)) {
-          employeeStats.set(key, { 
-            drafting: 0, 
-            filing: 0, 
-            completed: 0,
-            inProgress: 0 
-          });
-        }
-        employeeStats.get(key).filing += 1;
-        
-        if (patent.cs_filing_status === 1) {
-          employeeStats.get(key).completed += 1;
-        } else {
-          employeeStats.get(key).inProgress += 1;
-        }
-      }
+      // Skip CS filer as they are filers
       
-      if (patent.fer_drafter_assgn) {
+      // Only include FER drafter if not a filer
+      if (patent.fer_drafter_assgn && !isEmployeeFiler(patent.fer_drafter_assgn)) {
         const key = patent.fer_drafter_assgn;
         if (!employeeStats.has(key)) {
           employeeStats.set(key, { 
@@ -110,24 +101,7 @@ const TopEmployees: React.FC<TopEmployeesProps> = ({ patents }) => {
         }
       }
       
-      if (patent.fer_filer_assgn) {
-        const key = patent.fer_filer_assgn;
-        if (!employeeStats.has(key)) {
-          employeeStats.set(key, { 
-            drafting: 0, 
-            filing: 0, 
-            completed: 0,
-            inProgress: 0 
-          });
-        }
-        employeeStats.get(key).filing += 1;
-        
-        if (patent.fer_filing_status === 1) {
-          employeeStats.get(key).completed += 1;
-        } else {
-          employeeStats.get(key).inProgress += 1;
-        }
-      }
+      // Skip FER filer as they are filers
     });
     
     return employeeStats;
@@ -151,10 +125,10 @@ const TopEmployees: React.FC<TopEmployeesProps> = ({ patents }) => {
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle>Employee Performance</CardTitle>
+          <CardTitle>Employee Performance (Drafters Only)</CardTitle>
           <Users className="h-5 w-5 text-muted-foreground" />
         </div>
-        <CardDescription>Top employees by completed tasks</CardDescription>
+        <CardDescription>Top drafters by completed tasks</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -167,7 +141,7 @@ const TopEmployees: React.FC<TopEmployeesProps> = ({ patents }) => {
                 <div>
                   <p className="text-sm font-medium">{employee.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {employee.drafting} drafting, {employee.filing} filing tasks
+                    {employee.drafting} drafting tasks
                   </p>
                 </div>
               </div>
