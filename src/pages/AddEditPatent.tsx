@@ -26,7 +26,7 @@ import {
   deleteFEREntry,
   updatePatentForms
 } from '@/lib/api';
-import { updateInventor, addInventor, deleteInventor } from '@/lib/api/inventors-api';
+import { updateInventor, addInventor as addInventorAPI, deleteInventor } from '@/lib/api/inventors-api';
 import { Patent, PatentFormData, Employee, FEREntry } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -246,7 +246,7 @@ const AddEditPatent = () => {
     setFormData(prev => ({ ...prev, inventors: updatedInventors }));
   };
   
-  const addInventor = () => {
+  const addInventorToForm = () => {
     setFormData(prev => ({
       ...prev,
       inventors: [...prev.inventors, { inventor_name: '', inventor_addr: '' }]
@@ -313,7 +313,7 @@ const AddEditPatent = () => {
           } else {
             // This is a new inventor
             console.log(`Adding new inventor: ${currentInventor.inventor_name}`);
-            const result = await addInventor({
+            const result = await addInventorAPI({
               tracking_id: formData.tracking_id,
               inventor_name: currentInventor.inventor_name,
               inventor_addr: currentInventor.inventor_addr
@@ -795,7 +795,7 @@ const AddEditPatent = () => {
               </div>
             ))}
             
-            <Button type="button" variant="outline" onClick={addInventor} className="w-full">
+            <Button type="button" variant="outline" onClick={addInventorToForm} className="w-full">
               <Plus className="mr-2 h-4 w-4" />
               Add Another Inventor
             </Button>
